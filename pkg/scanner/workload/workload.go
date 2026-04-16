@@ -3,6 +3,7 @@ package workload
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	corev1 "k8s.io/api/core/v1"
@@ -316,6 +317,10 @@ func checkContainer(c corev1.Container, res engine.Resource) []engine.Finding {
 }
 
 func containsTag(image string) bool {
+	// Images with digest (@sha256:...) are always pinned
+	if strings.Contains(image, "@") {
+		return true
+	}
 	// Check if image has a tag (contains : after the last /)
 	for i := len(image) - 1; i >= 0; i-- {
 		if image[i] == ':' {
@@ -329,6 +334,10 @@ func containsTag(image string) bool {
 }
 
 func hasLatestTag(image string) bool {
+	// No tag at all means implicit :latest
+	if !containsTag(image) {
+		return true
+	}
 	for i := len(image) - 1; i >= 0; i-- {
 		if image[i] == ':' {
 			return image[i+1:] == "latest"

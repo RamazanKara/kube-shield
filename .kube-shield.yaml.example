@@ -1,0 +1,56 @@
+# kube-shield configuration
+# Place this file as .kube-shield.yaml in your project root or ~/.kube-shield.yaml
+
+# Kubernetes context to use (empty = current context)
+kubeContext: ""
+
+# Namespace to scan (empty = all namespaces)
+namespace: ""
+
+# Output format: table, json, sarif
+output: table
+
+# Scanners to enable (empty = all)
+scanners:
+  - workload
+  - rbac
+  - netpol
+  - secrets
+  - cis
+
+# Severity threshold: only report findings at or above this level
+# Options: info, low, medium, high, critical
+severity: low
+
+# Namespaces to exclude from scanning
+excludeNamespaces:
+  - kube-system
+  - kube-public
+  - kube-node-lease
+
+# AI-powered remediation
+ai:
+  # Provider: openai, ollama, or empty to disable
+  provider: ""
+
+  # OpenAI settings
+  openai:
+    # API key (prefer OPENAI_API_KEY env var)
+    apiKey: ""
+    model: "gpt-4"
+    endpoint: "https://api.openai.com/v1"
+
+  # Ollama settings (local LLM)
+  ollama:
+    model: "llama3"
+    endpoint: "http://localhost:11434"
+
+# CIS Benchmark checks to skip
+cisExclusions: []
+
+# Exit code behavior
+# If true, exit with non-zero code when findings are detected
+failOnFindings: false
+
+# Minimum score to pass (0-100). Exit non-zero if below this.
+minScore: 0

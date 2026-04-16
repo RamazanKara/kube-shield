@@ -115,6 +115,53 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 			}
 		}
 
+		// Check for secrets in volume mounts
+		secretVolumes := make(map[string]string)
+		for _, vol := range pod.Spec.Volumes {
+			if vol.Secret != nil {
+				secretVolumes[vol.Name] = vol.Secret.SecretName
+			}
+		}
+		for _, c := range allContainers {
+			for _, mount := range c.VolumeMounts {
+				if secretName, ok := secretVolumes[mount.Name]; ok {
+					// Check if the secret volume is mounted with a world-readable default mode
+					for _, vol := range pod.Spec.Volumes {
+						if vol.Name == mount.Name && vol.Secret != nil {
+							mode := vol.Secret.DefaultMode
+							if mode != nil && *mode > 0o440 {
+								findings = append(findings, engine.Finding{
+									ID:          fmt.Sprintf("SEC-004-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretName),
+									CheckID:     "SEC-004",
+									Title:       fmt.Sprintf("Secret volume with permissive file mode: %s", secretName),
+									Description: fmt.Sprintf("Secret %q is mounted in container %q at %q with file mode %#o. Secret files should be readable only by the owner.", secretName, c.Name, mount.MountPath, *mode),
+									Severity:    engine.SeverityMedium,
+									Category:    engine.CategorySecrets,
+									Resource:    res,
+									Remediation: "Set defaultMode: 0400 or 0440 on the secret volume to restrict file permissions.",
+								})
+							}
+							break
+						}
+					}
+
+					// Check if the secret is mounted at a sensitive path
+					if mount.MountPath == "/" || mount.MountPath == "/etc" || mount.MountPath == "/root" {
+						findings = append(findings, engine.Finding{
+							ID:          fmt.Sprintf("SEC-005-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretName),
+							CheckID:     "SEC-005",
+							Title:       fmt.Sprintf("Secret mounted at sensitive path: %s", mount.MountPath),
+							Description: fmt.Sprintf("Secret %q is mounted at %q in container %q. Mounting secrets at sensitive system paths could override system files.", secretName, mount.MountPath, c.Name),
+							Severity:    engine.SeverityHigh,
+							Category:    engine.CategorySecrets,
+							Resource:    res,
+							Remediation: "Mount secrets at a dedicated path like /etc/secrets/ or /var/run/secrets/.",
+						})
+					}
+				}
+			}
+		}
+
 		// Check for service account token automounting on default SA
 		if pod.Spec.ServiceAccountName == "default" || pod.Spec.ServiceAccountName == "" {
 			automount := pod.Spec.AutomountServiceAccountToken

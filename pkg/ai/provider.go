@@ -1,9 +1,14 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 )
@@ -62,6 +67,36 @@ func buildPrompt(finding engine.Finding, action string) string {
 	return sb.String()
 }
 
+// OpenAI API types
+type openAIMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type openAIRequest struct {
+	Model       string          `json:"model"`
+	Messages    []openAIMessage `json:"messages"`
+	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens"`
+}
+
+type openAIResponse struct {
+	Choices []struct {
+		Message openAIMessage `json:"message"`
+	} `json:"choices"`
+}
+
+// Ollama API types
+type ollamaRequest struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+	Stream bool   `json:"stream"`
+}
+
+type ollamaResponse struct {
+	Response string `json:"response"`
+}
+
 // OpenAIProvider uses the OpenAI API for remediation.
 type OpenAIProvider struct {
 	apiKey   string
@@ -95,10 +130,49 @@ func (p *OpenAIProvider) Remediate(ctx context.Context, finding engine.Finding) 
 }
 
 func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error) {
-	// Uses net/http directly to avoid heavy SDK dependency for now
-	// This will be replaced with the official SDK in a future iteration
-	_ = ctx
-	return fmt.Sprintf("[OpenAI %s] Would generate response for:\n%s", p.model, prompt[:min(len(prompt), 100)]), nil
+	reqBody := openAIRequest{
+		Model: p.model,
+		Messages: []openAIMessage{
+			{Role: "user", Content: prompt},
+		},
+		Temperature: 0.3,
+		MaxTokens:   1024,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.endpoint+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+p.apiKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("OpenAI request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("OpenAI returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result openAIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(result.Choices) == 0 {
+		return "", fmt.Errorf("OpenAI returned no choices")
+	}
+
+	return result.Choices[0].Message.Content, nil
 }
 
 // OllamaProvider uses a local Ollama instance.
@@ -130,13 +204,39 @@ func (p *OllamaProvider) Remediate(ctx context.Context, finding engine.Finding) 
 }
 
 func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, error) {
-	_ = ctx
-	return fmt.Sprintf("[Ollama %s] Would generate response for:\n%s", p.model, prompt[:min(len(prompt), 100)]), nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
+	reqBody := ollamaRequest{
+		Model:  p.model,
+		Prompt: prompt,
+		Stream: false,
 	}
-	return b
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.endpoint+"/api/generate", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Ollama request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result ollamaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result.Response, nil
 }

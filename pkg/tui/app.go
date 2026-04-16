@@ -6,6 +6,7 @@ import (
 
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -78,14 +79,21 @@ type Model struct {
 	showDetail  bool
 	showHelp    bool
 	ready       bool
+	filterInput textinput.Model
+	filtering   bool
+	filterText  string
 }
 
 // NewModel creates a new TUI model.
 func NewModel(report *engine.Report, clusterInfo string) Model {
+	ti := textinput.New()
+	ti.Placeholder = "filter by name, namespace, severity..."
+	ti.CharLimit = 100
 	return Model{
 		report:      report,
 		clusterInfo: clusterInfo,
 		activeTab:   TabDashboard,
+		filterInput: ti,
 	}
 }
 
@@ -109,6 +117,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		// Handle filter mode
+		if m.filtering {
+			switch {
+			case key.Matches(msg, keys.Back):
+				m.filtering = false
+				m.filterInput.Blur()
+				m.viewport.SetContent(m.renderContent())
+				return m, nil
+			case msg.String() == "enter":
+				m.filterText = m.filterInput.Value()
+				m.filtering = false
+				m.filterInput.Blur()
+				m.cursor = 0
+				m.viewport.SetContent(m.renderContent())
+				return m, nil
+			default:
+				var cmd tea.Cmd
+				m.filterInput, cmd = m.filterInput.Update(msg)
+				return m, cmd
+			}
+		}
+
 		switch {
 		case key.Matches(msg, keys.Quit):
 			return m, tea.Quit
@@ -163,6 +193,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showHelp = !m.showHelp
 			m.viewport.SetContent(m.renderContent())
 			return m, nil
+
+		case key.Matches(msg, keys.Filter):
+			m.filtering = true
+			m.filterInput.Focus()
+			return m, textinput.Blink
 		}
 	}
 
@@ -216,8 +251,33 @@ func (m Model) renderTabs() string {
 }
 
 func (m Model) renderStatusBar() string {
-	help := "tab: switch  ↑↓/jk: navigate  enter: select  esc: back  ?: help  q: quit"
+	if m.filtering {
+		return statusBarStyle.Render("  Filter: " + m.filterInput.View() + "  (enter to apply, esc to cancel)")
+	}
+	filter := ""
+	if m.filterText != "" {
+		filter = fmt.Sprintf("  filter: %q (/ to change)", m.filterText)
+	}
+	help := "tab: switch  ↑↓/jk: navigate  enter: select  esc: back  /: filter  ?: help  q: quit" + filter
 	return statusBarStyle.Render(help)
+}
+
+func (m Model) filteredFindings() []engine.Finding {
+	if m.filterText == "" {
+		return m.report.Findings
+	}
+	filter := strings.ToLower(m.filterText)
+	var result []engine.Finding
+	for _, f := range m.report.Findings {
+		if strings.Contains(strings.ToLower(f.Title), filter) ||
+			strings.Contains(strings.ToLower(f.Resource.Name), filter) ||
+			strings.Contains(strings.ToLower(f.Resource.Namespace), filter) ||
+			strings.Contains(strings.ToLower(f.Severity.String()), filter) ||
+			strings.Contains(strings.ToLower(f.CheckID), filter) {
+			result = append(result, f)
+		}
+	}
+	return result
 }
 
 func (m Model) renderContent() string {
@@ -312,7 +372,11 @@ func (m Model) renderDashboard() string {
 }
 
 func (m Model) renderFindings() string {
-	if len(m.report.Findings) == 0 {
+	findings := m.filteredFindings()
+	if len(findings) == 0 {
+		if m.filterText != "" {
+			return cardStyle.Render("\n  No findings match filter: " + m.filterText + "\n  Press / to change filter.\n")
+		}
 		return cardStyle.Render("\n  ✅ No findings! Your cluster is secure.\n")
 	}
 
@@ -324,7 +388,7 @@ func (m Model) renderFindings() string {
 	sb.WriteString("\n")
 	sb.WriteString("  " + strings.Repeat("─", m.width-4) + "\n")
 
-	for i, f := range m.report.Findings {
+	for i, f := range findings {
 		resource := f.Resource.String()
 		if len(resource) > 33 {
 			resource = resource[:30] + "..."
@@ -345,16 +409,17 @@ func (m Model) renderFindings() string {
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("\n  Showing %d findings. Press Enter for details.", len(m.report.Findings)))
+	sb.WriteString(fmt.Sprintf("\n  Showing %d findings. Press Enter for details.", len(findings)))
 	return sb.String()
 }
 
 func (m Model) renderFindingDetail() string {
-	if m.cursor >= len(m.report.Findings) {
+	findings := m.filteredFindings()
+	if m.cursor >= len(findings) {
 		return "No finding selected"
 	}
 
-	f := m.report.Findings[m.cursor]
+	f := findings[m.cursor]
 	sev := severityStyle(f.Severity.String()).Render(f.Severity.String())
 
 	detail := fmt.Sprintf(
@@ -444,16 +509,98 @@ func (m Model) renderNetworkPanel() string {
 }
 
 func (m Model) renderGraphPanel() string {
-	return cardStyle.Render(
-		"\n  Attack Path Analysis\n\n" +
-			"  Attack path analysis requires a cluster connection.\n" +
-			"  Run 'kube-shield scan' first, then use 'kube-shield dashboard'.\n\n" +
-			"  The graph will show:\n" +
-			"  • Pod → ServiceAccount → Role → Secret paths\n" +
-			"  • Network connectivity between namespaces\n" +
-			"  • Privilege escalation chains\n" +
-			"  • Blast radius for compromised workloads\n",
-	)
+	var sb strings.Builder
+	sb.WriteString("\n  Attack Path Analysis\n\n")
+
+	// Extract attack chains from critical/high findings
+	type attackChain struct {
+		severity string
+		source   string
+		path     string
+		target   string
+	}
+
+	var chains []attackChain
+	for _, f := range m.report.Findings {
+		if f.Severity < engine.SeverityHigh {
+			continue
+		}
+
+		switch {
+		case strings.Contains(f.CheckID, "RBAC-001"), strings.Contains(f.CheckID, "RBAC-002"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "wildcard permissions",
+				target:   "all cluster resources",
+			})
+		case strings.Contains(f.CheckID, "RBAC-003"), strings.Contains(f.CheckID, "RBAC-004"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "secret access",
+				target:   "cluster secrets",
+			})
+		case strings.Contains(f.CheckID, "RBAC-021"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "pod exec",
+				target:   "container shells",
+			})
+		case strings.Contains(f.CheckID, "RBAC-025"), strings.Contains(f.CheckID, "RBAC-026"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "cluster-admin binding",
+				target:   "full cluster control",
+			})
+		case strings.Contains(f.CheckID, "WL-005"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "privileged container",
+				target:   "host node",
+			})
+		case strings.Contains(f.CheckID, "WL-001"), strings.Contains(f.CheckID, "WL-002"), strings.Contains(f.CheckID, "WL-003"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "host namespace",
+				target:   "host node",
+			})
+		case strings.Contains(f.CheckID, "SEC-001"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "env var exposure",
+				target:   "secret data leaked",
+			})
+		}
+	}
+
+	if len(chains) == 0 {
+		sb.WriteString("  ✅ No high-risk attack paths detected.\n\n")
+		sb.WriteString("  The attack path analyzer identifies chains of findings\n")
+		sb.WriteString("  that could be combined by an attacker for lateral movement.\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("  Found %d potential attack chains:\n\n", len(chains)))
+		for i, c := range chains {
+			if i >= 15 {
+				sb.WriteString(fmt.Sprintf("\n  ... and %d more chains\n", len(chains)-15))
+				break
+			}
+			sevStyle := severityStyle(c.severity)
+			sb.WriteString(fmt.Sprintf("  %s  %s ──[%s]──▶ %s\n",
+				sevStyle.Render(fmt.Sprintf("%-8s", c.severity)),
+				c.source,
+				c.path,
+				c.target))
+		}
+		sb.WriteString("\n  Legend: Source ──[permission/vulnerability]──▶ Target\n")
+	}
+
+	return cardStyle.Render(sb.String())
 }
 
 func (m Model) renderHelp() string {
@@ -475,7 +622,7 @@ func (m Model) renderHelp() string {
 func (m Model) maxCursorItems() int {
 	switch m.activeTab {
 	case TabFindings:
-		return len(m.report.Findings)
+		return len(m.filteredFindings())
 	case TabRBAC:
 		count := 0
 		for _, f := range m.report.Findings {

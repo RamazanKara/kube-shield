@@ -183,8 +183,8 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 			})
 		}
 
-		// Pod exec/attach
-		if containsStr(rule.Resources, "pods/exec") || containsStr(rule.Resources, "pods/attach") {
+		// Pod exec/attach (including pods/* wildcard)
+		if containsStr(rule.Resources, "pods/exec") || containsStr(rule.Resources, "pods/attach") || containsStr(rule.Resources, "pods/*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-021-%s", res.String()),
 				CheckID:     "RBAC-021",

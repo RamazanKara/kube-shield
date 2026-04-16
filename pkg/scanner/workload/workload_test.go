@@ -280,11 +280,11 @@ func TestImageTagChecks(t *testing.T) {
 		hasTag    bool
 		isLatest  bool
 	}{
-		{"nginx", false, false},
+		{"nginx", false, true},
 		{"nginx:latest", true, true},
 		{"nginx:1.25", true, false},
 		{"myregistry.io/app:v1.0", true, false},
-		{"myregistry.io/app", false, false},
+		{"myregistry.io/app", false, true},
 		{"myregistry.io/app:latest", true, true},
 	}
 
