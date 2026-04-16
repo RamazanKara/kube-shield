@@ -102,3 +102,5 @@ func gradeStyle(grade string) lipgloss.Style {
 		return scoreFStyle
 	}
 }
+
+var dimStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))

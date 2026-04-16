@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/RamazanKara/kube-shield/pkg/ai"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
 	"github.com/RamazanKara/kube-shield/pkg/report"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/cis"
@@ -23,6 +24,7 @@ var (
 	severity   string
 	timeout    time.Duration
 	exitCode   bool
+	categories []string
 )
 
 var scanCmd = &cobra.Command{
@@ -62,6 +64,7 @@ func init() {
 	scanCmd.Flags().StringVar(&severity, "severity", "low", "minimum severity to report (critical,high,medium,low,info)")
 	scanCmd.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "scan timeout")
 	scanCmd.Flags().BoolVar(&exitCode, "exit-code", false, "exit with non-zero code if findings match severity threshold")
+	scanCmd.Flags().StringSliceVar(&categories, "category", nil, "filter by category (workload,cis,rbac,netpol,secrets)")
 
 	rootCmd.AddCommand(scanCmd)
 }
@@ -112,9 +115,13 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("scan failed: %w", err)
 	}
 
-	// Filter by severity
+	// Filter by severity and category
 	minSev := engine.SeverityFromString(severity)
-	result.Findings = engine.FilterFindings(result.Findings, minSev, nil, "")
+	var catFilter []engine.Category
+	for _, c := range categories {
+		catFilter = append(catFilter, engine.Category(c))
+	}
+	result.Findings = engine.FilterFindings(result.Findings, minSev, catFilter, "")
 
 	// Recalculate summary after filtering
 	result.Summary.Total = len(result.Findings)
@@ -138,6 +145,45 @@ func runScan(cmd *cobra.Command, args []string) error {
 	default:
 		if err := report.TableWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write table report: %w", err)
+		}
+	}
+
+	// AI-powered explanation for critical/high findings
+	aiProvider := viper.GetString("ai.provider")
+	if aiProvider != "" {
+		aiCfg := ai.Config{
+			Provider: aiProvider,
+			Model:    viper.GetString("ai.model"),
+			APIKey:   viper.GetString("ai.apikey"),
+			Endpoint: viper.GetString("ai.endpoint"),
+		}
+		provider, aiErr := ai.NewProvider(aiCfg)
+		if aiErr != nil {
+			fmt.Fprintf(os.Stderr, "\n⚠️  AI provider error: %v\n", aiErr)
+		} else {
+			var critHigh []engine.Finding
+			for _, f := range result.Findings {
+				if f.Severity >= engine.SeverityHigh {
+					critHigh = append(critHigh, f)
+				}
+			}
+			if len(critHigh) > 0 {
+				fmt.Fprintf(os.Stderr, "\n🤖 AI Analysis (%s):\n", provider.Name())
+				limit := len(critHigh)
+				if limit > 5 {
+					limit = 5
+				}
+				aiCtx, aiCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer aiCancel()
+				for _, f := range critHigh[:limit] {
+					explanation, expErr := provider.Explain(aiCtx, f)
+					if expErr != nil {
+						fmt.Fprintf(os.Stderr, "  %s: AI error: %v\n", f.CheckID, expErr)
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "\n  📋 %s (%s)\n  %s\n", f.Title, f.CheckID, explanation)
+				}
+			}
 		}
 	}
 

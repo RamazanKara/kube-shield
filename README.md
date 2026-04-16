@@ -15,8 +15,7 @@
 
 **kube-shield** is a comprehensive Kubernetes security posture management tool with a beautiful interactive terminal UI. It scans your clusters for security issues including CIS benchmark violations, RBAC misconfigurations, network policy gaps, secret exposure, and more — then helps you fix them with AI-powered remediation suggestions.
 
-<!-- TODO: Add terminal screenshot/gif here -->
-<!-- <p align="center"><img src="docs/demo.gif" width="800"></p> -->
+<!-- Screenshot: <p align="center"><img src="docs/demo.gif" width="800"></p> -->
 
 ## ✨ Features
 
@@ -32,7 +31,7 @@
   - Findings explorer with drill-down details
   - RBAC analysis panel
   - Network policy visualization
-  - Attack path graph (coming soon)
+  - Attack path graph
   - Vim-style keyboard navigation
 
 - **🤖 AI-Powered Remediation** (opt-in)
@@ -67,8 +66,6 @@ brew install RamazanKara/tap/kube-shield
 # Docker
 docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield scan
 
-# kubectl plugin (via Krew)
-kubectl krew install shield
 ```
 
 ### Download Binary
@@ -118,15 +115,19 @@ kube-shield dashboard -n production
 ### AI-Powered Remediation
 
 ```bash
-# Using OpenAI
+# Using OpenAI (via flags)
+kube-shield scan --ai-provider openai --ai-api-key sk-...
+
+# Using environment variables
 export KUBE_SHIELD_AI_PROVIDER=openai
 export KUBE_SHIELD_AI_APIKEY=sk-...
 kube-shield scan
 
 # Using local Ollama
-export KUBE_SHIELD_AI_PROVIDER=ollama
-export KUBE_SHIELD_AI_ENDPOINT=http://localhost:11434
-kube-shield scan
+kube-shield scan --ai-provider ollama --ai-endpoint http://localhost:11434
+
+# AI in the TUI dashboard (press 'e' on a finding for AI explanation)
+kube-shield dashboard --ai-provider openai --ai-api-key sk-...
 ```
 
 ## 🔬 Scanners
@@ -199,7 +200,9 @@ security-scan:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see our contributing guidelines:
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+Quick start:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)

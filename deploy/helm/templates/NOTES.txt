@@ -1,0 +1,11 @@
+kube-shield has been installed.
+
+To verify the installation:
+
+  kubectl get cronjob -l app.kubernetes.io/name={{ include "kube-shield.name" . }}
+
+To run a manual scan:
+
+  kubectl create job --from=cronjob/{{ include "kube-shield.fullname" . }} manual-scan
+
+For more information, visit: https://github.com/RamazanKara/kube-shield

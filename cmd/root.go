@@ -59,6 +59,17 @@ func init() {
 	_ = viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
 	_ = viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 	_ = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+
+	// AI flags
+	rootCmd.PersistentFlags().String("ai-provider", "", "AI provider: openai, ollama")
+	rootCmd.PersistentFlags().String("ai-model", "", "AI model name (e.g., gpt-4, llama3)")
+	rootCmd.PersistentFlags().String("ai-api-key", "", "AI provider API key")
+	rootCmd.PersistentFlags().String("ai-endpoint", "", "AI provider endpoint URL")
+
+	_ = viper.BindPFlag("ai.provider", rootCmd.PersistentFlags().Lookup("ai-provider"))
+	_ = viper.BindPFlag("ai.model", rootCmd.PersistentFlags().Lookup("ai-model"))
+	_ = viper.BindPFlag("ai.apikey", rootCmd.PersistentFlags().Lookup("ai-api-key"))
+	_ = viper.BindPFlag("ai.endpoint", rootCmd.PersistentFlags().Lookup("ai-endpoint"))
 }
 
 func initConfig() {

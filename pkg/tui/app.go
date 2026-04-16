@@ -1,15 +1,20 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/RamazanKara/kube-shield/pkg/ai"
+	"github.com/RamazanKara/kube-shield/pkg/graph"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Tab represents a navigation tab.
@@ -52,6 +57,7 @@ type KeyMap struct {
 	Filter    key.Binding
 	Help      key.Binding
 	Refresh   key.Binding
+	Explain   key.Binding
 }
 
 var keys = KeyMap{
@@ -65,6 +71,7 @@ var keys = KeyMap{
 	Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
 	Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 	Refresh:  key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
+	Explain:  key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "AI explain")),
 }
 
 // Model is the main TUI model.
@@ -82,10 +89,30 @@ type Model struct {
 	filterInput textinput.Model
 	filtering   bool
 	filterText  string
+	// AI provider for explaining findings
+	aiProvider ai.Provider
+	aiResult   string
+	aiLoading  bool
+	// For refresh support
+	k8sClient kubernetes.Interface
+	namespace string
+	eng       *engine.Engine
+}
+
+// aiExplainMsg carries the result of an AI explanation.
+type aiExplainMsg struct {
+	result string
+	err    error
+}
+
+// refreshMsg carries the result of a re-scan.
+type refreshMsg struct {
+	report *engine.Report
+	err    error
 }
 
 // NewModel creates a new TUI model.
-func NewModel(report *engine.Report, clusterInfo string) Model {
+func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider, k8sClient kubernetes.Interface, ns string, eng *engine.Engine) Model {
 	ti := textinput.New()
 	ti.Placeholder = "filter by name, namespace, severity..."
 	ti.CharLimit = 100
@@ -94,6 +121,10 @@ func NewModel(report *engine.Report, clusterInfo string) Model {
 		clusterInfo: clusterInfo,
 		activeTab:   TabDashboard,
 		filterInput: ti,
+		aiProvider:  aiProvider,
+		k8sClient:   k8sClient,
+		namespace:   ns,
+		eng:         eng,
 	}
 }
 
@@ -103,6 +134,28 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case aiExplainMsg:
+		m.aiLoading = false
+		if msg.err != nil {
+			m.aiResult = fmt.Sprintf("AI error: %v", msg.err)
+		} else {
+			m.aiResult = msg.result
+		}
+		m.viewport.SetContent(m.renderContent())
+		return m, nil
+
+	case refreshMsg:
+		m.aiLoading = false
+		if msg.err != nil {
+			m.aiResult = fmt.Sprintf("Refresh error: %v", msg.err)
+		} else {
+			m.report = msg.report
+			m.aiResult = ""
+			m.cursor = 0
+		}
+		m.viewport.SetContent(m.renderContent())
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -177,6 +230,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Enter):
 			if m.activeTab == TabFindings && !m.showDetail {
 				m.showDetail = true
+				m.aiResult = ""
 				m.viewport.SetContent(m.renderContent())
 				m.viewport.GotoTop()
 			}
@@ -185,6 +239,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Back):
 			if m.showDetail {
 				m.showDetail = false
+				m.aiResult = ""
 				m.viewport.SetContent(m.renderContent())
 			}
 			return m, nil
@@ -198,6 +253,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.filtering = true
 			m.filterInput.Focus()
 			return m, textinput.Blink
+
+		case key.Matches(msg, keys.Explain):
+			if m.aiProvider != nil && m.activeTab == TabFindings && m.showDetail {
+				findings := m.filteredFindings()
+				if m.cursor < len(findings) {
+					m.aiLoading = true
+					m.aiResult = "⏳ Asking AI..."
+					m.viewport.SetContent(m.renderContent())
+					f := findings[m.cursor]
+					return m, func() tea.Msg {
+						ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+						defer cancel()
+						result, err := m.aiProvider.Explain(ctx, f)
+						return aiExplainMsg{result: result, err: err}
+					}
+				}
+			}
+			return m, nil
+
+		case key.Matches(msg, keys.Refresh):
+			if m.eng != nil && m.k8sClient != nil {
+				m.aiLoading = true
+				m.aiResult = "⏳ Refreshing scan..."
+				m.viewport.SetContent(m.renderContent())
+				return m, func() tea.Msg {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					defer cancel()
+					report, err := m.eng.RunAll(ctx, m.k8sClient, m.namespace)
+					return refreshMsg{report: report, err: err}
+				}
+			}
+			return m, nil
 		}
 	}
 
@@ -442,7 +529,15 @@ func (m Model) renderFindingDetail() string {
 		f.Remediation,
 	)
 
-	return "\n" + cardStyle.Render(detail)
+	result := "\n" + cardStyle.Render(detail)
+
+	if m.aiResult != "" {
+		result += "\n\n" + cardStyle.Render("  🤖 AI Analysis\n\n  "+strings.ReplaceAll(m.aiResult, "\n", "\n  "))
+	} else if m.aiProvider != nil {
+		result += "\n\n" + dimStyle.Render("  Press 'e' for AI-powered explanation")
+	}
+
+	return result
 }
 
 func (m Model) renderRBACPanel() string {
@@ -534,7 +629,14 @@ func (m Model) renderGraphPanel() string {
 				path:     "wildcard permissions",
 				target:   "all cluster resources",
 			})
-		case strings.Contains(f.CheckID, "RBAC-003"), strings.Contains(f.CheckID, "RBAC-004"):
+		case strings.Contains(f.CheckID, "RBAC-003"):
+			chains = append(chains, attackChain{
+				severity: f.Severity.String(),
+				source:   f.Resource.String(),
+				path:     "wildcard resources",
+				target:   "all cluster resources",
+			})
+		case strings.Contains(f.CheckID, "RBAC-010"), strings.Contains(f.CheckID, "RBAC-011"):
 			chains = append(chains, attackChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
@@ -548,14 +650,14 @@ func (m Model) renderGraphPanel() string {
 				path:     "pod exec",
 				target:   "container shells",
 			})
-		case strings.Contains(f.CheckID, "RBAC-025"), strings.Contains(f.CheckID, "RBAC-026"):
+		case strings.Contains(f.CheckID, "RBAC-030"), strings.Contains(f.CheckID, "RBAC-031"):
 			chains = append(chains, attackChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
 				path:     "cluster-admin binding",
 				target:   "full cluster control",
 			})
-		case strings.Contains(f.CheckID, "WL-005"):
+		case strings.Contains(f.CheckID, "WL-010"):
 			chains = append(chains, attackChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
@@ -600,6 +702,24 @@ func (m Model) renderGraphPanel() string {
 		sb.WriteString("\n  Legend: Source ──[permission/vulnerability]──▶ Target\n")
 	}
 
+	// Show attack paths from graph analysis
+	g := graph.BuildFromFindings(m.report.Findings)
+	paths := g.FindAttackPaths(5)
+	if len(paths) > 0 {
+		sb.WriteString("\n\n  Graph Attack Paths:\n\n")
+		for i, p := range paths {
+			if i >= 10 {
+				sb.WriteString(fmt.Sprintf("\n  ... and %d more paths\n", len(paths)-10))
+				break
+			}
+			var nodes []string
+			for _, n := range p.Nodes {
+				nodes = append(nodes, n.Name)
+			}
+			sb.WriteString(fmt.Sprintf("  [%.0f] %s\n", p.Risk, strings.Join(nodes, " → ")))
+		}
+	}
+
 	return cardStyle.Render(sb.String())
 }
 
@@ -612,6 +732,7 @@ func (m Model) renderHelp() string {
 		"    Esc                Go back\n\n" +
 		"  Actions:\n" +
 		"    /                  Filter findings\n" +
+		"    e                  AI explain (in finding detail)\n" +
 		"    r                  Refresh scan\n" +
 		"    ?                  Toggle this help\n" +
 		"    q / Ctrl+C         Quit\n"

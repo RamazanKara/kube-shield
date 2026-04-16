@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 RUN apk add --no-cache git
 
@@ -8,9 +8,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /kube-shield .
 
-FROM alpine:3.20
+ARG VERSION=dev
+ARG COMMIT=none
+ARG DATE=unknown
+RUN CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/RamazanKara/kube-shield/cmd.version=${VERSION} -X github.com/RamazanKara/kube-shield/cmd.commit=${COMMIT} -X github.com/RamazanKara/kube-shield/cmd.date=${DATE}" -o /kube-shield .
+
+FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata
 

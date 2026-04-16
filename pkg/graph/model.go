@@ -3,6 +3,8 @@ package graph
 import (
 	"fmt"
 	"strings"
+
+	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 )
 
 // NodeType represents a type of node in the security graph.
@@ -260,4 +262,68 @@ func nodeColor(t NodeType) string {
 	default:
 		return "gray"
 	}
+}
+
+// BuildFromFindings creates a SecurityGraph from scan findings,
+// mapping resources and their security relationships.
+func BuildFromFindings(findings []engine.Finding) *SecurityGraph {
+	g := NewSecurityGraph()
+
+	for _, f := range findings {
+		if f.Severity < engine.SeverityHigh {
+			continue
+		}
+
+		resourceID := fmt.Sprintf("%s/%s/%s", f.Resource.Namespace, f.Resource.Kind, f.Resource.Name)
+
+		// Determine node type from resource kind
+		nodeType := NodePod
+		switch strings.ToLower(f.Resource.Kind) {
+		case "serviceaccount":
+			nodeType = NodeServiceAccount
+		case "role":
+			nodeType = NodeRole
+		case "clusterrole":
+			nodeType = NodeClusterRole
+		case "secret":
+			nodeType = NodeSecret
+		case "namespace":
+			nodeType = NodeNamespace
+		}
+
+		g.AddNode(&Node{ID: resourceID, Type: nodeType, Name: f.Resource.Name, Namespace: f.Resource.Namespace, Risk: float64(f.Severity)})
+
+		// Create edges based on check patterns
+		switch {
+		case strings.HasPrefix(f.CheckID, "RBAC-01"): // secret access
+			secretTarget := fmt.Sprintf("%s/Secret/*", f.Resource.Namespace)
+			g.AddNode(&Node{ID: secretTarget, Type: NodeSecret, Name: "secrets", Namespace: f.Resource.Namespace, Risk: 3})
+			g.AddEdge(Edge{From: resourceID, To: secretTarget, Type: EdgeRBACGrant, Label: "secret access", Risk: float64(f.Severity)})
+
+		case strings.HasPrefix(f.CheckID, "RBAC-02"): // priv escalation
+			g.AddNode(&Node{ID: "cluster/escalation", Type: NodeExternal, Name: "privilege-escalation", Risk: 4})
+			g.AddEdge(Edge{From: resourceID, To: "cluster/escalation", Type: EdgeRBACGrant, Label: "escalation verbs", Risk: float64(f.Severity)})
+
+		case strings.HasPrefix(f.CheckID, "RBAC-03"): // cluster-admin
+			g.AddNode(&Node{ID: "cluster/admin", Type: NodeExternal, Name: "full-cluster-control", Risk: 4})
+			g.AddEdge(Edge{From: resourceID, To: "cluster/admin", Type: EdgeBindsRole, Label: "cluster-admin", Risk: float64(f.Severity)})
+
+		case strings.HasPrefix(f.CheckID, "WL-01"): // privileged/root
+			hostTarget := fmt.Sprintf("node/%s", f.Resource.Name)
+			g.AddNode(&Node{ID: hostTarget, Type: NodeExternal, Name: "host-node", Risk: 4})
+			g.AddEdge(Edge{From: resourceID, To: hostTarget, Type: EdgeNetworkAccess, Label: "host access", Risk: float64(f.Severity)})
+
+		case strings.HasPrefix(f.CheckID, "WL-00"): // host namespace
+			hostTarget := fmt.Sprintf("node/%s", f.Resource.Name)
+			g.AddNode(&Node{ID: hostTarget, Type: NodeExternal, Name: "host-node", Risk: 4})
+			g.AddEdge(Edge{From: resourceID, To: hostTarget, Type: EdgeNetworkAccess, Label: "host namespace", Risk: float64(f.Severity)})
+
+		case strings.HasPrefix(f.CheckID, "SEC-"): // secrets in env
+			secretTarget := fmt.Sprintf("%s/Secret/leaked", f.Resource.Namespace)
+			g.AddNode(&Node{ID: secretTarget, Type: NodeSecret, Name: "exposed-secret", Namespace: f.Resource.Namespace, Risk: 3})
+			g.AddEdge(Edge{From: resourceID, To: secretTarget, Type: EdgeMountSecret, Label: "secret exposure", Risk: float64(f.Severity)})
+		}
+	}
+
+	return g
 }

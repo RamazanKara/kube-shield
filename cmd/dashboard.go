@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/RamazanKara/kube-shield/pkg/ai"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/cis"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
@@ -38,7 +39,10 @@ Examples:
 	RunE: runDashboard,
 }
 
+var dashboardScanners []string
+
 func init() {
+	dashboardCmd.Flags().StringSliceVar(&dashboardScanners, "scanners", nil, "comma-separated list of scanners to run (workload,cis,rbac,netpol,secrets)")
 	rootCmd.AddCommand(dashboardCmd)
 }
 
@@ -66,13 +70,34 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	report, err := eng.RunAll(ctx, k8sClient.Clientset, ns)
+	var report *engine.Report
+	if len(dashboardScanners) > 0 {
+		report, err = eng.Run(ctx, k8sClient.Clientset, ns, dashboardScanners)
+	} else {
+		report, err = eng.RunAll(ctx, k8sClient.Clientset, ns)
+	}
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
 
+	// Create AI provider if configured
+	var aiProvider ai.Provider
+	aiProviderName := viper.GetString("ai.provider")
+	if aiProviderName != "" {
+		aiCfg := ai.Config{
+			Provider: aiProviderName,
+			Model:    viper.GetString("ai.model"),
+			APIKey:   viper.GetString("ai.apikey"),
+			Endpoint: viper.GetString("ai.endpoint"),
+		}
+		aiProvider, err = ai.NewProvider(aiCfg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  AI provider error: %v\n", err)
+		}
+	}
+
 	clusterInfo := fmt.Sprintf("%s (%s)", k8sClient.Context, k8sClient.ServerURL)
-	model := tui.NewModel(report, clusterInfo)
+	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, ns, eng)
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

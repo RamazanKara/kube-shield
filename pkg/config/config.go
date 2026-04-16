@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 // Config holds all configuration for kube-shield.
 type Config struct {
@@ -12,6 +16,8 @@ type Config struct {
 	Scanners   []string      `yaml:"scanners" mapstructure:"scanners"`
 	Severity   string        `yaml:"severity" mapstructure:"severity"`
 	Timeout    time.Duration `yaml:"timeout" mapstructure:"timeout"`
+	ExitCode   bool          `yaml:"exitCode" mapstructure:"exit-code"`
+	Categories []string      `yaml:"categories" mapstructure:"categories"`
 	AI         AIConfig      `yaml:"ai" mapstructure:"ai"`
 }
 
@@ -31,4 +37,28 @@ func DefaultConfig() *Config {
 		Timeout:  5 * time.Minute,
 		Scanners: []string{"workload", "cis", "rbac", "netpol", "secrets"},
 	}
+}
+
+// Load reads configuration from viper into a Config struct.
+func Load() *Config {
+	cfg := DefaultConfig()
+	cfg.Kubeconfig = viper.GetString("kubeconfig")
+	cfg.Context = viper.GetString("context")
+	cfg.Namespace = viper.GetString("namespace")
+	cfg.Output = viper.GetString("output")
+	cfg.Verbose = viper.GetBool("verbose")
+	cfg.Severity = viper.GetString("severity")
+	cfg.AI.Provider = viper.GetString("ai.provider")
+	cfg.AI.Model = viper.GetString("ai.model")
+	cfg.AI.APIKey = viper.GetString("ai.apikey")
+	cfg.AI.Endpoint = viper.GetString("ai.endpoint")
+	if s := viper.GetStringSlice("scanners"); len(s) > 0 {
+		cfg.Scanners = s
+	}
+	if d := viper.GetDuration("timeout"); d > 0 {
+		cfg.Timeout = d
+	}
+	cfg.ExitCode = viper.GetBool("exit-code")
+	cfg.Categories = viper.GetStringSlice("categories")
+	return cfg
 }
