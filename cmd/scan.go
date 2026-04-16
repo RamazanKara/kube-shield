@@ -173,10 +173,10 @@ func runScan(cmd *cobra.Command, args []string) error {
 				if limit > 5 {
 					limit = 5
 				}
-				aiCtx, aiCancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer aiCancel()
 				for _, f := range critHigh[:limit] {
+					aiCtx, aiCancel := context.WithTimeout(context.Background(), 30*time.Second)
 					explanation, expErr := provider.Explain(aiCtx, f)
+					aiCancel()
 					if expErr != nil {
 						fmt.Fprintf(os.Stderr, "  %s: AI error: %v\n", f.CheckID, expErr)
 						continue
@@ -189,7 +189,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 
 	// Exit code
 	if exitCode && result.Summary.Total > 0 {
-		os.Exit(2)
+		return fmt.Errorf("findings detected: %d findings at or above %s severity (exit-code enabled)", result.Summary.Total, severity)
 	}
 
 	return nil

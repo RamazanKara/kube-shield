@@ -53,6 +53,17 @@ run-scan: build
 run-dashboard: build
 	./bin/$(BINARY_NAME) dashboard
 
+## docker-build: Build Docker image
+docker-build:
+	docker build -t kube-shield:$(VERSION) \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg DATE=$(DATE) .
+
+## release: Run GoReleaser (requires goreleaser)
+release:
+	goreleaser release --clean
+
 ## help: Show this help
 help:
 	@echo "kube-shield - Kubernetes Security Posture Manager"

@@ -42,12 +42,24 @@ func DefaultConfig() *Config {
 // Load reads configuration from viper into a Config struct.
 func Load() *Config {
 	cfg := DefaultConfig()
-	cfg.Kubeconfig = viper.GetString("kubeconfig")
-	cfg.Context = viper.GetString("context")
-	cfg.Namespace = viper.GetString("namespace")
-	cfg.Output = viper.GetString("output")
-	cfg.Verbose = viper.GetBool("verbose")
-	cfg.Severity = viper.GetString("severity")
+	if v := viper.GetString("kubeconfig"); v != "" {
+		cfg.Kubeconfig = v
+	}
+	if v := viper.GetString("context"); v != "" {
+		cfg.Context = v
+	}
+	if v := viper.GetString("namespace"); v != "" {
+		cfg.Namespace = v
+	}
+	if v := viper.GetString("output"); v != "" {
+		cfg.Output = v
+	}
+	if viper.IsSet("verbose") {
+		cfg.Verbose = viper.GetBool("verbose")
+	}
+	if v := viper.GetString("severity"); v != "" {
+		cfg.Severity = v
+	}
 	cfg.AI.Provider = viper.GetString("ai.provider")
 	cfg.AI.Model = viper.GetString("ai.model")
 	cfg.AI.APIKey = viper.GetString("ai.apikey")
@@ -58,7 +70,9 @@ func Load() *Config {
 	if d := viper.GetDuration("timeout"); d > 0 {
 		cfg.Timeout = d
 	}
-	cfg.ExitCode = viper.GetBool("exit-code")
+	if viper.IsSet("exit-code") {
+		cfg.ExitCode = viper.GetBool("exit-code")
+	}
 	cfg.Categories = viper.GetStringSlice("categories")
 	return cfg
 }

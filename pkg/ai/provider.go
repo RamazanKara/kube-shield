@@ -102,6 +102,7 @@ type OpenAIProvider struct {
 	apiKey   string
 	model    string
 	endpoint string
+	client   *http.Client
 }
 
 func NewOpenAIProvider(cfg Config) (*OpenAIProvider, error) {
@@ -116,7 +117,12 @@ func NewOpenAIProvider(cfg Config) (*OpenAIProvider, error) {
 	if endpoint == "" {
 		endpoint = "https://api.openai.com/v1"
 	}
-	return &OpenAIProvider{apiKey: cfg.APIKey, model: model, endpoint: endpoint}, nil
+	return &OpenAIProvider{
+		apiKey:   cfg.APIKey,
+		model:    model,
+		endpoint: endpoint,
+		client:   &http.Client{Timeout: 30 * time.Second},
+	}, nil
 }
 
 func (p *OpenAIProvider) Name() string { return "openai" }
@@ -151,15 +157,14 @@ func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.apiKey)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("OpenAI request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return "", fmt.Errorf("OpenAI returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
@@ -179,6 +184,7 @@ func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error
 type OllamaProvider struct {
 	model    string
 	endpoint string
+	client   *http.Client
 }
 
 func NewOllamaProvider(cfg Config) (*OllamaProvider, error) {
@@ -190,7 +196,11 @@ func NewOllamaProvider(cfg Config) (*OllamaProvider, error) {
 	if endpoint == "" {
 		endpoint = "http://localhost:11434"
 	}
-	return &OllamaProvider{model: model, endpoint: endpoint}, nil
+	return &OllamaProvider{
+		model:    model,
+		endpoint: endpoint,
+		client:   &http.Client{Timeout: 120 * time.Second},
+	}, nil
 }
 
 func (p *OllamaProvider) Name() string { return "ollama" }
@@ -221,15 +231,14 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Ollama request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 

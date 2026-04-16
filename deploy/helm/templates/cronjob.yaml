@@ -1,11 +1,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-scan
+  name: {{ include "kube-shield.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: kube-shield
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "kube-shield.labels" . | nindent 4 }}
 spec:
   schedule: "{{ .Values.schedule }}"
   concurrencyPolicy: Forbid
@@ -16,10 +15,9 @@ spec:
       template:
         metadata:
           labels:
-            app.kubernetes.io/name: kube-shield
-            app.kubernetes.io/instance: {{ .Release.Name }}
+            {{- include "kube-shield.selectorLabels" . | nindent 12 }}
         spec:
-          serviceAccountName: {{ .Values.serviceAccount.name }}
+          serviceAccountName: {{ include "kube-shield.serviceAccountName" . }}
           containers:
             - name: kube-shield
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -30,6 +28,10 @@ spec:
                 - "{{ .Values.output }}"
                 - --severity
                 - "{{ .Values.severity }}"
+                {{- if .Values.scanners }}
+                - --scanners
+                - "{{ join "," .Values.scanners }}"
+                {{- end }}
               resources:
                 {{- toYaml .Values.resources | nindent 16 }}
               securityContext:

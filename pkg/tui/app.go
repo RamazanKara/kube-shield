@@ -94,9 +94,12 @@ type Model struct {
 	aiResult   string
 	aiLoading  bool
 	// For refresh support
-	k8sClient kubernetes.Interface
-	namespace string
-	eng       *engine.Engine
+	k8sClient  kubernetes.Interface
+	namespace  string
+	eng        *engine.Engine
+	// Cached graph analysis
+	graphCache *graph.SecurityGraph
+	graphPaths []graph.AttackPath
 }
 
 // aiExplainMsg carries the result of an AI explanation.
@@ -116,6 +119,10 @@ func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider,
 	ti := textinput.New()
 	ti.Placeholder = "filter by name, namespace, severity..."
 	ti.CharLimit = 100
+
+	g := graph.BuildFromFindings(report.Findings)
+	paths := g.FindAttackPaths(5)
+
 	return Model{
 		report:      report,
 		clusterInfo: clusterInfo,
@@ -125,6 +132,8 @@ func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider,
 		k8sClient:   k8sClient,
 		namespace:   ns,
 		eng:         eng,
+		graphCache:  g,
+		graphPaths:  paths,
 	}
 }
 
@@ -152,6 +161,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.report = msg.report
 			m.aiResult = ""
 			m.cursor = 0
+			m.graphCache = graph.BuildFromFindings(msg.report.Findings)
+			m.graphPaths = m.graphCache.FindAttackPaths(5)
 		}
 		m.viewport.SetContent(m.renderContent())
 		return m, nil
@@ -702,9 +713,8 @@ func (m Model) renderGraphPanel() string {
 		sb.WriteString("\n  Legend: Source ──[permission/vulnerability]──▶ Target\n")
 	}
 
-	// Show attack paths from graph analysis
-	g := graph.BuildFromFindings(m.report.Findings)
-	paths := g.FindAttackPaths(5)
+	// Show attack paths from cached graph analysis
+	paths := m.graphPaths
 	if len(paths) > 0 {
 		sb.WriteString("\n\n  Graph Attack Paths:\n\n")
 		for i, p := range paths {
@@ -747,7 +757,7 @@ func (m Model) maxCursorItems() int {
 	case TabRBAC:
 		count := 0
 		for _, f := range m.report.Findings {
-			if f.Category == engine.CategoryRBAC {
+			if f.Category == engine.CategoryRBAC || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.1")) {
 				count++
 			}
 		}
@@ -755,7 +765,7 @@ func (m Model) maxCursorItems() int {
 	case TabNetwork:
 		count := 0
 		for _, f := range m.report.Findings {
-			if f.Category == engine.CategoryNetpol {
+			if f.Category == engine.CategoryNetpol || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.3")) {
 				count++
 			}
 		}
