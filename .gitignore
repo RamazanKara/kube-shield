@@ -1,0 +1,25 @@
+# Binaries
+bin/
+dist/
+kube-shield
+
+# Test
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+
+# Config (may contain secrets)
+.kube-shield.yaml

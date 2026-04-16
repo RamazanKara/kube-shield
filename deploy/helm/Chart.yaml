@@ -1,0 +1,18 @@
+apiVersion: v2
+name: kube-shield
+description: Kubernetes Security Posture Manager — k9s for security
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - security
+  - cis-benchmark
+  - rbac
+  - network-policy
+home: https://github.com/RamazanKara/kube-shield
+sources:
+  - https://github.com/RamazanKara/kube-shield
+maintainers:
+  - name: Ramazan Kara
+    url: https://github.com/RamazanKara

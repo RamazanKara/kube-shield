@@ -1,0 +1,92 @@
+project_name: kube-shield
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - main: .
+    binary: kube-shield
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/RamazanKara/kube-shield/cmd.version={{.Version}}
+      - -X github.com/RamazanKara/kube-shield/cmd.commit={{.Commit}}
+      - -X github.com/RamazanKara/kube-shield/cmd.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    dockerfile: Dockerfile
+  - image_templates:
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    goarch: arm64
+    dockerfile: Dockerfile
+
+docker_manifests:
+  - name_template: "ghcr.io/ramazankara/kube-shield:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/ramazankara/kube-shield:latest"
+    image_templates:
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
+      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
+
+brews:
+  - repository:
+      owner: RamazanKara
+      name: homebrew-tap
+    homepage: "https://github.com/RamazanKara/kube-shield"
+    description: "Kubernetes Security Posture Manager — k9s for security"
+    license: "Apache-2.0"
+
+krews:
+  - name: shield
+    repository:
+      owner: RamazanKara
+      name: krew-index
+    homepage: "https://github.com/RamazanKara/kube-shield"
+    short_description: "Kubernetes security posture manager with interactive TUI"
+    description: |
+      kube-shield scans Kubernetes clusters for security issues including CIS
+      benchmark violations, RBAC misconfigurations, network policy gaps, and
+      secret exposure. Features an interactive TUI dashboard and AI-powered
+      remediation suggestions.
