@@ -29,6 +29,10 @@ timeout: 5m
 # If true, exit with non-zero code when findings match severity threshold
 exit-code: false
 
+# Filter findings by category (empty = all)
+# Options: workload, cis, rbac, netpol, secrets
+categories: []
+
 # AI-powered analysis
 ai:
   # Provider: openai, ollama, or empty to disable

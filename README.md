@@ -15,62 +15,53 @@
 
 **kube-shield** is a comprehensive Kubernetes security posture management tool with a beautiful interactive terminal UI. It scans your clusters for security issues including CIS benchmark violations, RBAC misconfigurations, network policy gaps, secret exposure, and more — then helps you fix them with AI-powered remediation suggestions.
 
-<!-- Screenshot: <p align="center"><img src="docs/demo.gif" width="800"></p> -->
-
 ## ✨ Features
 
-- **🔍 5 Built-in Scanners**
-  - **Workload** — Privileged containers, root access, missing security contexts, dangerous capabilities, image tags, resource limits
-  - **CIS Benchmark** — CIS Kubernetes Benchmark v1.12 checks via API (RBAC policies, pod security, network policies, secrets management)
-  - **RBAC Analysis** — Deep effective permissions resolution, wildcard detection, cluster-admin bindings, privilege escalation paths
-  - **Network Policy** — Namespace isolation gaps, missing default-deny rules, overly permissive policies, wide CIDR ranges
-  - **Secrets** — Environment variable exposure, missing secret references, insecure secret management patterns
+- **🔍 5 Built-in Scanners** — Workload security, CIS Kubernetes Benchmark v1.12, RBAC analysis, network policy validation, secrets exposure detection
+- **🖥️ Interactive TUI Dashboard** — Security score (A–F grade), findings explorer, RBAC panel, network policy view, attack path graph, vim-style navigation
+- **🤖 AI-Powered Remediation** — Context-aware YAML patches and plain-English explanations via OpenAI or Ollama (local models)
+- **📊 Multiple Output Formats** — Colored table, JSON, SARIF (GitHub Code Scanning)
+- **🔧 Enterprise Ready** — Multi-cluster, namespace filtering, severity thresholds, CI/CD exit codes, Helm chart, kubectl plugin
 
-- **🖥️ Interactive TUI Dashboard**
-  - Security score with A-F grade
-  - Findings explorer with drill-down details
-  - RBAC analysis panel
-  - Network policy visualization
-  - Attack path graph
-  - Vim-style keyboard navigation
+## 🚀 Installation
 
-- **🤖 AI-Powered Remediation** (opt-in)
-  - Context-aware YAML patch generation
-  - Plain-English vulnerability explanations
-  - Support for OpenAI and Ollama (local models)
-
-- **📊 Multiple Output Formats**
-  - Colored table (default)
-  - JSON for scripting
-  - SARIF for GitHub Code Scanning integration
-
-- **🔧 Enterprise Ready**
-  - Multi-cluster support
-  - Namespace filtering
-  - Configurable severity thresholds
-  - CI/CD integration with exit codes
-  - Helm chart for in-cluster deployment
-  - kubectl plugin support
-
-## 🚀 Quick Start
-
-### Install
+### Go Install
 
 ```bash
-# Go install
 go install github.com/RamazanKara/kube-shield@latest
+```
 
-# Homebrew (macOS/Linux)
+### Homebrew (macOS / Linux)
+
+```bash
 brew install RamazanKara/tap/kube-shield
+```
 
-# Docker
+### kubectl Plugin (Krew)
+
+```bash
+kubectl krew install shield
+kubectl shield scan
+```
+
+### Docker
+
+```bash
 docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield scan
-
 ```
 
 ### Download Binary
 
-Download the latest release from [GitHub Releases](https://github.com/RamazanKara/kube-shield/releases).
+Pre-built binaries for Linux, macOS, and Windows are available on the
+[GitHub Releases](https://github.com/RamazanKara/kube-shield/releases) page.
+
+| OS | Architecture | File |
+|----|-------------|------|
+| Linux | amd64 | `kube-shield_*_linux_amd64.tar.gz` |
+| Linux | arm64 | `kube-shield_*_linux_arm64.tar.gz` |
+| macOS | amd64 | `kube-shield_*_darwin_amd64.tar.gz` |
+| macOS | arm64 (Apple Silicon) | `kube-shield_*_darwin_arm64.tar.gz` |
+| Windows | amd64 | `kube-shield_*_windows_amd64.zip` |
 
 ## 📖 Usage
 
@@ -86,6 +77,9 @@ kube-shield scan -n production
 # Run only RBAC and network policy checks
 kube-shield scan --scanners rbac,netpol
 
+# Filter by category
+kube-shield scan --category rbac,secrets
+
 # Show only high and critical findings
 kube-shield scan --severity high
 
@@ -98,7 +92,10 @@ kube-shield scan -o sarif > results.sarif
 # Use a specific kubeconfig context
 kube-shield scan --context staging-cluster
 
-# Fail CI if findings exist (non-zero exit code)
+# Set a custom timeout
+kube-shield scan --timeout 10m
+
+# Fail CI if critical findings exist (non-zero exit code)
 kube-shield scan --exit-code --severity critical
 ```
 
@@ -110,12 +107,15 @@ kube-shield dashboard
 
 # Dashboard for a specific namespace
 kube-shield dashboard -n production
+
+# Dashboard with AI explanation support
+kube-shield dashboard --ai-provider openai --ai-api-key sk-...
 ```
 
 ### AI-Powered Remediation
 
 ```bash
-# Using OpenAI (via flags)
+# Using OpenAI
 kube-shield scan --ai-provider openai --ai-api-key sk-...
 
 # Using environment variables
@@ -126,19 +126,213 @@ kube-shield scan
 # Using local Ollama
 kube-shield scan --ai-provider ollama --ai-endpoint http://localhost:11434
 
-# AI in the TUI dashboard (press 'e' on a finding for AI explanation)
+# In the TUI dashboard, press 'e' on any finding for AI explanation
 kube-shield dashboard --ai-provider openai --ai-api-key sk-...
 ```
 
+## ⌨️ TUI Keybindings
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Switch between panels |
+| `↑` / `k` | Navigate up |
+| `↓` / `j` | Navigate down |
+| `Enter` | Select / drill down into finding |
+| `Esc` | Go back |
+| `/` | Filter findings by name, namespace, severity, or check ID |
+| `e` | AI explain (in finding detail view, requires AI provider) |
+| `r` | Refresh scan |
+| `?` | Toggle help |
+| `q` / `Ctrl+C` | Quit |
+
+## 📋 CLI Reference
+
+### Global Flags
+
+These flags apply to all commands and can also be set via config file or environment variables.
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--config` | | string | `$HOME/.kube-shield.yaml` | Path to config file |
+| `--kubeconfig` | | string | `$KUBECONFIG` or `~/.kube/config` | Path to kubeconfig |
+| `--context` | | string | current context | Kubernetes context to use |
+| `--namespace` | `-n` | string | all namespaces | Namespace to scan |
+| `--output` | `-o` | string | `table` | Output format: `table`, `json`, `sarif` |
+| `--verbose` | `-v` | bool | `false` | Enable verbose output |
+| `--ai-provider` | | string | | AI provider: `openai`, `ollama` |
+| `--ai-model` | | string | | Model name (e.g. `gpt-4`, `llama3`) |
+| `--ai-api-key` | | string | | AI provider API key |
+| `--ai-endpoint` | | string | | AI endpoint URL |
+
+### `kube-shield scan`
+
+Run security scanners against the cluster.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--scanners` | strings | all | Comma-separated scanners: `workload,cis,rbac,netpol,secrets` |
+| `--severity` | string | `low` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
+| `--category` | strings | all | Filter by category: `workload,cis,rbac,netpol,secrets` |
+| `--timeout` | duration | `5m` | Scan timeout |
+| `--exit-code` | bool | `false` | Exit with code 1 if findings match severity threshold |
+
+### `kube-shield dashboard`
+
+Launch the interactive TUI dashboard.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--scanners` | strings | all | Comma-separated scanners to run |
+
+### `kube-shield version`
+
+Print the version, git commit, and build date.
+
+## ⚙️ Configuration
+
+kube-shield can be configured via CLI flags, environment variables, or a YAML config file.
+
+**Precedence:** CLI flags > environment variables > config file > defaults.
+
+### Config File
+
+Place a `.kube-shield.yaml` in your project root or `$HOME/.kube-shield.yaml`:
+
+```yaml
+# Kubernetes context (empty = current context)
+context: ""
+
+# Namespace to scan (empty = all)
+namespace: ""
+
+# Output format: table, json, sarif
+output: table
+
+# Scanners to enable (empty = all)
+scanners:
+  - workload
+  - rbac
+  - netpol
+  - secrets
+  - cis
+
+# Minimum severity: info, low, medium, high, critical
+severity: low
+
+# Scan timeout
+timeout: 5m
+
+# Exit with non-zero code when findings match threshold
+exit-code: false
+
+# AI-powered analysis
+ai:
+  provider: ""        # openai, ollama, or empty to disable
+  model: ""           # e.g. gpt-4, llama3
+  apikey: ""          # prefer KUBE_SHIELD_AI_APIKEY env var
+  endpoint: ""        # custom endpoint URL
+```
+
+### Environment Variables
+
+All config options can be set via environment variables with the `KUBE_SHIELD_` prefix:
+
+| Variable | Config Key | Example |
+|----------|-----------|---------|
+| `KUBE_SHIELD_CONTEXT` | `context` | `staging-cluster` |
+| `KUBE_SHIELD_NAMESPACE` | `namespace` | `production` |
+| `KUBE_SHIELD_OUTPUT` | `output` | `json` |
+| `KUBE_SHIELD_SEVERITY` | `severity` | `high` |
+| `KUBE_SHIELD_AI_PROVIDER` | `ai.provider` | `openai` |
+| `KUBE_SHIELD_AI_APIKEY` | `ai.apikey` | `sk-...` |
+| `KUBE_SHIELD_AI_MODEL` | `ai.model` | `gpt-4` |
+| `KUBE_SHIELD_AI_ENDPOINT` | `ai.endpoint` | `http://localhost:11434` |
+
 ## 🔬 Scanners
 
-| Scanner | Checks | Severity Range |
-|---------|--------|---------------|
-| **workload** | Privileged containers, root access, host namespaces, capabilities, image tags, resource limits, probes | Critical → Info |
-| **cis** | CIS Kubernetes Benchmark v1.12 (Sections 4.1-4.5) | Critical → Low |
-| **rbac** | Wildcard permissions, secret access, privilege escalation, cluster-admin bindings, default SA usage | Critical → Medium |
-| **netpol** | Missing network policies, no default-deny, allow-all rules, wide CIDR ranges | High → Medium |
-| **secrets** | Env var exposure, missing references, empty secrets, insecure patterns | High → Info |
+| Scanner | Checks | Severity Range | Description |
+|---------|--------|---------------|-------------|
+| **workload** | 12 | Critical → Info | Privileged containers, root access, host namespaces, capabilities, image tags, resource limits, probes |
+| **cis** | 23 | Critical → Low | CIS Kubernetes Benchmark v1.12 — Sections 4.1 (RBAC), 4.2 (Pod Security), 4.3 (Network), 4.4 (Secrets), 4.5 (General) |
+| **rbac** | 8 | Critical → Medium | Wildcard permissions, secret access, privilege escalation verbs, cluster-admin bindings, default SA usage |
+| **netpol** | 5 | High → Medium | Missing network policies, no default-deny, allow-all rules, wide CIDR ranges |
+| **secrets** | 6 | High → Info | Env var exposure, missing references, empty secrets, permissive volume modes, sensitive mount paths |
+
+### Severity Levels
+
+Findings are classified using five severity levels, from most to least critical:
+
+| Level | Meaning | Examples |
+|-------|---------|---------|
+| **CRITICAL** | Direct cluster compromise possible | Privileged containers, cluster-admin bindings |
+| **HIGH** | Significant security risk | Secret exposure, privilege escalation, missing network isolation |
+| **MEDIUM** | Defense-in-depth gap | Non-root not enforced, secrets as env vars, wide CIDR ranges |
+| **LOW** | Best practice not followed | Missing resource quotas, informational configuration gaps |
+| **INFO** | Observation | Empty secrets, minor configuration notes |
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Scan completed, no findings at or above threshold (or `--exit-code` not set) |
+| `1` | Findings detected at or above the `--severity` threshold (with `--exit-code`) |
+
+## ☸️ Helm Deployment
+
+Deploy kube-shield as a CronJob for periodic cluster scanning:
+
+```bash
+helm install kube-shield deploy/helm/ \
+  --namespace kube-shield \
+  --create-namespace \
+  --set schedule="0 */6 * * *" \
+  --set severity=medium
+```
+
+### Key Helm Values
+
+| Value | Default | Description |
+|-------|---------|-------------|
+| `schedule` | `"0 */6 * * *"` | CronJob schedule |
+| `scanners` | all 5 enabled | List of scanners |
+| `severity` | `low` | Minimum severity |
+| `output` | `json` | Output format |
+| `image.tag` | appVersion | Container image tag |
+| `serviceAccount.create` | `true` | Create ServiceAccount |
+| `resources.limits.memory` | `256Mi` | Memory limit |
+| `resources.limits.cpu` | `200m` | CPU limit |
+
+See [`deploy/helm/values.yaml`](deploy/helm/values.yaml) for all options.
+
+## 🔌 CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+- name: Scan cluster security
+  run: |
+    kube-shield scan --output sarif --severity high > results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
+
+### GitHub Actions (fail on critical)
+
+```yaml
+- name: Security gate
+  run: kube-shield scan --exit-code --severity critical
+```
+
+### GitLab CI
+
+```yaml
+security-scan:
+  script:
+    - kube-shield scan --exit-code --severity critical
+```
 
 ## 🏗️ Architecture
 
@@ -163,72 +357,21 @@ kube-shield
 └── .github/workflows/      # CI/CD pipeline
 ```
 
-## ☸️ Helm Deployment
-
-Deploy kube-shield as a CronJob for periodic cluster scanning:
-
-```bash
-helm install kube-shield deploy/helm/ \
-  --namespace kube-shield \
-  --create-namespace \
-  --set schedule="0 */6 * * *" \
-  --set severity=medium
-```
-
-## 🔌 CI/CD Integration
-
-### GitHub Actions
-
-```yaml
-- name: Scan cluster security
-  run: |
-    kube-shield scan --output sarif --severity high > results.sarif
-
-- name: Upload SARIF
-  uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: results.sarif
-```
-
-### GitLab CI
-
-```yaml
-security-scan:
-  script:
-    - kube-shield scan --exit-code --severity critical
-```
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-Quick start:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Write tests for your changes
-4. Ensure all tests pass (`make test`)
-5. Ensure linting passes (`make lint`)
-6. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
-### Development Setup
 
 ```bash
 git clone https://github.com/RamazanKara/kube-shield.git
 cd kube-shield
 make build
 make test
+make lint
 ```
 
 ## 📝 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## ⭐ Star History
-
-If you find kube-shield useful, please give it a star! It helps others discover the project.
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
 
 ---
 
