@@ -1,12 +1,26 @@
+# -- Number of replicas (only relevant if using Deployment instead of CronJob)
 replicaCount: 1
 
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
 image:
+  # -- Container image repository
   repository: ghcr.io/ramazankara/kube-shield
+  # -- Image pull policy
   pullPolicy: IfNotPresent
+  # -- Image tag (defaults to appVersion)
   tag: ""
 
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+
+# -- CronJob schedule (cron format)
 schedule: "0 */6 * * *"  # Every 6 hours
 
+# -- Scanners to enable
 scanners:
   - workload
   - cis
@@ -14,13 +28,23 @@ scanners:
   - netpol
   - secrets
 
+# -- Minimum severity to report
 severity: low
+# -- Output format (json, table, sarif)
 output: json
 
 serviceAccount:
+  # -- Create a ServiceAccount
   create: true
+  # -- ServiceAccount name
   name: kube-shield
+  # -- Annotations to add to the ServiceAccount
+  annotations: {}
 
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Container resource limits and requests
 resources:
   limits:
     cpu: 200m
@@ -29,6 +53,9 @@ resources:
     cpu: 100m
     memory: 128Mi
 
+# -- Node selector for pod scheduling
 nodeSelector: {}
+# -- Tolerations for pod scheduling
 tolerations: []
+# -- Affinity rules for pod scheduling
 affinity: {}

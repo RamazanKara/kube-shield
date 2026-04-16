@@ -16,8 +16,16 @@ spec:
         metadata:
           labels:
             {{- include "kube-shield.selectorLabels" . | nindent 12 }}
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         spec:
           serviceAccountName: {{ include "kube-shield.serviceAccountName" . }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           containers:
             - name: kube-shield
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

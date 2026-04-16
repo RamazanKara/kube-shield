@@ -6,7 +6,7 @@ Thank you for your interest in contributing to kube-shield! This guide explains 
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.25 or later
 - A Kubernetes cluster (or `kind`/`minikube` for local testing)
 - `kubectl` configured with cluster access
 
@@ -29,6 +29,20 @@ go test ./...
 
 ```bash
 golangci-lint run
+```
+
+### Make Targets
+
+All common tasks are available via `make`:
+
+```bash
+make help       # Show all targets
+make build      # Build binary
+make test       # Run tests
+make lint       # Run golangci-lint
+make fmt        # Format code
+make vet        # Run go vet
+make clean      # Remove build artifacts
 ```
 
 ## Project Structure
