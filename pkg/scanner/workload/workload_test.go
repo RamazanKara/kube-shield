@@ -11,8 +11,8 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func boolPtr(b bool) *bool       { return &b }
-func int64Ptr(i int64) *int64    { return &i }
+func boolPtr(b bool) *bool    { return &b }
+func int64Ptr(i int64) *int64 { return &i }
 
 func TestScan_PrivilegedContainer(t *testing.T) {
 	client := fake.NewSimpleClientset(&corev1.Pod{
@@ -276,9 +276,9 @@ func TestScan_NamespaceFilter(t *testing.T) {
 
 func TestImageTagChecks(t *testing.T) {
 	tests := []struct {
-		image     string
-		hasTag    bool
-		isLatest  bool
+		image    string
+		hasTag   bool
+		isLatest bool
 	}{
 		{"nginx", false, true},
 		{"nginx:latest", true, true},

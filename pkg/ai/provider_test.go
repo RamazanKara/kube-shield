@@ -123,7 +123,7 @@ func TestOpenAIExplain(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
@@ -147,7 +147,7 @@ func TestOpenAIExplain(t *testing.T) {
 func TestOpenAIExplainError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("invalid api key"))
+		_, _ = w.Write([]byte("invalid api key"))
 	}))
 	defer srv.Close()
 
@@ -169,7 +169,7 @@ func TestOllamaExplain(t *testing.T) {
 		}
 		resp := ollamaResponse{Response: "Ollama test explanation"}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
@@ -194,7 +194,7 @@ func TestOllamaRemediate(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := ollamaResponse{Response: "apiVersion: v1\nkind: Pod"}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 

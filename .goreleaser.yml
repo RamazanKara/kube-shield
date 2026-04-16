@@ -1,3 +1,5 @@
+version: 2
+
 project_name: kube-shield
 
 before:
@@ -70,23 +72,4 @@ docker_manifests:
       - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
       - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
 
-brews:
-  - repository:
-      owner: RamazanKara
-      name: homebrew-tap
-    homepage: "https://github.com/RamazanKara/kube-shield"
-    description: "Kubernetes Security Posture Manager — k9s for security"
-    license: "Apache-2.0"
 
-krews:
-  - name: shield
-    repository:
-      owner: RamazanKara
-      name: krew-index
-    homepage: "https://github.com/RamazanKara/kube-shield"
-    short_description: "Kubernetes security posture manager with interactive TUI"
-    description: |
-      kube-shield scans Kubernetes clusters for security issues including CIS
-      benchmark violations, RBAC misconfigurations, network policy gaps, and
-      secret exposure. Features an interactive TUI dashboard and AI-powered
-      remediation suggestions.

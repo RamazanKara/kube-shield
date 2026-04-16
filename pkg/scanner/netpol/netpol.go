@@ -15,7 +15,7 @@ type Scanner struct{}
 
 func New() *Scanner { return &Scanner{} }
 
-func (s *Scanner) Name() string             { return "netpol" }
+func (s *Scanner) Name() string              { return "netpol" }
 func (s *Scanner) Category() engine.Category { return engine.CategoryNetpol }
 func (s *Scanner) Description() string {
 	return "Validates network policies for gaps, overly permissive rules, and missing namespace isolation"

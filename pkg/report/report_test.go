@@ -83,7 +83,6 @@ func sampleReport() *engine.Report {
 				engine.CategoryCIS:      1,
 			},
 		},
-
 	}
 }
 

@@ -21,7 +21,7 @@
 - **🖥️ Interactive TUI Dashboard** — Security score (A–F grade), findings explorer, RBAC panel, network policy view, attack path graph, vim-style navigation
 - **🤖 AI-Powered Remediation** — Context-aware YAML patches and plain-English explanations via OpenAI or Ollama (local models)
 - **📊 Multiple Output Formats** — Colored table, JSON, SARIF (GitHub Code Scanning)
-- **🔧 Enterprise Ready** — Multi-cluster, namespace filtering, severity thresholds, CI/CD exit codes, Helm chart, kubectl plugin
+- **🔧 Enterprise Ready** — Multi-cluster, namespace filtering, severity thresholds, CI/CD exit codes, Helm chart
 
 ## 🚀 Installation
 
@@ -29,19 +29,6 @@
 
 ```bash
 go install github.com/RamazanKara/kube-shield@latest
-```
-
-### Homebrew (macOS / Linux)
-
-```bash
-brew install RamazanKara/tap/kube-shield
-```
-
-### kubectl Plugin (Krew)
-
-```bash
-kubectl krew install shield
-kubectl shield scan
 ```
 
 ### Docker

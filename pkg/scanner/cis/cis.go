@@ -16,7 +16,7 @@ type Scanner struct{}
 
 func New() *Scanner { return &Scanner{} }
 
-func (s *Scanner) Name() string             { return "cis" }
+func (s *Scanner) Name() string              { return "cis" }
 func (s *Scanner) Category() engine.Category { return engine.CategoryCIS }
 func (s *Scanner) Description() string {
 	return "Runs CIS Kubernetes Benchmark v1.12 checks accessible via the Kubernetes API"
@@ -214,15 +214,15 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 			// CIS 4.2.1 - Minimize admission of privileged containers
 			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
 				findings = append(findings, engine.Finding{
-					ID:       fmt.Sprintf("CIS-4.2.1-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
-					CheckID:  "CIS-4.2.1",
-					Title:    fmt.Sprintf("Privileged container: %s/%s", pod.Name, c.Name),
+					ID:          fmt.Sprintf("CIS-4.2.1-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
+					CheckID:     "CIS-4.2.1",
+					Title:       fmt.Sprintf("Privileged container: %s/%s", pod.Name, c.Name),
 					Description: "CIS 4.2.1: Minimize the admission of privileged containers.",
-					Severity: engine.SeverityCritical,
-					Category: engine.CategoryCIS,
-					Resource: res,
+					Severity:    engine.SeverityCritical,
+					Category:    engine.CategoryCIS,
+					Resource:    res,
 					Remediation: "Do not run containers in privileged mode. Use specific capabilities instead.",
-					CISRef:   "4.2.1",
+					CISRef:      "4.2.1",
 				})
 			}
 
@@ -230,15 +230,15 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 			if c.SecurityContext == nil || c.SecurityContext.RunAsNonRoot == nil || !*c.SecurityContext.RunAsNonRoot {
 				if c.SecurityContext == nil || c.SecurityContext.RunAsUser == nil || *c.SecurityContext.RunAsUser == 0 {
 					findings = append(findings, engine.Finding{
-						ID:       fmt.Sprintf("CIS-4.2.6-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
-						CheckID:  "CIS-4.2.6",
-						Title:    fmt.Sprintf("Container may run as root: %s/%s", pod.Name, c.Name),
+						ID:          fmt.Sprintf("CIS-4.2.6-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
+						CheckID:     "CIS-4.2.6",
+						Title:       fmt.Sprintf("Container may run as root: %s/%s", pod.Name, c.Name),
 						Description: "CIS 4.2.6: Minimize the admission of root containers.",
-						Severity: engine.SeverityHigh,
-						Category: engine.CategoryCIS,
-						Resource: res,
+						Severity:    engine.SeverityHigh,
+						Category:    engine.CategoryCIS,
+						Resource:    res,
 						Remediation: "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero value.",
-						CISRef:   "4.2.6",
+						CISRef:      "4.2.6",
 					})
 				}
 			}
@@ -246,15 +246,15 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 			// CIS 4.2.9 - Minimize admission of containers with added capabilities
 			if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && len(c.SecurityContext.Capabilities.Add) > 0 {
 				findings = append(findings, engine.Finding{
-					ID:       fmt.Sprintf("CIS-4.2.9-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
-					CheckID:  "CIS-4.2.9",
-					Title:    fmt.Sprintf("Container has added capabilities: %s/%s", pod.Name, c.Name),
+					ID:          fmt.Sprintf("CIS-4.2.9-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
+					CheckID:     "CIS-4.2.9",
+					Title:       fmt.Sprintf("Container has added capabilities: %s/%s", pod.Name, c.Name),
 					Description: "CIS 4.2.9: Minimize the admission of containers with added capabilities.",
-					Severity: engine.SeverityMedium,
-					Category: engine.CategoryCIS,
-					Resource: res,
+					Severity:    engine.SeverityMedium,
+					Category:    engine.CategoryCIS,
+					Resource:    res,
 					Remediation: "Remove added capabilities. Drop ALL capabilities and add only those strictly required.",
-					CISRef:   "4.2.9",
+					CISRef:      "4.2.9",
 				})
 			}
 		}
@@ -262,45 +262,45 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 		// CIS 4.2.2 - Minimize admission of containers with hostPID
 		if pod.Spec.HostPID {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.2.2-%s/%s", pod.Namespace, pod.Name),
-				CheckID:  "CIS-4.2.2",
-				Title:    fmt.Sprintf("Pod uses hostPID: %s", pod.Name),
+				ID:          fmt.Sprintf("CIS-4.2.2-%s/%s", pod.Namespace, pod.Name),
+				CheckID:     "CIS-4.2.2",
+				Title:       fmt.Sprintf("Pod uses hostPID: %s", pod.Name),
 				Description: "CIS 4.2.2: Minimize the admission of containers wishing to share the host process ID namespace.",
-				Severity: engine.SeverityHigh,
-				Category: engine.CategoryCIS,
-				Resource: res,
+				Severity:    engine.SeverityHigh,
+				Category:    engine.CategoryCIS,
+				Resource:    res,
 				Remediation: "Set spec.hostPID to false.",
-				CISRef:   "4.2.2",
+				CISRef:      "4.2.2",
 			})
 		}
 
 		// CIS 4.2.3 - Minimize admission of containers with hostIPC
 		if pod.Spec.HostIPC {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.2.3-%s/%s", pod.Namespace, pod.Name),
-				CheckID:  "CIS-4.2.3",
-				Title:    fmt.Sprintf("Pod uses hostIPC: %s", pod.Name),
+				ID:          fmt.Sprintf("CIS-4.2.3-%s/%s", pod.Namespace, pod.Name),
+				CheckID:     "CIS-4.2.3",
+				Title:       fmt.Sprintf("Pod uses hostIPC: %s", pod.Name),
 				Description: "CIS 4.2.3: Minimize the admission of containers wishing to share the host IPC namespace.",
-				Severity: engine.SeverityHigh,
-				Category: engine.CategoryCIS,
-				Resource: res,
+				Severity:    engine.SeverityHigh,
+				Category:    engine.CategoryCIS,
+				Resource:    res,
 				Remediation: "Set spec.hostIPC to false.",
-				CISRef:   "4.2.3",
+				CISRef:      "4.2.3",
 			})
 		}
 
 		// CIS 4.2.4 - Minimize admission of containers with hostNetwork
 		if pod.Spec.HostNetwork {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.2.4-%s/%s", pod.Namespace, pod.Name),
-				CheckID:  "CIS-4.2.4",
-				Title:    fmt.Sprintf("Pod uses hostNetwork: %s", pod.Name),
+				ID:          fmt.Sprintf("CIS-4.2.4-%s/%s", pod.Namespace, pod.Name),
+				CheckID:     "CIS-4.2.4",
+				Title:       fmt.Sprintf("Pod uses hostNetwork: %s", pod.Name),
 				Description: "CIS 4.2.4: Minimize the admission of containers wishing to share the host network namespace.",
-				Severity: engine.SeverityHigh,
-				Category: engine.CategoryCIS,
-				Resource: res,
+				Severity:    engine.SeverityHigh,
+				Category:    engine.CategoryCIS,
+				Resource:    res,
 				Remediation: "Set spec.hostNetwork to false.",
-				CISRef:   "4.2.4",
+				CISRef:      "4.2.4",
 			})
 		}
 	}
@@ -334,15 +334,15 @@ func checkNetworkPolicies(ctx context.Context, client kubernetes.Interface, name
 		// CIS 4.3.1 - Ensure network policies are in place for every namespace
 		if len(policies.Items) == 0 {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.3.1-%s", ns.Name),
-				CheckID:  "CIS-4.3.1",
-				Title:    fmt.Sprintf("No network policy: %s", ns.Name),
+				ID:          fmt.Sprintf("CIS-4.3.1-%s", ns.Name),
+				CheckID:     "CIS-4.3.1",
+				Title:       fmt.Sprintf("No network policy: %s", ns.Name),
 				Description: "CIS 4.3.1: Ensure that a NetworkPolicy is configured for every namespace.",
-				Severity: engine.SeverityHigh,
-				Category: engine.CategoryCIS,
-				Resource: engine.Resource{Kind: "Namespace", Name: ns.Name},
+				Severity:    engine.SeverityHigh,
+				Category:    engine.CategoryCIS,
+				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a default-deny NetworkPolicy for this namespace.",
-				CISRef:   "4.3.1",
+				CISRef:      "4.3.1",
 			})
 		}
 	}
@@ -381,15 +381,15 @@ func checkSecretsManagement(ctx context.Context, client kubernetes.Interface, na
 			for _, env := range c.Env {
 				if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
 					findings = append(findings, engine.Finding{
-						ID:       fmt.Sprintf("CIS-4.4.1-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, env.Name),
-						CheckID:  "CIS-4.4.1",
-						Title:    fmt.Sprintf("Secret as env var: %s in %s/%s", env.Name, pod.Name, c.Name),
+						ID:          fmt.Sprintf("CIS-4.4.1-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, env.Name),
+						CheckID:     "CIS-4.4.1",
+						Title:       fmt.Sprintf("Secret as env var: %s in %s/%s", env.Name, pod.Name, c.Name),
 						Description: "CIS 4.4.1: Prefer using Secrets as files over Secrets as environment variables.",
-						Severity: engine.SeverityMedium,
-						Category: engine.CategoryCIS,
-						Resource: res,
+						Severity:    engine.SeverityMedium,
+						Category:    engine.CategoryCIS,
+						Resource:    res,
 						Remediation: "Mount the secret as a volume instead of using valueFrom.secretKeyRef in env.",
-						CISRef:   "4.4.1",
+						CISRef:      "4.4.1",
 					})
 				}
 			}
@@ -425,15 +425,15 @@ func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, name
 
 		if len(quotas.Items) == 0 {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.5.1-%s", ns.Name),
-				CheckID:  "CIS-4.5.1",
-				Title:    fmt.Sprintf("No resource quotas: %s", ns.Name),
+				ID:          fmt.Sprintf("CIS-4.5.1-%s", ns.Name),
+				CheckID:     "CIS-4.5.1",
+				Title:       fmt.Sprintf("No resource quotas: %s", ns.Name),
 				Description: "CIS 4.5.1: Create administrative boundaries between resources using namespaces with resource quotas.",
-				Severity: engine.SeverityLow,
-				Category: engine.CategoryCIS,
-				Resource: engine.Resource{Kind: "Namespace", Name: ns.Name},
+				Severity:    engine.SeverityLow,
+				Category:    engine.CategoryCIS,
+				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a ResourceQuota for this namespace to limit resource consumption.",
-				CISRef:   "4.5.1",
+				CISRef:      "4.5.1",
 			})
 		}
 
@@ -445,15 +445,15 @@ func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, name
 
 		if len(limitRanges.Items) == 0 {
 			findings = append(findings, engine.Finding{
-				ID:       fmt.Sprintf("CIS-4.5.2-%s", ns.Name),
-				CheckID:  "CIS-4.5.2",
-				Title:    fmt.Sprintf("No LimitRange: %s", ns.Name),
+				ID:          fmt.Sprintf("CIS-4.5.2-%s", ns.Name),
+				CheckID:     "CIS-4.5.2",
+				Title:       fmt.Sprintf("No LimitRange: %s", ns.Name),
 				Description: "CIS 4.5.2: Ensure LimitRange policies are set to constrain resource allocations.",
-				Severity: engine.SeverityLow,
-				Category: engine.CategoryCIS,
-				Resource: engine.Resource{Kind: "Namespace", Name: ns.Name},
+				Severity:    engine.SeverityLow,
+				Category:    engine.CategoryCIS,
+				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a LimitRange to set default resource limits for containers.",
-				CISRef:   "4.5.2",
+				CISRef:      "4.5.2",
 			})
 		}
 	}
@@ -489,10 +489,10 @@ func isDefaultClusterRole(name string) bool {
 		"system:controller:generic-garbage-collector": true,
 		"system:controller:resourcequota-controller":  true,
 		"system:controller:namespace-controller":      true,
-		"admin":       true,
-		"edit":        true,
-		"view":        true,
-		"cluster-admin": true,
+		"admin":                                       true,
+		"edit":                                        true,
+		"view":                                        true,
+		"cluster-admin":                               true,
 	}
 	return defaults[name] || len(name) > 7 && name[:7] == "system:"
 }

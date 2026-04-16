@@ -78,7 +78,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	// Create Kubernetes client
 	k8sClient, err := k8s.NewClient(kubeconfigPath, contextName)
 	if err != nil {
-		return fmt.Errorf("failed to connect to cluster: %w\n\nHint: Make sure your kubeconfig is valid and the cluster is reachable.\nUse --kubeconfig to specify a path or --context to select a context.", err)
+		return fmt.Errorf("failed to connect to cluster: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "🛡️  kube-shield — Kubernetes Security Posture Manager\n")

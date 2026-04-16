@@ -15,7 +15,7 @@ type Scanner struct{}
 
 func New() *Scanner { return &Scanner{} }
 
-func (s *Scanner) Name() string             { return "secrets" }
+func (s *Scanner) Name() string              { return "secrets" }
 func (s *Scanner) Category() engine.Category { return engine.CategorySecrets }
 func (s *Scanner) Description() string {
 	return "Detects secret exposure through environment variables, missing secrets, and insecure secret management practices"
@@ -163,12 +163,7 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		}
 
 		// Check for service account token automounting on default SA
-		if pod.Spec.ServiceAccountName == "default" || pod.Spec.ServiceAccountName == "" {
-			automount := pod.Spec.AutomountServiceAccountToken
-			if automount == nil || *automount {
-				// Already covered by workload scanner, skip duplicate
-			}
-		}
+		// (already covered by workload scanner, intentionally no-op here)
 	}
 
 	// Check for secrets with suspicious names that might contain credentials

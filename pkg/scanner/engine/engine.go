@@ -227,20 +227,20 @@ func (e *Engine) RunAll(ctx context.Context, client kubernetes.Interface, namesp
 
 // Report aggregates results from all scanners.
 type Report struct {
-	Findings     []Finding       `json:"findings"`
-	Results      []*ScanResult   `json:"results"`
-	Summary      Summary         `json:"summary"`
-	GeneratedAt  time.Time       `json:"generatedAt"`
-	ClusterInfo  string          `json:"clusterInfo,omitempty"`
+	Findings    []Finding     `json:"findings"`
+	Results     []*ScanResult `json:"results"`
+	Summary     Summary       `json:"summary"`
+	GeneratedAt time.Time     `json:"generatedAt"`
+	ClusterInfo string        `json:"clusterInfo,omitempty"`
 }
 
 // Summary provides an overview of findings.
 type Summary struct {
-	Total    int            `json:"total"`
+	Total      int              `json:"total"`
 	BySeverity map[Severity]int `json:"bySeverity"`
 	ByCategory map[Category]int `json:"byCategory"`
-	Score    float64        `json:"score"`
-	Grade    string         `json:"grade"`
+	Score      float64          `json:"score"`
+	Grade      string           `json:"grade"`
 }
 
 func buildReport(results []*ScanResult) *Report {

@@ -18,9 +18,11 @@ func New() *Scanner {
 	return &Scanner{}
 }
 
-func (s *Scanner) Name() string        { return "workload" }
+func (s *Scanner) Name() string              { return "workload" }
 func (s *Scanner) Category() engine.Category { return engine.CategoryWorkload }
-func (s *Scanner) Description() string  { return "Scans workloads for security misconfigurations (privileged containers, root access, missing security contexts, etc.)" }
+func (s *Scanner) Description() string {
+	return "Scans workloads for security misconfigurations (privileged containers, root access, missing security contexts, etc.)"
+}
 
 func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*engine.ScanResult, error) {
 	var findings []engine.Finding

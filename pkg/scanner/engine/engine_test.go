@@ -19,8 +19,8 @@ type mockScanner struct {
 }
 
 func (m *mockScanner) Name() string        { return m.name }
-func (m *mockScanner) Category() Category   { return m.category }
-func (m *mockScanner) Description() string  { return "mock scanner" }
+func (m *mockScanner) Category() Category  { return m.category }
+func (m *mockScanner) Description() string { return "mock scanner" }
 
 func (m *mockScanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*ScanResult, error) {
 	if m.delay > 0 {

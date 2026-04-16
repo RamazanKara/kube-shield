@@ -13,7 +13,7 @@ import (
 // TableWriter writes findings in a colored table format.
 func TableWriter(w io.Writer, report *engine.Report) error {
 	if len(report.Findings) == 0 {
-		fmt.Fprintln(w, "\n✅ No security findings detected! Your cluster looks good.")
+		_, _ = fmt.Fprintln(w, "\n✅ No security findings detected! Your cluster looks good.")
 		return nil
 	}
 
@@ -25,9 +25,9 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 	})
 
 	// Header
-	fmt.Fprintf(w, "\n%s\n", strings.Repeat("─", 100))
-	fmt.Fprintf(w, "  %-10s %-12s %-40s %s\n", "SEVERITY", "CHECK", "RESOURCE", "TITLE")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 100))
+	_, _ = fmt.Fprintf(w, "\n%s\n", strings.Repeat("─", 100))
+	_, _ = fmt.Fprintf(w, "  %-10s %-12s %-40s %s\n", "SEVERITY", "CHECK", "RESOURCE", "TITLE")
+	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("─", 100))
 
 	for _, f := range findings {
 		severityStr := colorSeverity(f.Severity)
@@ -40,22 +40,22 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 			title = title[:47] + "..."
 		}
 
-		fmt.Fprintf(w, "  %-21s %-12s %-40s %s\n", severityStr, f.CheckID, resource, title)
+		_, _ = fmt.Fprintf(w, "  %-21s %-12s %-40s %s\n", severityStr, f.CheckID, resource, title)
 	}
 
-	fmt.Fprintf(w, "%s\n\n", strings.Repeat("─", 100))
+	_, _ = fmt.Fprintf(w, "%s\n\n", strings.Repeat("─", 100))
 
 	// Summary
-	fmt.Fprintf(w, "  📊 Security Score: %s (%.0f/100)\n", report.Summary.Grade, report.Summary.Score)
-	fmt.Fprintf(w, "  📋 Total Findings: %d\n", report.Summary.Total)
-	fmt.Fprintf(w, "     %s %d Critical  %s %d High  %s %d Medium  %s %d Low  %s %d Info\n",
+	_, _ = fmt.Fprintf(w, "  📊 Security Score: %s (%.0f/100)\n", report.Summary.Grade, report.Summary.Score)
+	_, _ = fmt.Fprintf(w, "  📋 Total Findings: %d\n", report.Summary.Total)
+	_, _ = fmt.Fprintf(w, "     %s %d Critical  %s %d High  %s %d Medium  %s %d Low  %s %d Info\n",
 		"🔴", report.Summary.BySeverity[engine.SeverityCritical],
 		"🟠", report.Summary.BySeverity[engine.SeverityHigh],
 		"🟡", report.Summary.BySeverity[engine.SeverityMedium],
 		"🔵", report.Summary.BySeverity[engine.SeverityLow],
 		"⚪", report.Summary.BySeverity[engine.SeverityInfo],
 	)
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	return nil
 }

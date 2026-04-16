@@ -57,12 +57,12 @@ func buildPrompt(finding engine.Finding, action string) string {
 		sb.WriteString("Make sure the YAML is valid and can be applied with kubectl apply.\n\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("Finding: %s\n", finding.Title))
-	sb.WriteString(fmt.Sprintf("Severity: %s\n", finding.Severity))
-	sb.WriteString(fmt.Sprintf("Category: %s\n", finding.Category))
-	sb.WriteString(fmt.Sprintf("Resource: %s\n", finding.Resource.String()))
-	sb.WriteString(fmt.Sprintf("Description: %s\n", finding.Description))
-	sb.WriteString(fmt.Sprintf("Suggested Remediation: %s\n", finding.Remediation))
+	fmt.Fprintf(&sb, "Finding: %s\n", finding.Title)
+	fmt.Fprintf(&sb, "Severity: %s\n", finding.Severity)
+	fmt.Fprintf(&sb, "Category: %s\n", finding.Category)
+	fmt.Fprintf(&sb, "Resource: %s\n", finding.Resource.String())
+	fmt.Fprintf(&sb, "Description: %s\n", finding.Description)
+	fmt.Fprintf(&sb, "Suggested Remediation: %s\n", finding.Remediation)
 
 	return sb.String()
 }
@@ -161,11 +161,11 @@ func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("OpenAI request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // best-effort close
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		return "", fmt.Errorf("OpenAI returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf("openai returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var result openAIResponse
@@ -233,13 +233,13 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Ollama request failed: %w", err)
+		return "", fmt.Errorf("ollama request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // best-effort close
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		return "", fmt.Errorf("Ollama returned status %d: %s", resp.StatusCode, string(respBody))
+		return "", fmt.Errorf("ollama returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var result ollamaResponse

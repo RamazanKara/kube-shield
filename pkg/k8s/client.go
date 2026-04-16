@@ -12,10 +12,10 @@ import (
 
 // Client wraps the Kubernetes clientset with multi-cluster support.
 type Client struct {
-	Clientset  kubernetes.Interface
-	Config     *rest.Config
-	Context    string
-	ServerURL  string
+	Clientset kubernetes.Interface
+	Config    *rest.Config
+	Context   string
+	ServerURL string
 }
 
 // NewClient creates a new Kubernetes client.

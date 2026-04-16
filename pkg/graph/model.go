@@ -49,11 +49,11 @@ const (
 
 // Edge represents a connection between nodes.
 type Edge struct {
-	From     string   `json:"from"`
-	To       string   `json:"to"`
-	Type     EdgeType `json:"type"`
-	Label    string   `json:"label,omitempty"`
-	Risk     float64  `json:"risk"`
+	From  string   `json:"from"`
+	To    string   `json:"to"`
+	Type  EdgeType `json:"type"`
+	Label string   `json:"label,omitempty"`
+	Risk  float64  `json:"risk"`
 }
 
 // SecurityGraph models the cluster as a directed graph for attack path analysis.
@@ -81,10 +81,10 @@ func (g *SecurityGraph) AddEdge(e Edge) {
 
 // AttackPath represents a sequence of hops from an entry point to a target.
 type AttackPath struct {
-	Nodes    []*Node `json:"nodes"`
-	Edges    []Edge  `json:"edges"`
-	Risk     float64 `json:"risk"`
-	Summary  string  `json:"summary"`
+	Nodes   []*Node `json:"nodes"`
+	Edges   []Edge  `json:"edges"`
+	Risk    float64 `json:"risk"`
+	Summary string  `json:"summary"`
 }
 
 // FindAttackPaths finds paths from internet-facing pods to sensitive resources.
@@ -206,18 +206,18 @@ func RenderASCII(paths []AttackPath) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Found %d attack path(s):\n\n", len(paths)))
+	fmt.Fprintf(&sb, "Found %d attack path(s):\n\n", len(paths))
 
 	for i, path := range paths {
-		sb.WriteString(fmt.Sprintf("Path %d (Risk: %.1f):\n", i+1, path.Risk))
+		fmt.Fprintf(&sb, "Path %d (Risk: %.1f):\n", i+1, path.Risk)
 		for j, node := range path.Nodes {
 			if j == 0 {
-				sb.WriteString(fmt.Sprintf("  🔴 %s\n", node.String()))
+				fmt.Fprintf(&sb, "  🔴 %s\n", node.String())
 			} else if j == len(path.Nodes)-1 {
-				sb.WriteString(fmt.Sprintf("  └─ 🎯 %s\n", node.String()))
+				fmt.Fprintf(&sb, "  └─ 🎯 %s\n", node.String())
 			} else {
-				sb.WriteString(fmt.Sprintf("  │  ↓ [%s]\n", path.Edges[j-1].Type))
-				sb.WriteString(fmt.Sprintf("  ├─ %s\n", node.String()))
+				fmt.Fprintf(&sb, "  │  ↓ [%s]\n", path.Edges[j-1].Type)
+				fmt.Fprintf(&sb, "  ├─ %s\n", node.String())
 			}
 		}
 		sb.WriteString("\n")
@@ -235,12 +235,12 @@ func (g *SecurityGraph) ExportDOT() string {
 
 	for _, n := range g.Nodes {
 		color := nodeColor(n.Type)
-		sb.WriteString(fmt.Sprintf("  %q [label=%q, color=%q];\n", n.ID, n.String(), color))
+		fmt.Fprintf(&sb, "  %q [label=%q, color=%q];\n", n.ID, n.String(), color)
 	}
 
 	sb.WriteString("\n")
 	for _, e := range g.Edges {
-		sb.WriteString(fmt.Sprintf("  %q -> %q [label=%q];\n", e.From, e.To, e.Type))
+		fmt.Fprintf(&sb, "  %q -> %q [label=%q];\n", e.From, e.To, e.Type)
 	}
 
 	sb.WriteString("}\n")

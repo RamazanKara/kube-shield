@@ -12,16 +12,11 @@ var (
 	criticalColor  = lipgloss.Color("#DC2626") // Dark red
 	mutedColor     = lipgloss.Color("#6B7280") // Gray
 	textColor      = lipgloss.Color("#F9FAFB") // Near white
-	bgColor        = lipgloss.Color("#111827") // Dark bg
-	surfaceColor   = lipgloss.Color("#1F2937") // Card bg
 	borderColor    = lipgloss.Color("#374151") // Border
 )
 
 // Layout styles
 var (
-	appStyle = lipgloss.NewStyle().
-			Background(bgColor)
-
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(primaryColor).
@@ -68,9 +63,6 @@ var (
 			Foreground(textColor).
 			Background(lipgloss.Color("#374151")).
 			Bold(true)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(mutedColor)
 )
 
 func severityStyle(severity string) lipgloss.Style {

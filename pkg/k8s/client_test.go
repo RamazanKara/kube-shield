@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -120,9 +119,7 @@ func TestListContexts(t *testing.T) {
 	kubeconfig := writeTestKubeconfig(t, dir)
 
 	// ListContexts uses env var or default path; we set env
-	old := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", old)
+	t.Setenv("KUBECONFIG", kubeconfig)
 
 	contexts, err := ListContexts("")
 	if err != nil {

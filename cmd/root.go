@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	cfgFile      string
-	kubeconfig   string
-	kubeContext  string
-	namespace    string
-	outputFmt    string
-	verbose      bool
+	cfgFile     string
+	kubeconfig  string
+	kubeContext string
+	namespace   string
+	outputFmt   string
+	verbose     bool
 
 	// Version info (set at build time via ldflags)
 	version = "dev"

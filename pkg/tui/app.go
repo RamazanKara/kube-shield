@@ -47,17 +47,17 @@ func (t Tab) String() string {
 
 // KeyMap defines the keybindings.
 type KeyMap struct {
-	Quit      key.Binding
-	Tab       key.Binding
-	ShiftTab  key.Binding
-	Up        key.Binding
-	Down      key.Binding
-	Enter     key.Binding
-	Back      key.Binding
-	Filter    key.Binding
-	Help      key.Binding
-	Refresh   key.Binding
-	Explain   key.Binding
+	Quit     key.Binding
+	Tab      key.Binding
+	ShiftTab key.Binding
+	Up       key.Binding
+	Down     key.Binding
+	Enter    key.Binding
+	Back     key.Binding
+	Filter   key.Binding
+	Help     key.Binding
+	Refresh  key.Binding
+	Explain  key.Binding
 }
 
 var keys = KeyMap{
@@ -94,9 +94,9 @@ type Model struct {
 	aiResult   string
 	aiLoading  bool
 	// For refresh support
-	k8sClient  kubernetes.Interface
-	namespace  string
-	eng        *engine.Engine
+	k8sClient kubernetes.Interface
+	namespace string
+	eng       *engine.Engine
 	// Cached graph analysis
 	graphCache *graph.SecurityGraph
 	graphPaths []graph.AttackPath
@@ -507,7 +507,7 @@ func (m Model) renderFindings() string {
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("\n  Showing %d findings. Press Enter for details.", len(findings)))
+	fmt.Fprintf(&sb, "\n  Showing %d findings. Press Enter for details.", len(findings))
 	return sb.String()
 }
 
@@ -697,18 +697,18 @@ func (m Model) renderGraphPanel() string {
 		sb.WriteString("  The attack path analyzer identifies chains of findings\n")
 		sb.WriteString("  that could be combined by an attacker for lateral movement.\n")
 	} else {
-		sb.WriteString(fmt.Sprintf("  Found %d potential attack chains:\n\n", len(chains)))
+		fmt.Fprintf(&sb, "  Found %d potential attack chains:\n\n", len(chains))
 		for i, c := range chains {
 			if i >= 15 {
-				sb.WriteString(fmt.Sprintf("\n  ... and %d more chains\n", len(chains)-15))
+				fmt.Fprintf(&sb, "\n  ... and %d more chains\n", len(chains)-15)
 				break
 			}
 			sevStyle := severityStyle(c.severity)
-			sb.WriteString(fmt.Sprintf("  %s  %s ──[%s]──▶ %s\n",
+			fmt.Fprintf(&sb, "  %s  %s ──[%s]──▶ %s\n",
 				sevStyle.Render(fmt.Sprintf("%-8s", c.severity)),
 				c.source,
 				c.path,
-				c.target))
+				c.target)
 		}
 		sb.WriteString("\n  Legend: Source ──[permission/vulnerability]──▶ Target\n")
 	}
@@ -719,14 +719,14 @@ func (m Model) renderGraphPanel() string {
 		sb.WriteString("\n\n  Graph Attack Paths:\n\n")
 		for i, p := range paths {
 			if i >= 10 {
-				sb.WriteString(fmt.Sprintf("\n  ... and %d more paths\n", len(paths)-10))
+				fmt.Fprintf(&sb, "\n  ... and %d more paths\n", len(paths)-10)
 				break
 			}
 			var nodes []string
 			for _, n := range p.Nodes {
 				nodes = append(nodes, n.Name)
 			}
-			sb.WriteString(fmt.Sprintf("  [%.0f] %s\n", p.Risk, strings.Join(nodes, " → ")))
+			fmt.Fprintf(&sb, "  [%.0f] %s\n", p.Risk, strings.Join(nodes, " → "))
 		}
 	}
 
@@ -774,5 +774,3 @@ func (m Model) maxCursorItems() int {
 		return 0
 	}
 }
-
-

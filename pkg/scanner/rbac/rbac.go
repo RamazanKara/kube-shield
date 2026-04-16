@@ -16,7 +16,7 @@ type Scanner struct{}
 
 func New() *Scanner { return &Scanner{} }
 
-func (s *Scanner) Name() string             { return "rbac" }
+func (s *Scanner) Name() string              { return "rbac" }
 func (s *Scanner) Category() engine.Category { return engine.CategoryRBAC }
 func (s *Scanner) Description() string {
 	return "Analyzes RBAC configurations for overly permissive roles, privilege escalation paths, and risky bindings"
