@@ -111,7 +111,7 @@ func NewOpenAIProvider(cfg Config) (*OpenAIProvider, error) {
 	}
 	model := cfg.Model
 	if model == "" {
-		model = "gpt-4"
+		model = "gpt-4o-mini"
 	}
 	endpoint := cfg.Endpoint
 	if endpoint == "" {
@@ -190,7 +190,7 @@ type OllamaProvider struct {
 func NewOllamaProvider(cfg Config) (*OllamaProvider, error) {
 	model := cfg.Model
 	if model == "" {
-		model = "llama3"
+		model = "llama3.2"
 	}
 	endpoint := cfg.Endpoint
 	if endpoint == "" {

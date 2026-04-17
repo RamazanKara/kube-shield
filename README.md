@@ -147,7 +147,7 @@ These flags apply to all commands and can also be set via config file or environ
 | `--output` | `-o` | string | `table` | Output format: `table`, `json`, `sarif` |
 | `--verbose` | `-v` | bool | `false` | Enable verbose output |
 | `--ai-provider` | | string | | AI provider: `openai`, `ollama` |
-| `--ai-model` | | string | | Model name (e.g. `gpt-4`, `llama3`) |
+| `--ai-model` | | string | | Model name (e.g. `gpt-4o-mini`, `llama3.2`) |
 | `--ai-api-key` | | string | | AI provider API key |
 | `--ai-endpoint` | | string | | AI endpoint URL |
 
@@ -215,7 +215,7 @@ exit-code: false
 # AI-powered analysis
 ai:
   provider: ""        # openai, ollama, or empty to disable
-  model: ""           # e.g. gpt-4, llama3
+  model: ""           # e.g. gpt-4o-mini, llama3.2
   apikey: ""          # prefer KUBE_SHIELD_AI_APIKEY env var
   endpoint: ""        # custom endpoint URL
 ```
@@ -232,7 +232,7 @@ All config options can be set via environment variables with the `KUBE_SHIELD_` 
 | `KUBE_SHIELD_SEVERITY` | `severity` | `high` |
 | `KUBE_SHIELD_AI_PROVIDER` | `ai.provider` | `openai` |
 | `KUBE_SHIELD_AI_APIKEY` | `ai.apikey` | `sk-...` |
-| `KUBE_SHIELD_AI_MODEL` | `ai.model` | `gpt-4` |
+| `KUBE_SHIELD_AI_MODEL` | `ai.model` | `gpt-4o-mini` |
 | `KUBE_SHIELD_AI_ENDPOINT` | `ai.endpoint` | `http://localhost:11434` |
 
 ## 🔬 Scanners

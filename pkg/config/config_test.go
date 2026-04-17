@@ -35,7 +35,7 @@ func TestLoad(t *testing.T) {
 	viper.Set("verbose", true)
 	viper.Set("severity", "high")
 	viper.Set("ai.provider", "openai")
-	viper.Set("ai.model", "gpt-4")
+	viper.Set("ai.model", "gpt-4o-mini")
 	viper.Set("ai.apikey", "sk-test")
 	viper.Set("ai.endpoint", "https://api.example.com")
 	viper.Set("scanners", []string{"workload", "rbac"})
@@ -67,8 +67,8 @@ func TestLoad(t *testing.T) {
 	if cfg.AI.Provider != "openai" {
 		t.Errorf("expected AI provider 'openai', got %q", cfg.AI.Provider)
 	}
-	if cfg.AI.Model != "gpt-4" {
-		t.Errorf("expected AI model 'gpt-4', got %q", cfg.AI.Model)
+	if cfg.AI.Model != "gpt-4o-mini" {
+		t.Errorf("expected AI model 'gpt-4o-mini', got %q", cfg.AI.Model)
 	}
 	if cfg.AI.APIKey != "sk-test" {
 		t.Errorf("expected AI API key 'sk-test', got %q", cfg.AI.APIKey)

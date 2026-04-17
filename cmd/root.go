@@ -62,7 +62,7 @@ func init() {
 
 	// AI flags
 	rootCmd.PersistentFlags().String("ai-provider", "", "AI provider: openai, ollama")
-	rootCmd.PersistentFlags().String("ai-model", "", "AI model name (e.g., gpt-4, llama3)")
+	rootCmd.PersistentFlags().String("ai-model", "", "AI model name (e.g., gpt-4o-mini, llama3.2)")
 	rootCmd.PersistentFlags().String("ai-api-key", "", "AI provider API key")
 	rootCmd.PersistentFlags().String("ai-endpoint", "", "AI provider endpoint URL")
 

@@ -56,8 +56,8 @@ func TestNewOpenAIProviderDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if p.model != "gpt-4" {
-		t.Errorf("expected default model 'gpt-4', got %q", p.model)
+	if p.model != "gpt-4o-mini" {
+		t.Errorf("expected default model 'gpt-4o-mini', got %q", p.model)
 	}
 	if p.endpoint != "https://api.openai.com/v1" {
 		t.Errorf("expected default endpoint, got %q", p.endpoint)
@@ -69,8 +69,8 @@ func TestNewOllamaProviderDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if p.model != "llama3" {
-		t.Errorf("expected default model 'llama3', got %q", p.model)
+	if p.model != "llama3.2" {
+		t.Errorf("expected default model 'llama3.2', got %q", p.model)
 	}
 	if p.endpoint != "http://localhost:11434" {
 		t.Errorf("expected default endpoint, got %q", p.endpoint)
