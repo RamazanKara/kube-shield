@@ -1,0 +1,130 @@
+---
+# Intentionally vulnerable workloads for e2e testing.
+# DO NOT deploy to any real cluster.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-shield-e2e
+---
+# Privileged pod (WL-010, CIS-4.2.1)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-pod
+  namespace: kube-shield-e2e
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        privileged: true
+---
+# Host namespaces pod (WL-001, WL-002, WL-003, CIS-4.2.2, CIS-4.2.3, CIS-4.2.4)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: host-namespace-pod
+  namespace: kube-shield-e2e
+spec:
+  hostPID: true
+  hostIPC: true
+  hostNetwork: true
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
+---
+# No security context (WL-011, WL-031, WL-032, WL-030, CIS-4.2.6)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: insecure-defaults-pod
+  namespace: kube-shield-e2e
+spec:
+  containers:
+    - name: app
+      image: nginx
+      # no tag (WL-030), no securityContext (WL-011), no resources (WL-031, WL-032)
+---
+# Dangerous capabilities (WL-020, WL-022, CIS-4.2.9)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dangerous-caps-pod
+  namespace: kube-shield-e2e
+spec:
+  containers:
+    - name: admin
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        capabilities:
+          add: ["SYS_ADMIN", "NET_RAW"]
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
+    - name: allcaps
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        capabilities:
+          add: ["ALL"]
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
+---
+# Default service account with automount (WL-004)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-sa-pod
+  namespace: kube-shield-e2e
+spec:
+  serviceAccountName: default
+  automountServiceAccountToken: true
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"

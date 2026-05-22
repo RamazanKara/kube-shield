@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
+	"github.com/RamazanKara/kube-shield/pkg/logging"
 	"github.com/RamazanKara/kube-shield/pkg/report"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/cis"
+	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/netpol"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/rbac"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/secrets"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/workload"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -75,11 +74,19 @@ func runScan(cmd *cobra.Command, args []string) error {
 	ns := viper.GetString("namespace")
 	output := viper.GetString("output")
 
+	log := logging.New(verbose, output)
+
 	// Create Kubernetes client
 	k8sClient, err := k8s.NewClient(kubeconfigPath, contextName)
 	if err != nil {
 		return fmt.Errorf("failed to connect to cluster: %w", err)
 	}
+
+	log.Info("starting scan",
+		"cluster", k8sClient.ServerURL,
+		"context", k8sClient.Context,
+		"namespace", ns,
+	)
 
 	fmt.Fprintf(os.Stderr, "🛡️  kube-shield — Kubernetes Security Posture Manager\n")
 	fmt.Fprintf(os.Stderr, "   Cluster: %s (context: %s)\n", k8sClient.ServerURL, k8sClient.Context)
@@ -90,20 +97,18 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "   Scanning...\n\n")
 
-	// Register scanners
-	registry := engine.NewRegistry()
-	registry.Register(workload.New())
-	registry.Register(cis.New())
-	registry.Register(rbac.New())
-	registry.Register(netpol.New())
-	registry.Register(secrets.New())
+	// Register scanners using centralized registry
+	registry := scanner.DefaultRegistry()
 
 	// Create engine
 	eng := engine.NewEngine(registry, 5)
 
-	// Run scan with timeout
+	// Run scan with timeout and signal handling for graceful cancellation
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	var result *engine.Report
 	if len(scanners) > 0 {
@@ -114,6 +119,8 @@ func runScan(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
+
+	log.Debug("scan complete", "findings", len(result.Findings))
 
 	// Filter by severity and category
 	minSev := engine.SeverityFromString(severity)
@@ -161,29 +168,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if aiErr != nil {
 			fmt.Fprintf(os.Stderr, "\n⚠️  AI provider error: %v\n", aiErr)
 		} else {
-			var critHigh []engine.Finding
-			for _, f := range result.Findings {
-				if f.Severity >= engine.SeverityHigh {
-					critHigh = append(critHigh, f)
-				}
-			}
-			if len(critHigh) > 0 {
-				fmt.Fprintf(os.Stderr, "\n🤖 AI Analysis (%s):\n", provider.Name())
-				limit := len(critHigh)
-				if limit > 5 {
-					limit = 5
-				}
-				for _, f := range critHigh[:limit] {
-					aiCtx, aiCancel := context.WithTimeout(context.Background(), 30*time.Second)
-					explanation, expErr := provider.Explain(aiCtx, f)
-					aiCancel()
-					if expErr != nil {
-						fmt.Fprintf(os.Stderr, "  %s: AI error: %v\n", f.CheckID, expErr)
-						continue
-					}
-					fmt.Fprintf(os.Stderr, "\n  📋 %s (%s)\n  %s\n", f.Title, f.CheckID, explanation)
-				}
-			}
+			ai.AnalyzeFindings(ctx, os.Stderr, provider, result.Findings, ai.DefaultAnalyzeOptions())
 		}
 	}
 

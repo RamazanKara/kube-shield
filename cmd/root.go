@@ -15,11 +15,6 @@ var (
 	namespace   string
 	outputFmt   string
 	verbose     bool
-
-	// Version info (set at build time via ldflags)
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
 )
 
 var rootCmd = &cobra.Command{

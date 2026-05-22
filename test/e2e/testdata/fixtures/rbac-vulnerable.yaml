@@ -1,0 +1,86 @@
+---
+# Intentionally overly permissive RBAC for e2e testing.
+# DO NOT deploy to any real cluster.
+
+# Wildcard ClusterRole (RBAC-001)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-wildcard-admin
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+# Secrets read/write ClusterRole (RBAC-010, RBAC-011)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-secret-manager
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+# Privilege escalation ClusterRole (RBAC-020, RBAC-021)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-privesc-role
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "roles"]
+    verbs: ["bind", "escalate"]
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/attach"]
+    verbs: ["create", "get"]
+---
+# ServiceAccount for binding
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: e2e-overprivileged-sa
+  namespace: kube-shield-e2e
+---
+# Bind cluster-admin to a SA (CIS-4.1.1)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: e2e-cluster-admin-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: e2e-overprivileged-sa
+    namespace: kube-shield-e2e
+---
+# Bind wildcard role to default SA (RBAC-001)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: e2e-wildcard-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: e2e-wildcard-admin
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-shield-e2e
+---
+# Bind default SA with additional role (CIS-4.1.5)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e-default-sa-extra-role
+  namespace: kube-shield-e2e
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: e2e-secret-manager
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-shield-e2e

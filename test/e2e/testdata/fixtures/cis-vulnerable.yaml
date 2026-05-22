@@ -1,0 +1,30 @@
+---
+# Pods violating CIS benchmarks for e2e testing.
+# DO NOT deploy to any real cluster.
+
+# CIS-4.2.6: Container running as root (no runAsNonRoot)
+# CIS-4.2.9: Added capabilities
+# Already covered by workload fixtures, but this adds an explicit CIS-focused pod:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cis-root-pod
+  namespace: kube-shield-e2e
+spec:
+  containers:
+    - name: root-container
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        runAsUser: 0
+        readOnlyRootFilesystem: false
+        allowPrivilegeEscalation: true
+        capabilities:
+          add: ["NET_ADMIN"]
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"

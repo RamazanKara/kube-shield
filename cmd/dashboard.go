@@ -8,12 +8,8 @@ import (
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/cis"
+	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/netpol"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/rbac"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/secrets"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/workload"
 	"github.com/RamazanKara/kube-shield/pkg/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -58,12 +54,7 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprintf(os.Stderr, "🛡️  Scanning cluster %s...\n", k8sClient.ServerURL)
 
-	registry := engine.NewRegistry()
-	registry.Register(workload.New())
-	registry.Register(cis.New())
-	registry.Register(rbac.New())
-	registry.Register(netpol.New())
-	registry.Register(secrets.New())
+	registry := scanner.DefaultRegistry()
 
 	eng := engine.NewEngine(registry, 5)
 

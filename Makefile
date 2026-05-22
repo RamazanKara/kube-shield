@@ -1,10 +1,10 @@
-.PHONY: build test lint clean install run-scan run-dashboard
+.PHONY: build test test-e2e lint clean install run-scan run-dashboard
 
 BINARY_NAME=kube-shield
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE    ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-LDFLAGS  = -ldflags "-s -w -X github.com/RamazanKara/kube-shield/cmd.version=$(VERSION) -X github.com/RamazanKara/kube-shield/cmd.commit=$(COMMIT) -X github.com/RamazanKara/kube-shield/cmd.date=$(DATE)"
+LDFLAGS  = -ldflags "-s -w -X github.com/RamazanKara/kube-shield/pkg/version.Version=$(VERSION) -X github.com/RamazanKara/kube-shield/pkg/version.Commit=$(COMMIT) -X github.com/RamazanKara/kube-shield/pkg/version.Date=$(DATE)"
 
 ## build: Build the kube-shield binary
 build:
@@ -17,6 +17,10 @@ install:
 ## test: Run all tests
 test:
 	go test -v -race -cover ./...
+
+## test-e2e: Run end-to-end tests (requires kind)
+test-e2e: build
+	go test -v -tags e2e -timeout 10m -count=1 ./test/e2e/...
 
 ## test-coverage: Run tests with coverage report
 test-coverage:

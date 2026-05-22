@@ -1,0 +1,81 @@
+---
+# Namespace without network policies for e2e testing.
+# DO NOT deploy to any real cluster.
+
+# The kube-shield-e2e namespace is already created by workload-vulnerable.yaml
+# and will have NO network policies -> triggers NET-001, CIS-4.3.1
+
+# A second namespace with an overly permissive policy (NET-010, NET-011)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-shield-e2e-netpol
+---
+# Allow-all ingress policy (NET-010) — missing default-deny so also NET-002, NET-003
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-ingress
+  namespace: kube-shield-e2e-netpol
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - {} # Allow all ingress (NET-010)
+---
+# Allow-all egress policy (NET-011)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-egress
+  namespace: kube-shield-e2e-netpol
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - {} # Allow all egress (NET-011)
+---
+# Wide CIDR ingress (NET-020)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wide-cidr-policy
+  namespace: kube-shield-e2e-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: test
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+---
+# A pod in the netpol namespace for scanner context
+apiVersion: v1
+kind: Pod
+metadata:
+  name: netpol-test-pod
+  namespace: kube-shield-e2e-netpol
+  labels:
+    app: test
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "infinity"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+      resources:
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "32Mi"
