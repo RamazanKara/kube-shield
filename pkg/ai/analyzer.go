@@ -37,7 +37,7 @@ func AnalyzeFindings(ctx context.Context, w io.Writer, provider Provider, findin
 		return
 	}
 
-	fmt.Fprintf(w, "\n🤖 AI Analysis (%s):\n", provider.Name())
+	_, _ = fmt.Fprintf(w, "\n🤖 AI Analysis (%s):\n", provider.Name())
 
 	limit := len(filtered)
 	if limit > opts.MaxFindings {
@@ -49,9 +49,9 @@ func AnalyzeFindings(ctx context.Context, w io.Writer, provider Provider, findin
 		explanation, err := provider.Explain(aiCtx, f)
 		cancel()
 		if err != nil {
-			fmt.Fprintf(w, "  %s: AI error: %v\n", f.CheckID, err)
+			_, _ = fmt.Fprintf(w, "  %s: AI error: %v\n", f.CheckID, err)
 			continue
 		}
-		fmt.Fprintf(w, "\n  📋 %s (%s)\n  %s\n", f.Title, f.CheckID, explanation)
+		_, _ = fmt.Fprintf(w, "\n  📋 %s (%s)\n  %s\n", f.Title, f.CheckID, explanation)
 	}
 }

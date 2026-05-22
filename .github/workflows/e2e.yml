@@ -22,15 +22,12 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Create kind cluster
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: kube-shield-e2e
-          config: test/e2e/testdata/kind-config.yaml
-          wait: 120s
-
-      - name: Wait for cluster readiness
-        run: kubectl wait --for=condition=Ready nodes --all --timeout=120s
+      - name: Install kind
+        run: |
+          [ -f /usr/local/bin/kind ] && exit 0
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
 
       - name: Run E2E tests
         run: make test-e2e
