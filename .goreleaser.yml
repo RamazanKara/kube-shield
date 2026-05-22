@@ -21,9 +21,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/RamazanKara/kube-shield/cmd.version={{.Version}}
-      - -X github.com/RamazanKara/kube-shield/cmd.commit={{.Commit}}
-      - -X github.com/RamazanKara/kube-shield/cmd.date={{.Date}}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Version={{.Version}}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Commit={{.Commit}}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Date={{.Date}}
 
 archives:
   - format: tar.gz
