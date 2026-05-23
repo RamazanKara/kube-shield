@@ -148,3 +148,5 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full package layout and data flow
 
 - **ci.yml**: Runs on every push/PR — builds, lints, unit tests
 - **e2e.yml**: Runs E2E tests with kind on PRs to main
+- **release-dry-run.yml**: Validates GoReleaser, Docker, SBOM, and Helm packaging on PRs
+- **release.yml**: Publishes signed artifacts, GHCR images, Helm OCI chart, and Homebrew cask from tags

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
+	"github.com/RamazanKara/kube-shield/pkg/version"
 )
 
 // TableWriter writes findings in a colored table format.
@@ -78,7 +79,7 @@ func SARIFWriter(w io.Writer, report *engine.Report) error {
 					"driver": map[string]interface{}{
 						"name":           "kube-shield",
 						"informationUri": "https://github.com/RamazanKara/kube-shield",
-						"version":        "0.1.0",
+						"version":        version.Version,
 						"rules":          buildSARIFRules(report.Findings),
 					},
 				},
@@ -110,7 +111,7 @@ func buildSARIFRules(findings []engine.Finding) []map[string]interface{} {
 			"defaultConfiguration": map[string]string{
 				"level": sarifLevel(f.Severity),
 			},
-			"helpUri": fmt.Sprintf("https://github.com/RamazanKara/kube-shield/docs/checks/%s", f.CheckID),
+			"helpUri": "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md",
 		})
 	}
 

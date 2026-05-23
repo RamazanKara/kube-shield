@@ -1,0 +1,54 @@
+name: Release Dry Run
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  GORELEASER_VERSION: v2.15.4
+  COSIGN_VERSION: v3.0.6
+  SYFT_VERSION: v1.44.0
+  HELM_VERSION: v3.21.0
+
+jobs:
+  snapshot:
+    name: Snapshot release check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+
+      - name: Install release tools
+        run: bash .github/scripts/install-release-tools.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Validate GoReleaser config
+        run: goreleaser check
+
+      - name: Helm lint and render
+        run: |
+          helm lint deploy/helm
+          helm template kube-shield deploy/helm --namespace kube-shield >/tmp/kube-shield-rendered.yaml
+
+      - name: Build snapshot release
+        run: goreleaser release --snapshot --clean --skip=publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: dry-run

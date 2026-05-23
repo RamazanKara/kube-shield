@@ -31,10 +31,16 @@
 go install github.com/RamazanKara/kube-shield@latest
 ```
 
+### Homebrew
+
+```bash
+brew install --cask ramazankara/tap/kube-shield
+```
+
 ### Docker
 
 ```bash
-docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield scan
+docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield:v1.0.0 scan
 ```
 
 ### Download Binary
@@ -49,6 +55,7 @@ Pre-built binaries for Linux, macOS, and Windows are available on the
 | macOS | amd64 | `kube-shield_*_darwin_amd64.tar.gz` |
 | macOS | arm64 (Apple Silicon) | `kube-shield_*_darwin_arm64.tar.gz` |
 | Windows | amd64 | `kube-shield_*_windows_amd64.zip` |
+| Windows | arm64 | `kube-shield_*_windows_arm64.zip` |
 
 ## 📖 Usage
 
@@ -239,10 +246,10 @@ All config options can be set via environment variables with the `KUBE_SHIELD_` 
 
 | Scanner | Checks | Severity Range | Description |
 |---------|--------|---------------|-------------|
-| **workload** | 12 | Critical → Info | Privileged containers, root access, host namespaces, capabilities, image tags, resource limits, probes |
-| **cis** | 23 | Critical → Low | CIS Kubernetes Benchmark v1.12 — Sections 4.1 (RBAC), 4.2 (Pod Security), 4.3 (Network), 4.4 (Secrets), 4.5 (General) |
-| **rbac** | 8 | Critical → Medium | Wildcard permissions, secret access, privilege escalation verbs, cluster-admin bindings, default SA usage |
-| **netpol** | 5 | High → Medium | Missing network policies, no default-deny, allow-all rules, wide CIDR ranges |
+| **workload** | 17 | Critical → Info | Privileged containers, root access, host namespaces, capabilities, image tags, resource limits, probes |
+| **cis** | 14 | Critical → Low | CIS Kubernetes Benchmark v1.12 — Sections 4.1 (RBAC), 4.2 (Pod Security), 4.3 (Network), 4.4 (Secrets), 4.5 (General) |
+| **rbac** | 12 | Critical → Medium | Wildcard permissions, secret access, privilege escalation verbs, cluster-admin bindings, default SA usage |
+| **netpol** | 6 | High → Medium | Missing network policies, no default-deny, allow-all rules, wide CIDR ranges |
 | **secrets** | 6 | High → Info | Env var exposure, missing references, empty secrets, permissive volume modes, sensitive mount paths |
 
 ### Severity Levels
@@ -276,6 +283,15 @@ helm install kube-shield deploy/helm/ \
   --set severity=medium
 ```
 
+Install the published OCI chart:
+
+```bash
+helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
+  --version 1.0.0 \
+  --namespace kube-shield \
+  --create-namespace
+```
+
 ### Key Helm Values
 
 | Value | Default | Description |
@@ -290,6 +306,30 @@ helm install kube-shield deploy/helm/ \
 | `resources.limits.cpu` | `200m` | CPU limit |
 
 See [`deploy/helm/values.yaml`](deploy/helm/values.yaml) for all options.
+
+## 🔐 Release Verification
+
+Release artifacts are published with checksums, SBOMs, Sigstore signatures, and GitHub attestations.
+
+```bash
+gh release download v1.0.0 --repo RamazanKara/kube-shield --pattern checksums.txt --pattern checksums.txt.sigstore.json
+gh attestation verify checksums.txt --repo RamazanKara/kube-shield
+cosign verify-blob --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+cosign verify ghcr.io/ramazankara/kube-shield:v1.0.0 \
+  --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+You can also verify install channels:
+
+```bash
+docker pull ghcr.io/ramazankara/kube-shield:v1.0.0
+helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield --version 1.0.0
+brew install --cask ramazankara/tap/kube-shield
+```
 
 ## 🔌 CI/CD Integration
 

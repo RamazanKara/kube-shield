@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -83,6 +84,7 @@ func initConfig() {
 	}
 
 	viper.SetEnvPrefix("KUBE_SHIELD")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
 	_ = viper.ReadInConfig()

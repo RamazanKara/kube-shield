@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
+	"github.com/RamazanKara/kube-shield/pkg/config"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
 	"github.com/RamazanKara/kube-shield/pkg/logging"
 	"github.com/RamazanKara/kube-shield/pkg/report"
 	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -69,15 +69,16 @@ func init() {
 }
 
 func runScan(cmd *cobra.Command, args []string) error {
-	kubeconfigPath := viper.GetString("kubeconfig")
-	contextName := viper.GetString("context")
-	ns := viper.GetString("namespace")
-	output := viper.GetString("output")
+	cfg := config.Load()
+	applyScanFlagOverrides(cmd.Flags(), cfg)
+	if err := validateScanConfig(cfg); err != nil {
+		return err
+	}
 
-	log := logging.New(verbose, output)
+	log := logging.New(cfg.Verbose, cfg.Output)
 
 	// Create Kubernetes client
-	k8sClient, err := k8s.NewClient(kubeconfigPath, contextName)
+	k8sClient, err := k8s.NewClient(cfg.Kubeconfig, cfg.Context)
 	if err != nil {
 		return fmt.Errorf("failed to connect to cluster: %w", err)
 	}
@@ -85,13 +86,13 @@ func runScan(cmd *cobra.Command, args []string) error {
 	log.Info("starting scan",
 		"cluster", k8sClient.ServerURL,
 		"context", k8sClient.Context,
-		"namespace", ns,
+		"namespace", cfg.Namespace,
 	)
 
 	fmt.Fprintf(os.Stderr, "🛡️  kube-shield — Kubernetes Security Posture Manager\n")
 	fmt.Fprintf(os.Stderr, "   Cluster: %s (context: %s)\n", k8sClient.ServerURL, k8sClient.Context)
-	if ns != "" {
-		fmt.Fprintf(os.Stderr, "   Namespace: %s\n", ns)
+	if cfg.Namespace != "" {
+		fmt.Fprintf(os.Stderr, "   Namespace: %s\n", cfg.Namespace)
 	} else {
 		fmt.Fprintf(os.Stderr, "   Namespace: all\n")
 	}
@@ -104,17 +105,17 @@ func runScan(cmd *cobra.Command, args []string) error {
 	eng := engine.NewEngine(registry, 5)
 
 	// Run scan with timeout and signal handling for graceful cancellation
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	var result *engine.Report
-	if len(scanners) > 0 {
-		result, err = eng.Run(ctx, k8sClient.Clientset, ns, scanners)
+	if len(cfg.Scanners) > 0 {
+		result, err = eng.Run(ctx, k8sClient.Clientset, cfg.Namespace, cfg.Scanners)
 	} else {
-		result, err = eng.RunAll(ctx, k8sClient.Clientset, ns)
+		result, err = eng.RunAll(ctx, k8sClient.Clientset, cfg.Namespace)
 	}
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
@@ -123,9 +124,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 	log.Debug("scan complete", "findings", len(result.Findings))
 
 	// Filter by severity and category
-	minSev := engine.SeverityFromString(severity)
+	minSev := engine.SeverityFromString(cfg.Severity)
 	var catFilter []engine.Category
-	for _, c := range categories {
+	for _, c := range cfg.Categories {
 		catFilter = append(catFilter, engine.Category(c))
 	}
 	result.Findings = engine.FilterFindings(result.Findings, minSev, catFilter, "")
@@ -140,7 +141,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	// Output results
-	switch output {
+	switch cfg.Output {
 	case "json":
 		if err := report.JSONWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write JSON report: %w", err)
@@ -149,20 +150,19 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if err := report.SARIFWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write SARIF report: %w", err)
 		}
-	default:
+	case "table":
 		if err := report.TableWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write table report: %w", err)
 		}
 	}
 
 	// AI-powered explanation for critical/high findings
-	aiProvider := viper.GetString("ai.provider")
-	if aiProvider != "" {
+	if cfg.AI.Provider != "" {
 		aiCfg := ai.Config{
-			Provider: aiProvider,
-			Model:    viper.GetString("ai.model"),
-			APIKey:   viper.GetString("ai.apikey"),
-			Endpoint: viper.GetString("ai.endpoint"),
+			Provider: cfg.AI.Provider,
+			Model:    cfg.AI.Model,
+			APIKey:   cfg.AI.APIKey,
+			Endpoint: cfg.AI.Endpoint,
 		}
 		provider, aiErr := ai.NewProvider(aiCfg)
 		if aiErr != nil {
@@ -173,8 +173,8 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	// Exit code
-	if exitCode && result.Summary.Total > 0 {
-		return fmt.Errorf("findings detected: %d findings at or above %s severity (exit-code enabled)", result.Summary.Total, severity)
+	if cfg.ExitCode && result.Summary.Total > 0 {
+		return fmt.Errorf("findings detected: %d findings at or above %s severity (exit-code enabled)", result.Summary.Total, cfg.Severity)
 	}
 
 	return nil

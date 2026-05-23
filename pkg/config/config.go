@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -63,8 +64,11 @@ func Load() *Config {
 	cfg.AI.Provider = viper.GetString("ai.provider")
 	cfg.AI.Model = viper.GetString("ai.model")
 	cfg.AI.APIKey = viper.GetString("ai.apikey")
+	if cfg.AI.APIKey == "" {
+		cfg.AI.APIKey = viper.GetString("ai.apiKey")
+	}
 	cfg.AI.Endpoint = viper.GetString("ai.endpoint")
-	if s := viper.GetStringSlice("scanners"); len(s) > 0 {
+	if s := normalizeStringSlice(viper.GetStringSlice("scanners")); len(s) > 0 {
 		cfg.Scanners = s
 	}
 	if d := viper.GetDuration("timeout"); d > 0 {
@@ -73,6 +77,23 @@ func Load() *Config {
 	if viper.IsSet("exit-code") {
 		cfg.ExitCode = viper.GetBool("exit-code")
 	}
-	cfg.Categories = viper.GetStringSlice("categories")
+	if categories := normalizeStringSlice(viper.GetStringSlice("category")); len(categories) > 0 {
+		cfg.Categories = categories
+	} else {
+		cfg.Categories = normalizeStringSlice(viper.GetStringSlice("categories"))
+	}
 	return cfg
+}
+
+func normalizeStringSlice(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		for _, part := range strings.Split(value, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				normalized = append(normalized, part)
+			}
+		}
+	}
+	return normalized
 }

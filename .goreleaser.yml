@@ -2,13 +2,17 @@ version: 2
 
 project_name: kube-shield
 
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
 before:
   hooks:
     - go mod tidy
     - go generate ./...
 
 builds:
-  - main: .
+  - id: kube-shield
+    main: .
     binary: kube-shield
     env:
       - CGO_ENABLED=0
@@ -21,22 +25,27 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Version={{.Version}}
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Commit={{.Commit}}
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Date={{.Date}}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Version={{ .Version }}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Commit={{ .Commit }}
+      - -X github.com/RamazanKara/kube-shield/pkg/version.Date={{ .Date }}
 
 archives:
-  - format: tar.gz
+  - id: default
+    ids:
+      - kube-shield
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
 checksum:
-  name_template: "checksums.txt"
+  name_template: checksums.txt
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -47,29 +56,110 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-dockers:
-  - image_templates:
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-    dockerfile: Dockerfile
-  - image_templates:
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64"
-    goarch: arm64
-    dockerfile: Dockerfile
+sboms:
+  - id: archive-sboms
+    artifacts: archive
+    documents:
+      - "${artifact}.sbom.json"
+    cmd: syft
+    args:
+      - "$artifact"
+      - "--output"
+      - "spdx-json=$document"
 
-docker_manifests:
-  - name_template: "ghcr.io/ramazankara/kube-shield:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/ramazankara/kube-shield:latest"
-    image_templates:
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-amd64"
-      - "ghcr.io/ramazankara/kube-shield:{{ .Version }}-arm64"
+binary_signs:
+  - id: binary-sigstore
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: binary
 
+signs:
+  - id: checksum-sigstore
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+  - id: archive-sbom-sigstore
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: sbom
 
+dockers_v2:
+  - id: kube-shield
+    ids:
+      - kube-shield
+    dockerfile: Dockerfile.release
+    images:
+      - ghcr.io/ramazankara/kube-shield
+    tags:
+      - "v{{ .Version }}"
+      - "{{ .Version }}"
+      - "{{ if not .IsSnapshot }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    sbom: true
+    labels:
+      org.opencontainers.image.title: kube-shield
+      org.opencontainers.image.description: Kubernetes Security Posture Manager
+      org.opencontainers.image.url: https://github.com/RamazanKara/kube-shield
+      org.opencontainers.image.source: https://github.com/RamazanKara/kube-shield
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.licenses: Apache-2.0
+
+homebrew_casks:
+  - name: kube-shield
+    ids:
+      - default
+    binaries:
+      - kube-shield
+    generate_completions_from_executable:
+      executable: bin/kube-shield
+      args:
+        - completion
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
+        - pwsh
+    homepage: https://github.com/RamazanKara/kube-shield
+    description: Kubernetes Security Posture Manager
+    license: Apache-2.0
+    commit_msg_template: "brew cask update for {{ .ProjectName }} {{ .Tag }}"
+    directory: Casks
+    repository:
+      owner: RamazanKara
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+
+release:
+  github:
+    owner: RamazanKara
+    name: kube-shield
+  name_template: "{{ .ProjectName }} {{ .Tag }}"
+  header: |
+    ## kube-shield {{ .Tag }}
+
+    Kubernetes Security Posture Manager release.
+  footer: |
+    ## Verification
+
+    Download `checksums.txt`, then verify signatures and attestations with `cosign` and `gh attestation verify`.

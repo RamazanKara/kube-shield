@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint clean install run-scan run-dashboard
+.PHONY: build test test-e2e lint clean install run-scan run-dashboard release-check release-snapshot helm-lint
 
 BINARY_NAME=kube-shield
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -67,6 +67,19 @@ docker-build:
 ## release: Run GoReleaser (requires goreleaser)
 release:
 	goreleaser release --clean
+
+## release-check: Validate GoReleaser configuration
+release-check:
+	goreleaser check
+
+## release-snapshot: Build release artifacts without publishing
+release-snapshot:
+	goreleaser release --snapshot --clean --skip=publish,sign
+
+## helm-lint: Lint and render the Helm chart
+helm-lint:
+	helm lint deploy/helm
+	helm template kube-shield deploy/helm --namespace kube-shield >/tmp/kube-shield-rendered.yaml
 
 ## help: Show this help
 help:

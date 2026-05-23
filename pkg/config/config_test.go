@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -41,7 +42,7 @@ func TestLoad(t *testing.T) {
 	viper.Set("scanners", []string{"workload", "rbac"})
 	viper.Set("timeout", 10*time.Minute)
 	viper.Set("exit-code", true)
-	viper.Set("categories", []string{"workload"})
+	viper.Set("category", []string{"workload"})
 	defer viper.Reset()
 
 	cfg := Load()
@@ -87,6 +88,41 @@ func TestLoad(t *testing.T) {
 	}
 	if len(cfg.Categories) != 1 || cfg.Categories[0] != "workload" {
 		t.Errorf("expected categories [workload], got %v", cfg.Categories)
+	}
+}
+
+func TestLoadNormalizesCommaSeparatedLists(t *testing.T) {
+	viper.Reset()
+	viper.Set("scanners", []string{"workload,rbac", "secrets"})
+	viper.Set("categories", []string{"cis,netpol"})
+	defer viper.Reset()
+
+	cfg := Load()
+
+	if len(cfg.Scanners) != 3 || cfg.Scanners[0] != "workload" || cfg.Scanners[1] != "rbac" || cfg.Scanners[2] != "secrets" {
+		t.Errorf("expected split scanners, got %v", cfg.Scanners)
+	}
+	if len(cfg.Categories) != 2 || cfg.Categories[0] != "cis" || cfg.Categories[1] != "netpol" {
+		t.Errorf("expected split categories, got %v", cfg.Categories)
+	}
+}
+
+func TestLoadEnvironmentVariablesWithNestedKeys(t *testing.T) {
+	viper.Reset()
+	t.Setenv("KUBE_SHIELD_SCANNERS", "rbac,secrets")
+	t.Setenv("KUBE_SHIELD_AI_APIKEY", "sk-env")
+	viper.SetEnvPrefix("KUBE_SHIELD")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+	defer viper.Reset()
+
+	cfg := Load()
+
+	if len(cfg.Scanners) != 2 || cfg.Scanners[0] != "rbac" || cfg.Scanners[1] != "secrets" {
+		t.Fatalf("expected env scanners to split, got %v", cfg.Scanners)
+	}
+	if cfg.AI.APIKey != "sk-env" {
+		t.Fatalf("expected AI API key from env, got %q", cfg.AI.APIKey)
 	}
 }
 

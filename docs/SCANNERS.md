@@ -28,7 +28,7 @@ Checks pod and container security configurations.
 
 ## CIS Kubernetes Benchmark Scanner (`cis`)
 
-Checks based on CIS Kubernetes Benchmark v1.8.
+Checks based on CIS Kubernetes Benchmark v1.12.
 
 | Check ID | Severity | Title | CIS Section |
 |----------|----------|-------|-------------|

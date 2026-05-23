@@ -8,36 +8,93 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  GORELEASER_VERSION: v2.15.4
+  COSIGN_VERSION: v3.0.6
+  SYFT_VERSION: v1.44.0
+  HELM_VERSION: v3.21.0
 
 jobs:
   release:
-    name: GoReleaser
+    name: Publish v1 release artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6.4.0
         with:
           go-version-file: go.mod
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.1.0
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install release tools
+        run: bash .github/scripts/install-release-tools.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Helm lint and render
+        run: |
+          helm lint deploy/helm
+          helm template kube-shield deploy/helm --namespace kube-shield >/tmp/kube-shield-rendered.yaml
+
+      - name: Login Helm to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: "~> v2"
-          args: release --clean
+        run: goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Package and publish Helm chart
+        id: chart
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          helm package deploy/helm --version "${version}" --app-version "${version}" --destination dist
+          helm push "dist/kube-shield-${version}.tgz" oci://ghcr.io/ramazankara/charts
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+          echo "ref=ghcr.io/ramazankara/charts/kube-shield:${version}" >>"${GITHUB_OUTPUT}"
+
+      - name: Sign container images and Helm chart
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cosign sign --yes "ghcr.io/ramazankara/kube-shield:${GITHUB_REF_NAME}"
+          cosign sign --yes "ghcr.io/ramazankara/kube-shield:${version}"
+          cosign sign --yes "ghcr.io/ramazankara/kube-shield:latest"
+          cosign sign --yes "${{ steps.chart.outputs.ref }}"
+
+      - name: Attest release artifacts
+        uses: actions/attest@v4.1.0
+        with:
+          subject-checksums: dist/checksums.txt
+
+      - name: Attest Helm chart
+        uses: actions/attest@v4.1.0
+        with:
+          subject-path: dist/kube-shield-${{ steps.chart.outputs.version }}.tgz
+
+      - name: Attest SBOM documents
+        uses: actions/attest@v4.1.0
+        with:
+          subject-path: dist/*.sbom.json
