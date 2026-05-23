@@ -42,8 +42,11 @@ If a public `v1.0.0` release exists before this step, do not force-move the tag.
 
 ```shell
 gh release view v1.0.0 --repo RamazanKara/kube-shield
-gh release download v1.0.0 --repo RamazanKara/kube-shield --pattern checksums.txt
-gh attestation verify checksums.txt --repo RamazanKara/kube-shield
+gh release download v1.0.0 --repo RamazanKara/kube-shield \
+  --pattern checksums.txt \
+  --pattern checksums.txt.sigstore.json \
+  --pattern kube-shield_1.0.0_linux_amd64.tar.gz
+gh attestation verify kube-shield_1.0.0_linux_amd64.tar.gz --repo RamazanKara/kube-shield
 cosign verify-blob --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
