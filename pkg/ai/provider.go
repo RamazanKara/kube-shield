@@ -231,7 +231,7 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := p.client.Do(req)
+	resp, err := p.client.Do(req) // #nosec G107 -- Ollama endpoint is explicitly user configured for local/self-hosted AI.
 	if err != nil {
 		return "", fmt.Errorf("ollama request failed: %w", err)
 	}
