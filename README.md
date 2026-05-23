@@ -40,7 +40,7 @@ brew install --cask ramazankara/tap/kube-shield
 ### Docker
 
 ```bash
-docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield:v1.0.0 scan
+docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield:v1.0.1 scan
 ```
 
 ### Download Binary
@@ -287,7 +287,7 @@ Install the published OCI chart:
 
 ```bash
 helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
-  --version 1.0.0 \
+  --version 1.0.1 \
   --namespace kube-shield \
   --create-namespace
 ```
@@ -312,16 +312,16 @@ See [`deploy/helm/values.yaml`](deploy/helm/values.yaml) for all options.
 Release artifacts are published with checksums, SBOMs, Sigstore signatures, and GitHub attestations.
 
 ```bash
-gh release download v1.0.0 --repo RamazanKara/kube-shield \
+gh release download v1.0.1 --repo RamazanKara/kube-shield \
   --pattern checksums.txt \
   --pattern checksums.txt.sigstore.json \
-  --pattern kube-shield_1.0.0_linux_amd64.tar.gz
-gh attestation verify kube-shield_1.0.0_linux_amd64.tar.gz --repo RamazanKara/kube-shield
+  --pattern kube-shield_1.0.1_linux_amd64.tar.gz
+gh attestation verify kube-shield_1.0.1_linux_amd64.tar.gz --repo RamazanKara/kube-shield
 cosign verify-blob --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
-cosign verify ghcr.io/ramazankara/kube-shield:v1.0.0 \
+cosign verify ghcr.io/ramazankara/kube-shield:v1.0.1 \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -329,8 +329,8 @@ cosign verify ghcr.io/ramazankara/kube-shield:v1.0.0 \
 You can also verify install channels:
 
 ```bash
-docker pull ghcr.io/ramazankara/kube-shield:v1.0.0
-helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield --version 1.0.0
+docker pull ghcr.io/ramazankara/kube-shield:v1.0.1
+helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield --version 1.0.1
 brew install --cask ramazankara/tap/kube-shield
 ```
 
