@@ -39,22 +39,28 @@ func (s Severity) String() string {
 	}
 }
 
+// ParseSeverity parses and validates a severity string.
+func ParseSeverity(s string) (Severity, bool) {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "CRITICAL":
+		return SeverityCritical, true
+	case "HIGH":
+		return SeverityHigh, true
+	case "MEDIUM":
+		return SeverityMedium, true
+	case "LOW":
+		return SeverityLow, true
+	case "INFO":
+		return SeverityInfo, true
+	default:
+		return SeverityInfo, false
+	}
+}
+
 // SeverityFromString parses a severity string.
 func SeverityFromString(s string) Severity {
-	switch strings.ToUpper(s) {
-	case "CRITICAL":
-		return SeverityCritical
-	case "HIGH":
-		return SeverityHigh
-	case "MEDIUM":
-		return SeverityMedium
-	case "LOW":
-		return SeverityLow
-	case "INFO":
-		return SeverityInfo
-	default:
-		return SeverityInfo
-	}
+	severity, _ := ParseSeverity(s)
+	return severity
 }
 
 // Category represents the category of a security check.

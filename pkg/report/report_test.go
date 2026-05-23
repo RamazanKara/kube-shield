@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
+	"github.com/RamazanKara/kube-shield/pkg/version"
 )
 
 func sampleReport() *engine.Report {
@@ -203,6 +204,9 @@ func TestSARIFWriter(t *testing.T) {
 	if name, ok := driver["name"].(string); !ok || name != "kube-shield" {
 		t.Errorf("expected tool name kube-shield, got %v", driver["name"])
 	}
+	if got, ok := driver["version"].(string); !ok || got != version.Version {
+		t.Errorf("expected tool version %q, got %v", version.Version, driver["version"])
+	}
 
 	// Check rules
 	rules, ok := driver["rules"].([]interface{})
@@ -229,6 +233,30 @@ func TestSARIFWriter(t *testing.T) {
 	}
 	if _, ok := result["locations"]; !ok {
 		t.Error("result should have locations")
+	}
+}
+
+func TestSARIFWriter_UsesExistingScannerReference(t *testing.T) {
+	var buf bytes.Buffer
+
+	if err := SARIFWriter(&buf, sampleReport()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var sarif map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &sarif); err != nil {
+		t.Fatalf("SARIF output is not valid JSON: %v", err)
+	}
+
+	runs := sarif["runs"].([]interface{})
+	run := runs[0].(map[string]interface{})
+	tool := run["tool"].(map[string]interface{})
+	driver := tool["driver"].(map[string]interface{})
+	rules := driver["rules"].([]interface{})
+	rule := rules[0].(map[string]interface{})
+
+	if got := rule["helpUri"]; got != "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md" {
+		t.Fatalf("unexpected helpUri: %v", got)
 	}
 }
 

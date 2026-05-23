@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
+	"github.com/RamazanKara/kube-shield/pkg/config"
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
 	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/RamazanKara/kube-shield/pkg/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var dashboardCmd = &cobra.Command{
@@ -43,11 +42,13 @@ func init() {
 }
 
 func runDashboard(cmd *cobra.Command, args []string) error {
-	kubeconfigPath := viper.GetString("kubeconfig")
-	contextName := viper.GetString("context")
-	ns := viper.GetString("namespace")
+	cfg := config.Load()
+	applyDashboardFlagOverrides(cmd.Flags(), cfg)
+	if err := validateDashboardConfig(cfg); err != nil {
+		return err
+	}
 
-	k8sClient, err := k8s.NewClient(kubeconfigPath, contextName)
+	k8sClient, err := k8s.NewClient(cfg.Kubeconfig, cfg.Context)
 	if err != nil {
 		return fmt.Errorf("failed to connect to cluster: %w", err)
 	}
@@ -58,14 +59,14 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 
 	eng := engine.NewEngine(registry, 5)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 
 	var report *engine.Report
-	if len(dashboardScanners) > 0 {
-		report, err = eng.Run(ctx, k8sClient.Clientset, ns, dashboardScanners)
+	if len(cfg.Scanners) > 0 {
+		report, err = eng.Run(ctx, k8sClient.Clientset, cfg.Namespace, cfg.Scanners)
 	} else {
-		report, err = eng.RunAll(ctx, k8sClient.Clientset, ns)
+		report, err = eng.RunAll(ctx, k8sClient.Clientset, cfg.Namespace)
 	}
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
@@ -73,13 +74,12 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 
 	// Create AI provider if configured
 	var aiProvider ai.Provider
-	aiProviderName := viper.GetString("ai.provider")
-	if aiProviderName != "" {
+	if cfg.AI.Provider != "" {
 		aiCfg := ai.Config{
-			Provider: aiProviderName,
-			Model:    viper.GetString("ai.model"),
-			APIKey:   viper.GetString("ai.apikey"),
-			Endpoint: viper.GetString("ai.endpoint"),
+			Provider: cfg.AI.Provider,
+			Model:    cfg.AI.Model,
+			APIKey:   cfg.AI.APIKey,
+			Endpoint: cfg.AI.Endpoint,
 		}
 		aiProvider, err = ai.NewProvider(aiCfg)
 		if err != nil {
@@ -88,7 +88,7 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	}
 
 	clusterInfo := fmt.Sprintf("%s (%s)", k8sClient.Context, k8sClient.ServerURL)
-	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, ns, eng)
+	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, cfg.Namespace, eng)
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
