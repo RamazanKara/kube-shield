@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25-alpine3.23 AS builder
 
 RUN apk add --no-cache git
 
@@ -14,7 +14,7 @@ ARG COMMIT=none
 ARG DATE=unknown
 RUN CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/RamazanKara/kube-shield/pkg/version.Version=${VERSION} -X github.com/RamazanKara/kube-shield/pkg/version.Commit=${COMMIT} -X github.com/RamazanKara/kube-shield/pkg/version.Date=${DATE}" -o /kube-shield .
 
-FROM alpine:3.21
+FROM alpine:3.23
 
 RUN apk add --no-cache ca-certificates tzdata
 

@@ -19,9 +19,9 @@ jobs:
         with:
           go-version: "1.25"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@v9.2.1
         with:
-          version: latest
+          version: v2.12.2
 
   security:
     name: Security
@@ -37,7 +37,7 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
       - name: gosec
-        uses: securego/gosec@master
+        uses: securego/gosec@v2.26.1
         with:
           args: ./...
 
@@ -64,7 +64,7 @@ jobs:
             exit 1
           fi
       - name: Upload coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v6.0.1
         with:
           files: coverage.out
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -93,7 +93,7 @@ jobs:
         run: go build -ldflags "-s -w" -o bin/kube-shield-${{ matrix.goos }}-${{ matrix.goarch }} .
       - name: Generate SBOM
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.0
         with:
           artifact-name: sbom-${{ matrix.goos }}-${{ matrix.goarch }}.spdx.json
           path: bin/
