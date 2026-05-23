@@ -70,7 +70,7 @@ sboms:
 binary_signs:
   - id: binary-sigstore
     cmd: cosign
-    signature: "${artifact}.sigstore.json"
+    signature: "${artifact}.{{ .Os }}_{{ .Arch }}.sigstore.json"
     args:
       - "sign-blob"
       - "--bundle=${signature}"
