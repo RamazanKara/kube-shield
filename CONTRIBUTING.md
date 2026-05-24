@@ -12,7 +12,7 @@ make build
 make test
 ```
 
-Use a feature branch for changes:
+Use a focused feature branch:
 
 ```shell
 git switch -c feature/my-change
@@ -28,6 +28,15 @@ go test ./...
 go test -race ./...
 go vet ./...
 golangci-lint run ./...
+```
+
+For scanner or release-sensitive changes, also run:
+
+```shell
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
+go test -race -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | tail -n 1
 ```
 
 For release-related changes, also run:
@@ -47,7 +56,8 @@ Keyless signing is validated in GitHub Actions where OIDC is available. Local sn
 - Add or update tests for scanner logic, report output, CLI validation, and config precedence.
 - Do not include real kubeconfig files, cluster names, tokens, API keys, or secret values.
 - For scanner changes, update `docs/SCANNERS.md` and README scanner counts.
-- For public CLI, config, output, or release changes, update README and `RELEASE.md`.
+- For public CLI, config, output, packaging, or release changes, update README and `RELEASE.md`.
+- For docs-only changes, still check links, command examples, and version references.
 
 ## Adding a Scanner Check
 

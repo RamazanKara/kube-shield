@@ -1,80 +1,73 @@
 # Architecture
 
-This document describes the high-level architecture of kube-shield.
+kube-shield is a Go CLI built around a small scanner engine, Kubernetes API clients, report writers, and an optional Bubble Tea terminal UI.
 
 ## Package Layout
 
-```
+```text
 kube-shield/
-├── cmd/                          # CLI commands (cobra)
-│   ├── root.go                   # Root command, global flags
-│   ├── scan.go                   # `scan` subcommand
-│   ├── dashboard.go              # `dashboard` TUI subcommand
-│   └── version.go                # `version` subcommand
+├── cmd/                          # Cobra commands and CLI validation
+│   ├── root.go                   # Root command, global flags, Viper setup
+│   ├── scan.go                   # scan command
+│   ├── dashboard.go              # dashboard command
+│   └── version.go                # version command
 ├── pkg/
-│   ├── ai/                       # AI remediation providers
-│   │   ├── provider.go           # Provider interface + OpenAI/Ollama
-│   │   └── analyzer.go           # AnalyzeFindings helper
-│   ├── config/                   # Config loading (viper)
-│   ├── graph/                    # Attack-path graph generation
-│   ├── k8s/                      # Kubernetes client wrapper
-│   ├── logging/                  # Structured logging (slog)
-│   ├── report/                   # Output formatters (table, JSON, SARIF)
+│   ├── ai/                       # OpenAI and Ollama providers
+│   ├── config/                   # Config loading and normalization
+│   ├── graph/                    # Attack-path graph construction
+│   ├── k8s/                      # Kubernetes client construction
+│   ├── logging/                  # slog wrapper
+│   ├── report/                   # Table, JSON, and SARIF writers
 │   ├── scanner/
-│   │   ├── registry.go           # DefaultRegistry (registers all scanners)
-│   │   ├── engine/               # Engine, Registry, types (Finding, Report)
-│   │   ├── workload/             # Workload security scanner
-│   │   ├── cis/                  # CIS Kubernetes Benchmark scanner
-│   │   ├── rbac/                 # RBAC over-privilege scanner
-│   │   ├── netpol/               # Network policy scanner
-│   │   └── secrets/              # Secrets exposure scanner
-│   ├── tui/                      # Bubbletea terminal UI
-│   └── version/                  # Build metadata
-├── test/
-│   └── e2e/                      # End-to-end tests (kind cluster)
-│       ├── main_test.go          # TestMain: cluster lifecycle
-│       ├── testdata/fixtures/    # Vulnerable K8s manifests
-│       └── *_test.go             # Per-scanner + CLI E2E tests
-└── .github/workflows/
-    ├── ci.yml                    # Unit tests, lint, build
-    └── e2e.yml                   # E2E tests on kind
+│   │   ├── registry.go           # Default scanner registry
+│   │   ├── engine/               # Scanner interface, engine, report types
+│   │   ├── workload/             # Pod/container security checks
+│   │   ├── cis/                  # CIS Kubernetes Benchmark v1.12 checks
+│   │   ├── rbac/                 # RBAC checks
+│   │   ├── netpol/               # NetworkPolicy checks
+│   │   └── secrets/              # Secret exposure/reference checks
+│   ├── tui/                      # Interactive dashboard
+│   └── version/                  # Build metadata injected by ldflags
+├── deploy/helm/                  # CronJob Helm chart
+├── test/e2e/                     # kind-based E2E suite
+└── .github/workflows/            # CI, E2E, dry-run, release workflows
 ```
 
-## Component Diagram
+## Component Flow
 
 ```mermaid
 graph TD
-    CLI[cmd/ CLI] --> Engine[scanner/engine]
-    CLI --> Report[report/]
-    CLI --> AI[ai/]
-    CLI --> K8s[k8s/]
-    Engine --> Registry[scanner/registry]
-    Registry --> WL[workload scanner]
-    Registry --> CIS[cis scanner]
-    Registry --> RBAC[rbac scanner]
-    Registry --> NET[netpol scanner]
-    Registry --> SEC[secrets scanner]
-    Engine --> K8s
-    AI --> Engine
-    TUI[tui/] --> Engine
-    TUI --> K8s
+    User["User / CI"] --> CLI["cmd/ Cobra CLI"]
+    CLI --> Config["pkg/config + Viper"]
+    CLI --> K8s["pkg/k8s client"]
+    CLI --> Engine["pkg/scanner/engine"]
+    Engine --> Registry["pkg/scanner registry"]
+    Registry --> Workload["workload"]
+    Registry --> CIS["cis"]
+    Registry --> RBAC["rbac"]
+    Registry --> Netpol["netpol"]
+    Registry --> Secrets["secrets"]
+    Engine --> Report["engine.Report"]
+    Report --> Writers["pkg/report writers"]
+    Report --> TUI["pkg/tui dashboard"]
+    Report --> AI["pkg/ai explanations"]
 ```
 
-## Data Flow
+## Scan Flow
 
-1. User invokes `kube-shield scan` (or `dashboard`).
-2. `cmd/scan.go` creates a Kubernetes client via `pkg/k8s`.
-3. `pkg/scanner.DefaultRegistry()` provides a pre-configured `engine.Registry` with all 5 scanners.
-4. `engine.Engine` runs scanners concurrently (bounded by semaphore).
-5. Each scanner queries the Kubernetes API and returns `[]engine.Finding`.
-6. The engine builds an `engine.Report` (findings + summary + score).
-7. Findings are filtered by severity/category.
-8. Output is rendered via `pkg/report` (table, JSON, or SARIF).
-9. Optionally, `pkg/ai.AnalyzeFindings` explains high-severity issues.
+1. Cobra parses CLI flags.
+2. Viper loads environment variables and config files.
+3. Command-specific flag overrides are applied so precedence is CLI flags > env vars > config file > defaults.
+4. CLI values are validated before connecting to Kubernetes.
+5. `pkg/k8s.NewClient` builds a client from in-cluster config, `KUBECONFIG`, or `~/.kube/config`.
+6. `scanner.DefaultRegistry()` registers the five built-in scanners.
+7. `engine.Engine` runs selected scanners concurrently with a bounded semaphore.
+8. The engine builds an `engine.Report` and returns partial-result errors if any scanner fails.
+9. The command filters findings by severity/category and recomputes the summary.
+10. `pkg/report` writes table, JSON, or SARIF output.
+11. Optional AI analysis explains high-severity findings after report output.
 
-## Scanner Interface
-
-Every scanner implements:
+## Scanner Contract
 
 ```go
 type Scanner interface {
@@ -85,29 +78,63 @@ type Scanner interface {
 }
 ```
 
-Scanners are stateless and safe for concurrent use. They receive a `kubernetes.Interface` (real or fake) and return structured findings.
+Scanners receive a `kubernetes.Interface` so unit tests can use fake clients. Scanner implementations should be stateless because the engine runs them concurrently.
 
-## Concurrency Model
+## Finding Model
 
-The engine uses a bounded worker pool (`concurrency` parameter, default 5). Each scanner runs in its own goroutine. Context cancellation and timeouts propagate to all scanners.
+Each finding contains:
+
+- Stable `ID` and `CheckID`.
+- Human-readable title and description.
+- Severity and category.
+- Kubernetes resource identity.
+- Remediation guidance.
+- Optional CIS reference and external references.
+
+The report summary includes total count, counts by severity/category, a score from 0 to 100, and a letter grade.
 
 ## Error Handling
 
-Sentinel errors in `pkg/scanner/engine/errors.go`:
+Sentinel errors live in `pkg/scanner/engine/errors.go`:
 
-| Error                | Meaning                         |
-|---------------------|---------------------------------|
-| `ErrScanTimeout`    | Scanner exceeded timeout        |
-| `ErrPartialResults` | Some scanners failed            |
-| `ErrNoClusterAccess`| Cannot connect to cluster       |
-| `ErrNoScanners`     | No scanners registered          |
+| Error | Meaning |
+|-------|---------|
+| `ErrScanTimeout` | Scan exceeded its deadline |
+| `ErrPartialResults` | One or more scanners failed while others returned results |
+| `ErrNoClusterAccess` | Cluster access failed |
+| `ErrNoScanners` | Registry has no scanners |
 
-## Build & Versioning
+Command validation errors are returned before Kubernetes connection attempts.
 
-Version info is injected via ldflags at build time into `pkg/version`:
+## Output Writers
 
-```makefile
--ldflags "-X github.com/RamazanKara/kube-shield/pkg/version.Version=$(VERSION) \
-          -X github.com/RamazanKara/kube-shield/pkg/version.Commit=$(COMMIT) \
-          -X github.com/RamazanKara/kube-shield/pkg/version.Date=$(DATE)"
+- Table output is optimized for humans.
+- JSON output serializes `engine.Report`.
+- SARIF output is for GitHub Code Scanning and uses build-time version metadata.
+
+## Release Architecture
+
+The release path is tag-triggered:
+
+```mermaid
+graph LR
+    Tag["vX.Y.Z tag"] --> Release["Release workflow"]
+    Release --> GoReleaser["GoReleaser binaries/images"]
+    Release --> GHRelease["GitHub release assets"]
+    Release --> GHCR["GHCR image"]
+    Release --> Helm["Helm OCI chart"]
+    Release --> Brew["Homebrew tap"]
+    Release --> Trust["SBOMs, signatures, attestations"]
+```
+
+The local `Dockerfile` remains a multi-stage developer build. `Dockerfile.release` is used by GoReleaser and copies already-built binaries into image layers.
+
+## Build Metadata
+
+Build-time metadata is injected with ldflags:
+
+```shell
+-X github.com/RamazanKara/kube-shield/pkg/version.Version=${VERSION}
+-X github.com/RamazanKara/kube-shield/pkg/version.Commit=${COMMIT}
+-X github.com/RamazanKara/kube-shield/pkg/version.Date=${DATE}
 ```

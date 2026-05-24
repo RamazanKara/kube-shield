@@ -13,7 +13,11 @@ Security fixes are provided for the latest released version of kube-shield.
 
 Do not open a public GitHub issue for a suspected vulnerability.
 
-Use GitHub private vulnerability reporting when it is enabled for this repository. If that is unavailable, contact the maintainer through the GitHub profile at <https://github.com/RamazanKara> and request a private disclosure channel.
+Use GitHub private vulnerability reporting when available:
+
+<https://github.com/RamazanKara/kube-shield/security/advisories/new>
+
+If that is unavailable, contact the maintainer through the GitHub profile at <https://github.com/RamazanKara> and request a private disclosure channel.
 
 Please include:
 
@@ -24,7 +28,12 @@ Please include:
 
 ## Handling Expectations
 
-Maintainers aim to acknowledge reports within 7 days, confirm impact, and coordinate a fix and release before public disclosure whenever possible.
+Maintainers aim to:
+
+- Acknowledge reports within 7 days.
+- Confirm impact and affected versions.
+- Coordinate a fix and release before public disclosure whenever possible.
+- Credit reporters when they want public credit.
 
 ## Scope
 
@@ -33,6 +42,7 @@ In scope:
 - Vulnerabilities in kube-shield code, release artifacts, containers, Helm chart, or CI release process.
 - Findings that expose secrets, credentials, or cluster-sensitive data unexpectedly.
 - Supply-chain issues in distributed artifacts.
+- Bypass of documented release verification, signature, or attestation controls.
 
 Out of scope:
 

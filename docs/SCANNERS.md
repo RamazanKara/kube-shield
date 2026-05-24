@@ -1,10 +1,28 @@
 # Scanner Reference
 
-This document lists all security checks implemented by kube-shield.
+This reference lists the built-in kube-shield scanner families and stable check IDs.
+
+| Scanner | Checks | Category | Severity Range |
+|---------|--------|----------|----------------|
+| `workload` | 17 | `workload` | Critical to Info |
+| `cis` | 14 | `cis` | Critical to Low |
+| `rbac` | 12 | `rbac` | Critical to Medium |
+| `netpol` | 6 | `netpol` | High to Medium |
+| `secrets` | 6 | `secrets` | High to Info |
+
+## Severity Levels
+
+| Level | Meaning |
+|-------|---------|
+| Critical | Direct compromise or full cluster-control path is plausible |
+| High | Significant security weakness or strong escalation path |
+| Medium | Defense-in-depth gap or risky configuration |
+| Low | Best-practice deviation |
+| Info | Operational observation |
 
 ## Workload Scanner (`workload`)
 
-Checks pod and container security configurations.
+Checks pod and container security configuration.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -26,9 +44,11 @@ Checks pod and container security configurations.
 | WL-032 | Info | No resource requests |
 | WL-033 | Info | No liveness probe |
 
+Completed and failed pods are skipped.
+
 ## CIS Kubernetes Benchmark Scanner (`cis`)
 
-Checks based on CIS Kubernetes Benchmark v1.12.
+Checks API-accessible controls from CIS Kubernetes Benchmark v1.12.
 
 | Check ID | Severity | Title | CIS Section |
 |----------|----------|-------|-------------|
@@ -47,9 +67,11 @@ Checks based on CIS Kubernetes Benchmark v1.12.
 | CIS-4.5.1 | Low | No resource quotas in namespace | 4.5 Policies |
 | CIS-4.5.2 | Low | No LimitRange in namespace | 4.5 Policies |
 
+System namespaces are skipped for namespace-scoped CIS checks.
+
 ## RBAC Scanner (`rbac`)
 
-Detects over-privileged roles and risky bindings.
+Detects over-privileged roles, risky verbs, and risky bindings.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -58,7 +80,7 @@ Detects over-privileged roles and risky bindings.
 | RBAC-003 | High | Wildcard resources |
 | RBAC-010 | High | Secret read access |
 | RBAC-011 | Critical | Secret write access |
-| RBAC-020 | Critical | Privilege escalation verbs (escalate/bind/impersonate) |
+| RBAC-020 | Critical | Privilege escalation verbs |
 | RBAC-021 | High | Pod exec/attach access |
 | RBAC-022 | Critical | Node proxy access |
 | RBAC-023 | High | PersistentVolume write access |
@@ -66,9 +88,11 @@ Detects over-privileged roles and risky bindings.
 | RBAC-031 | Critical | cluster-admin bound to unauthenticated users |
 | RBAC-032 | Medium | Role bound to default ServiceAccount |
 
+Kubernetes system roles and common CNI system roles are skipped to reduce noise.
+
 ## Network Policy Scanner (`netpol`)
 
-Checks for missing or overly permissive network policies.
+Checks namespace isolation and overly permissive NetworkPolicies.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -79,9 +103,11 @@ Checks for missing or overly permissive network policies.
 | NET-011 | Medium | Allow-all egress rule |
 | NET-020 | Medium | Wide CIDR range in network policy |
 
+System namespaces are skipped. An empty `policyTypes` field is interpreted using Kubernetes NetworkPolicy defaults.
+
 ## Secrets Scanner (`secrets`)
 
-Detects insecure secret handling patterns.
+Detects secret exposure and broken secret references.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -92,22 +118,32 @@ Detects insecure secret handling patterns.
 | SEC-005 | High | Secret mounted at sensitive path |
 | SEC-010 | Info | Empty secret |
 
-## Severity Levels
-
-| Level | Description |
-|-------|-------------|
-| Critical | Immediate exploitation risk, cluster compromise possible |
-| High | Significant security weakness, escalation path exists |
-| Medium | Security misconfiguration, defense-in-depth violation |
-| Low | Best practice deviation, informational |
-| Info | Observation, no direct risk |
+Optional secret references are not reported as missing.
 
 ## Scoring
 
-The security score is calculated as:
+The score is calculated from the filtered finding set:
 
-```
-score = 100 - (critical×10 + high×5 + medium×2 + low×0.5)
+```text
+score = 100 - (critical*10 + high*5 + medium*2 + low*0.5)
 ```
 
-Grades: A (≥90), B (≥80), C (≥70), D (≥60), F (<60)
+Info findings do not reduce the score. Scores are clamped at zero.
+
+| Score | Grade |
+|-------|-------|
+| 90-100 | A |
+| 80-89 | B |
+| 70-79 | C |
+| 60-69 | D |
+| 0-59 | F |
+
+## Documentation Maintenance
+
+When adding, removing, or changing a check:
+
+- Keep `CheckID` stable unless the behavior is intentionally replaced.
+- Update this file.
+- Update README scanner counts when counts change.
+- Add or update unit tests and E2E fixtures.
+- Include the behavior change in `CHANGELOG.md`.

@@ -25,11 +25,33 @@ body:
       placeholder: "kube-shield version"
     validations:
       required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install Method
+      options:
+        - Homebrew cask
+        - Go install
+        - Docker image
+        - Helm chart
+        - GitHub release archive
+        - Built from source
+        - Other
   - type: input
     id: kubernetes
     attributes:
       label: Kubernetes Version
       placeholder: "kubectl version --short"
+  - type: dropdown
+    id: output
+    attributes:
+      label: Output Format
+      options:
+        - table
+        - json
+        - sarif
+        - TUI dashboard
+        - not applicable
   - type: textarea
     id: logs
     attributes:

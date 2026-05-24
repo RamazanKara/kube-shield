@@ -18,6 +18,18 @@ body:
       description: What should kube-shield do?
     validations:
       required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Scanner/check
+        - CLI/config
+        - TUI dashboard
+        - Report output
+        - Helm/Docker/release
+        - Documentation
+        - Other
   - type: textarea
     id: alternatives
     attributes:

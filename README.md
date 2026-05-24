@@ -1,10 +1,11 @@
 <p align="center">
-  <h1 align="center">🛡️ kube-shield</h1>
-  <p align="center"><strong>Kubernetes Security Posture Manager — k9s for security</strong></p>
+  <h1 align="center">kube-shield</h1>
+  <p align="center"><strong>Kubernetes Security Posture Manager - k9s for security</strong></p>
 </p>
 
 <p align="center">
-  <a href="https://github.com/RamazanKara/kube-shield/actions"><img src="https://github.com/RamazanKara/kube-shield/workflows/CI/badge.svg" alt="CI"></a>
+  <a href="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml"><img src="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/RamazanKara/kube-shield/actions/workflows/e2e.yml"><img src="https://github.com/RamazanKara/kube-shield/actions/workflows/e2e.yml/badge.svg" alt="E2E"></a>
   <a href="https://goreportcard.com/report/github.com/RamazanKara/kube-shield"><img src="https://goreportcard.com/badge/github.com/RamazanKara/kube-shield" alt="Go Report Card"></a>
   <a href="https://github.com/RamazanKara/kube-shield/releases"><img src="https://img.shields.io/github/v/release/RamazanKara/kube-shield" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
@@ -13,23 +14,18 @@
 
 ---
 
-**kube-shield** is a comprehensive Kubernetes security posture management tool with a beautiful interactive terminal UI. It scans your clusters for security issues including CIS benchmark violations, RBAC misconfigurations, network policy gaps, secret exposure, and more — then helps you fix them with AI-powered remediation suggestions.
+`kube-shield` scans Kubernetes clusters for security posture issues across workloads, CIS Kubernetes Benchmark v1.12 checks, RBAC, network policy, and secrets. It ships as a CLI, interactive terminal dashboard, container image, Helm OCI chart, and Homebrew cask.
 
-## ✨ Features
+## Features
 
-- **🔍 5 Built-in Scanners** — Workload security, CIS Kubernetes Benchmark v1.12, RBAC analysis, network policy validation, secrets exposure detection
-- **🖥️ Interactive TUI Dashboard** — Security score (A–F grade), findings explorer, RBAC panel, network policy view, attack path graph, vim-style navigation
-- **🤖 AI-Powered Remediation** — Context-aware YAML patches and plain-English explanations via OpenAI or Ollama (local models)
-- **📊 Multiple Output Formats** — Colored table, JSON, SARIF (GitHub Code Scanning)
-- **🔧 Enterprise Ready** — Multi-cluster, namespace filtering, severity thresholds, CI/CD exit codes, Helm chart
+- 5 built-in scanner families with stable check IDs and structured remediation.
+- Interactive TUI dashboard with findings, RBAC, network policy, and attack-path views.
+- Output formats for humans and automation: table, JSON, and SARIF.
+- CI-friendly severity thresholds and `--exit-code` gating.
+- Optional AI explanations through OpenAI or local Ollama.
+- Signed releases with checksums, SBOMs, Sigstore signatures, GitHub attestations, GHCR images, an OCI Helm chart, and a Homebrew cask.
 
-## 🚀 Installation
-
-### Go Install
-
-```bash
-go install github.com/RamazanKara/kube-shield@latest
-```
+## Install
 
 ### Homebrew
 
@@ -37,253 +33,163 @@ go install github.com/RamazanKara/kube-shield@latest
 brew install --cask ramazankara/tap/kube-shield
 ```
 
+### Go
+
+```bash
+go install github.com/RamazanKara/kube-shield@latest
+```
+
 ### Docker
 
 ```bash
-docker run --rm -v ~/.kube:/home/kubeshield/.kube:ro ghcr.io/ramazankara/kube-shield:v1.0.1 scan
+docker run --rm \
+  -v ~/.kube:/home/kubeshield/.kube:ro \
+  ghcr.io/ramazankara/kube-shield:v1.0.1 scan
 ```
 
-### Download Binary
+### Binary Archives
 
-Pre-built binaries for Linux, macOS, and Windows are available on the
-[GitHub Releases](https://github.com/RamazanKara/kube-shield/releases) page.
+Download Linux, macOS, and Windows archives from the [GitHub releases page](https://github.com/RamazanKara/kube-shield/releases). Each release includes checksums, SBOMs, and Sigstore signature bundles.
 
-| OS | Architecture | File |
-|----|-------------|------|
-| Linux | amd64 | `kube-shield_*_linux_amd64.tar.gz` |
-| Linux | arm64 | `kube-shield_*_linux_arm64.tar.gz` |
-| macOS | amd64 | `kube-shield_*_darwin_amd64.tar.gz` |
-| macOS | arm64 (Apple Silicon) | `kube-shield_*_darwin_arm64.tar.gz` |
-| Windows | amd64 | `kube-shield_*_windows_amd64.zip` |
-| Windows | arm64 | `kube-shield_*_windows_arm64.zip` |
-
-## 📖 Usage
-
-### Scan your cluster
+## Quick Start
 
 ```bash
 # Scan all namespaces with all scanners
 kube-shield scan
 
-# Scan a specific namespace
-kube-shield scan -n production
+# Scan one namespace
+kube-shield scan --namespace production
 
-# Run only RBAC and network policy checks
+# Run selected scanners
 kube-shield scan --scanners rbac,netpol
-
-# Filter by category
-kube-shield scan --category rbac,secrets
 
 # Show only high and critical findings
 kube-shield scan --severity high
 
-# Output as JSON
-kube-shield scan -o json
+# Emit SARIF for GitHub Code Scanning
+kube-shield scan --output sarif > results.sarif
 
-# Output as SARIF for GitHub Code Scanning
-kube-shield scan -o sarif > results.sarif
-
-# Use a specific kubeconfig context
-kube-shield scan --context staging-cluster
-
-# Set a custom timeout
-kube-shield scan --timeout 10m
-
-# Fail CI if critical findings exist (non-zero exit code)
+# Fail CI when critical findings exist
 kube-shield scan --exit-code --severity critical
 ```
 
-### Launch the TUI Dashboard
+Launch the dashboard:
 
 ```bash
-# Interactive security dashboard
 kube-shield dashboard
-
-# Dashboard for a specific namespace
-kube-shield dashboard -n production
-
-# Dashboard with AI explanation support
-kube-shield dashboard --ai-provider openai --ai-api-key sk-...
+kube-shield dashboard --namespace production
 ```
 
-### AI-Powered Remediation
+Use AI explanations:
 
 ```bash
-# Using OpenAI
-kube-shield scan --ai-provider openai --ai-api-key sk-...
-
-# Using environment variables
-export KUBE_SHIELD_AI_PROVIDER=openai
-export KUBE_SHIELD_AI_APIKEY=sk-...
-kube-shield scan
-
-# Using local Ollama
+kube-shield scan --ai-provider openai --ai-api-key "$OPENAI_API_KEY"
 kube-shield scan --ai-provider ollama --ai-endpoint http://localhost:11434
-
-# In the TUI dashboard, press 'e' on any finding for AI explanation
-kube-shield dashboard --ai-provider openai --ai-api-key sk-...
 ```
 
-## ⌨️ TUI Keybindings
+In the TUI, press `e` on a finding detail view to request an AI explanation.
 
-| Key | Action |
-|-----|--------|
-| `Tab` / `Shift+Tab` | Switch between panels |
-| `↑` / `k` | Navigate up |
-| `↓` / `j` | Navigate down |
-| `Enter` | Select / drill down into finding |
-| `Esc` | Go back |
-| `/` | Filter findings by name, namespace, severity, or check ID |
-| `e` | AI explain (in finding detail view, requires AI provider) |
-| `r` | Refresh scan |
-| `?` | Toggle help |
-| `q` / `Ctrl+C` | Quit |
-
-## 📋 CLI Reference
+## CLI Reference
 
 ### Global Flags
 
-These flags apply to all commands and can also be set via config file or environment variables.
-
-| Flag | Short | Type | Default | Description |
-|------|-------|------|---------|-------------|
-| `--config` | | string | `$HOME/.kube-shield.yaml` | Path to config file |
-| `--kubeconfig` | | string | `$KUBECONFIG` or `~/.kube/config` | Path to kubeconfig |
-| `--context` | | string | current context | Kubernetes context to use |
-| `--namespace` | `-n` | string | all namespaces | Namespace to scan |
-| `--output` | `-o` | string | `table` | Output format: `table`, `json`, `sarif` |
-| `--verbose` | `-v` | bool | `false` | Enable verbose output |
-| `--ai-provider` | | string | | AI provider: `openai`, `ollama` |
-| `--ai-model` | | string | | Model name (e.g. `gpt-4o-mini`, `llama3.2`) |
-| `--ai-api-key` | | string | | AI provider API key |
-| `--ai-endpoint` | | string | | AI endpoint URL |
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--config` | | `$HOME/.kube-shield.yaml` | Config file path |
+| `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Kubeconfig path |
+| `--context` | | current context | Kubernetes context |
+| `--namespace` | `-n` | all namespaces | Namespace filter |
+| `--output` | `-o` | `table` | `table`, `json`, or `sarif` |
+| `--verbose` | `-v` | `false` | Verbose logs |
+| `--ai-provider` | | disabled | `openai` or `ollama` |
+| `--ai-model` | | provider default | Model name |
+| `--ai-api-key` | | empty | AI provider API key |
+| `--ai-endpoint` | | provider default | Custom AI endpoint |
 
 ### `kube-shield scan`
 
-Run security scanners against the cluster.
-
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--scanners` | strings | all | Comma-separated scanners: `workload,cis,rbac,netpol,secrets` |
-| `--severity` | string | `low` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
-| `--category` | strings | all | Filter by category: `workload,cis,rbac,netpol,secrets` |
-| `--timeout` | duration | `5m` | Scan timeout |
-| `--exit-code` | bool | `false` | Exit with code 1 if findings match severity threshold |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--scanners` | all scanners | Comma-separated scanner list: `workload,cis,rbac,netpol,secrets` |
+| `--severity` | `low` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
+| `--category` | all categories | Finding category filter |
+| `--timeout` | `5m` | Scan timeout |
+| `--exit-code` | `false` | Exit non-zero when matching findings are present |
 
 ### `kube-shield dashboard`
 
-Launch the interactive TUI dashboard.
-
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--scanners` | strings | all | Comma-separated scanners to run |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--scanners` | all scanners | Comma-separated scanners to run |
 
 ### `kube-shield version`
 
-Print the version, git commit, and build date.
+Print build version, commit, and build date.
 
-## ⚙️ Configuration
+## Configuration
 
-kube-shield can be configured via CLI flags, environment variables, or a YAML config file.
+Configuration precedence is:
 
-**Precedence:** CLI flags > environment variables > config file > defaults.
+```text
+CLI flags > environment variables > config file > defaults
+```
 
-### Config File
-
-Place a `.kube-shield.yaml` in your project root or `$HOME/.kube-shield.yaml`:
+Place `.kube-shield.yaml` in the project directory or home directory:
 
 ```yaml
-# Kubernetes context (empty = current context)
 context: ""
-
-# Namespace to scan (empty = all)
 namespace: ""
-
-# Output format: table, json, sarif
 output: table
 
-# Scanners to enable (empty = all)
 scanners:
   - workload
+  - cis
   - rbac
   - netpol
   - secrets
-  - cis
 
-# Minimum severity: info, low, medium, high, critical
 severity: low
-
-# Scan timeout
 timeout: 5m
-
-# Exit with non-zero code when findings match threshold
 exit-code: false
 
-# AI-powered analysis
 ai:
-  provider: ""        # openai, ollama, or empty to disable
-  model: ""           # e.g. gpt-4o-mini, llama3.2
-  apikey: ""          # prefer KUBE_SHIELD_AI_APIKEY env var
-  endpoint: ""        # custom endpoint URL
+  provider: ""   # openai, ollama, or empty
+  model: ""
+  apikey: ""     # prefer KUBE_SHIELD_AI_APIKEY
+  endpoint: ""
 ```
 
-### Environment Variables
-
-All config options can be set via environment variables with the `KUBE_SHIELD_` prefix:
+Environment variables use the `KUBE_SHIELD_` prefix:
 
 | Variable | Config Key | Example |
-|----------|-----------|---------|
+|----------|------------|---------|
 | `KUBE_SHIELD_CONTEXT` | `context` | `staging-cluster` |
 | `KUBE_SHIELD_NAMESPACE` | `namespace` | `production` |
 | `KUBE_SHIELD_OUTPUT` | `output` | `json` |
+| `KUBE_SHIELD_SCANNERS` | `scanners` | `rbac,secrets` |
 | `KUBE_SHIELD_SEVERITY` | `severity` | `high` |
+| `KUBE_SHIELD_TIMEOUT` | `timeout` | `10m` |
+| `KUBE_SHIELD_EXIT_CODE` | `exit-code` | `true` |
 | `KUBE_SHIELD_AI_PROVIDER` | `ai.provider` | `openai` |
 | `KUBE_SHIELD_AI_APIKEY` | `ai.apikey` | `sk-...` |
 | `KUBE_SHIELD_AI_MODEL` | `ai.model` | `gpt-4o-mini` |
 | `KUBE_SHIELD_AI_ENDPOINT` | `ai.endpoint` | `http://localhost:11434` |
 
-## 🔬 Scanners
+## Scanners
 
-| Scanner | Checks | Severity Range | Description |
-|---------|--------|---------------|-------------|
-| **workload** | 17 | Critical → Info | Privileged containers, root access, host namespaces, capabilities, image tags, resource limits, probes |
-| **cis** | 14 | Critical → Low | CIS Kubernetes Benchmark v1.12 — Sections 4.1 (RBAC), 4.2 (Pod Security), 4.3 (Network), 4.4 (Secrets), 4.5 (General) |
-| **rbac** | 12 | Critical → Medium | Wildcard permissions, secret access, privilege escalation verbs, cluster-admin bindings, default SA usage |
-| **netpol** | 6 | High → Medium | Missing network policies, no default-deny, allow-all rules, wide CIDR ranges |
-| **secrets** | 6 | High → Info | Env var exposure, missing references, empty secrets, permissive volume modes, sensitive mount paths |
+| Scanner | Checks | Severity Range | Focus |
+|---------|--------|----------------|-------|
+| `workload` | 17 | Critical to Info | Pod and container security posture |
+| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark v1.12 API-accessible checks |
+| `rbac` | 12 | Critical to Medium | Over-permissive roles and risky bindings |
+| `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
+| `secrets` | 6 | High to Info | Secret exposure and reference hygiene |
 
-### Severity Levels
+See [docs/SCANNERS.md](docs/SCANNERS.md) for every check ID, severity, and remediation category.
 
-Findings are classified using five severity levels, from most to least critical:
+## Helm
 
-| Level | Meaning | Examples |
-|-------|---------|---------|
-| **CRITICAL** | Direct cluster compromise possible | Privileged containers, cluster-admin bindings |
-| **HIGH** | Significant security risk | Secret exposure, privilege escalation, missing network isolation |
-| **MEDIUM** | Defense-in-depth gap | Non-root not enforced, secrets as env vars, wide CIDR ranges |
-| **LOW** | Best practice not followed | Missing resource quotas, informational configuration gaps |
-| **INFO** | Observation | Empty secrets, minor configuration notes |
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | Scan completed, no findings at or above threshold (or `--exit-code` not set) |
-| `1` | Findings detected at or above the `--severity` threshold (with `--exit-code`) |
-
-## ☸️ Helm Deployment
-
-Deploy kube-shield as a CronJob for periodic cluster scanning:
-
-```bash
-helm install kube-shield deploy/helm/ \
-  --namespace kube-shield \
-  --create-namespace \
-  --set schedule="0 */6 * * *" \
-  --set severity=medium
-```
-
-Install the published OCI chart:
+Install from the published OCI chart:
 
 ```bash
 helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
@@ -292,104 +198,89 @@ helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
   --create-namespace
 ```
 
-### Key Helm Values
+Run the local chart during development:
+
+```bash
+helm install kube-shield deploy/helm \
+  --namespace kube-shield \
+  --create-namespace \
+  --set severity=medium
+```
+
+Common values:
 
 | Value | Default | Description |
 |-------|---------|-------------|
-| `schedule` | `"0 */6 * * *"` | CronJob schedule |
-| `scanners` | all 5 enabled | List of scanners |
+| `schedule` | `0 */6 * * *` | CronJob schedule |
+| `scanners` | all 5 scanners | Scanner list |
 | `severity` | `low` | Minimum severity |
-| `output` | `json` | Output format |
-| `image.tag` | appVersion | Container image tag |
+| `output` | `json` | Report output format |
+| `image.repository` | `ghcr.io/ramazankara/kube-shield` | Container repository |
+| `image.tag` | chart appVersion | Container tag |
 | `serviceAccount.create` | `true` | Create ServiceAccount |
-| `resources.limits.memory` | `256Mi` | Memory limit |
-| `resources.limits.cpu` | `200m` | CPU limit |
 
-See [`deploy/helm/values.yaml`](deploy/helm/values.yaml) for all options.
+See [deploy/helm/values.yaml](deploy/helm/values.yaml) for all chart values.
 
-## 🔐 Release Verification
+## Release Verification
 
-Release artifacts are published with checksums, SBOMs, Sigstore signatures, and GitHub attestations.
+Install `gh` with attestation support and `cosign` before running verification commands.
 
 ```bash
 gh release download v1.0.1 --repo RamazanKara/kube-shield \
   --pattern checksums.txt \
   --pattern checksums.txt.sigstore.json \
   --pattern kube-shield_1.0.1_linux_amd64.tar.gz
-gh attestation verify kube-shield_1.0.1_linux_amd64.tar.gz --repo RamazanKara/kube-shield
+
+gh attestation verify kube-shield_1.0.1_linux_amd64.tar.gz \
+  --repo RamazanKara/kube-shield
+
 cosign verify-blob --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
+
 cosign verify ghcr.io/ramazankara/kube-shield:v1.0.1 \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-You can also verify install channels:
+Install-channel smoke checks:
 
 ```bash
 docker pull ghcr.io/ramazankara/kube-shield:v1.0.1
-helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield --version 1.0.1
+helm show chart oci://ghcr.io/ramazankara/charts/kube-shield --version 1.0.1
 brew install --cask ramazankara/tap/kube-shield
 ```
 
-## 🔌 CI/CD Integration
+## TUI Keybindings
 
-### GitHub Actions
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Switch panels |
+| `Up` / `k` | Move up |
+| `Down` / `j` | Move down |
+| `Enter` | Open finding details |
+| `Esc` | Back |
+| `/` | Filter findings |
+| `e` | AI explanation in detail view |
+| `r` | Refresh scan |
+| `?` | Toggle help |
+| `q` / `Ctrl+C` | Quit |
 
-```yaml
-- name: Scan cluster security
-  run: |
-    kube-shield scan --output sarif --severity high > results.sarif
+## Documentation
 
-- name: Upload SARIF
-  uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: results.sarif
-```
+- [Scanner reference](docs/SCANNERS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [Release process](RELEASE.md)
+- [Repository operations checklist](docs/REPOSITORY_SETUP.md)
+- [Security policy](SECURITY.md)
+- [Support](SUPPORT.md)
+- [Contributing](CONTRIBUTING.md)
 
-### GitHub Actions (fail on critical)
+## Contributing
 
-```yaml
-- name: Security gate
-  run: kube-shield scan --exit-code --severity critical
-```
-
-### GitLab CI
-
-```yaml
-security-scan:
-  script:
-    - kube-shield scan --exit-code --severity critical
-```
-
-## 🏗️ Architecture
-
-```
-kube-shield
-├── cmd/                    # Cobra CLI commands (scan, dashboard, version)
-├── pkg/
-│   ├── scanner/
-│   │   ├── engine/         # Scanner interface, registry, parallel execution
-│   │   ├── workload/       # Pod security misconfiguration checks
-│   │   ├── cis/            # CIS Benchmark checks
-│   │   ├── rbac/           # RBAC analysis and risk scoring
-│   │   ├── netpol/         # Network policy validation
-│   │   └── secrets/        # Secret exposure detection
-│   ├── k8s/                # Multi-cluster Kubernetes client
-│   ├── ai/                 # AI provider abstraction (OpenAI, Ollama)
-│   ├── graph/              # Attack path analysis
-│   ├── tui/                # Bubbletea interactive dashboard
-│   ├── report/             # Output formatting (table, JSON, SARIF)
-│   └── config/             # Configuration management
-├── deploy/helm/            # Helm chart for in-cluster deployment
-└── .github/workflows/      # CI/CD pipeline
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md):
 
 ```bash
 git clone https://github.com/RamazanKara/kube-shield.git
@@ -399,10 +290,6 @@ make test
 make lint
 ```
 
-## 📝 License
+## License
 
-This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">Built with ❤️ by <a href="https://github.com/RamazanKara">Ramazan Kara</a></p>
+Apache License 2.0. See [LICENSE](LICENSE).

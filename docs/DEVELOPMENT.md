@@ -1,79 +1,89 @@
 # Development Guide
 
+This guide is for local development, scanner work, and release-adjacent validation.
+
 ## Prerequisites
 
 - Go 1.25+
-- [kind](https://kind.sigs.k8s.io/) (for E2E tests)
+- Docker
 - kubectl
-- Docker (for kind)
+- kind, for E2E tests
+- Helm, for chart validation
+- golangci-lint, for lint checks
+- GoReleaser and Syft, for release snapshots
 
 ## Quick Start
 
 ```shell
-# Clone and enter the repo
 git clone https://github.com/RamazanKara/kube-shield.git
 cd kube-shield
-
-# Install dependencies
 go mod download
-
-# Build
 make build
-
-# Run against your current kubeconfig context
 ./bin/kube-shield scan
 ```
 
-## Building
+Build with explicit version metadata:
 
 ```shell
-# Build binary to bin/kube-shield
-make build
-
-# Build with version info
-VERSION=1.0.0 make build
+VERSION="$(git describe --tags --always --dirty)" make build
+./bin/kube-shield version
 ```
 
-## Running Tests
-
-### Unit Tests
+## Common Commands
 
 ```shell
-# All unit tests
-make test
+make build        # build bin/kube-shield
+make test         # race-enabled tests with coverage
+make lint         # golangci-lint
+make vet          # go vet
+make test-e2e     # kind-based E2E suite
+make helm-lint    # helm lint + template
+make release-check
+make release-snapshot
+```
 
-# With coverage
-go test -coverprofile=coverage.out ./...
+## Test Strategy
+
+### Unit and Integration Tests
+
+```shell
+go test ./...
+go test -race ./...
+go test -race -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | tail -n 1
 go tool cover -html=coverage.out
+```
+
+The v1 release line keeps the total coverage gate at 60%.
+
+### Static and Security Checks
+
+```shell
+go vet ./...
+golangci-lint run ./...
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
+go mod verify
 ```
 
 ### End-to-End Tests
 
-E2E tests create a kind cluster, deploy vulnerable fixtures, and run kube-shield against them.
+E2E tests create a kind cluster, deploy vulnerable fixtures, run kube-shield, and destroy the cluster.
 
 ```shell
-# Full E2E suite (creates/destroys kind cluster automatically)
 make test-e2e
-
-# Run a specific E2E test
 go test -v -tags e2e -timeout 10m -count=1 -run TestWorkloadScanner ./test/e2e/...
 ```
 
-The E2E tests use the build tag `e2e` and are excluded from regular `go test ./...`.
+The E2E suite validates:
 
-**What the E2E suite does:**
+- Workload, CIS, RBAC, network policy, and secrets findings.
+- Namespace and scanner filtering.
+- JSON and SARIF output.
+- `--exit-code` behavior.
+- Full scan summary counts.
 
-1. Creates a kind cluster named `kube-shield-e2e`
-2. Deploys vulnerable fixtures from `test/e2e/testdata/fixtures/`
-3. Waits for all pods to be ready
-4. Runs each scanner against the cluster
-5. Verifies expected findings are detected
-6. Tests CLI output formats (JSON, SARIF) and exit-code behavior
-7. Tears down the cluster
-
-### Test Fixtures
-
-Located in `test/e2e/testdata/fixtures/`:
+Fixtures live in `test/e2e/testdata/fixtures/`:
 
 | File | Purpose |
 |------|---------|
@@ -81,72 +91,64 @@ Located in `test/e2e/testdata/fixtures/`:
 | `rbac-vulnerable.yaml` | Wildcard roles, cluster-admin bindings, privilege escalation |
 | `netpol-vulnerable.yaml` | Allow-all policies, wide CIDR ranges |
 | `secrets-vulnerable.yaml` | Env-exposed secrets, permissive volume modes |
-| `cis-vulnerable.yaml` | Root containers, writable filesystems |
+| `cis-vulnerable.yaml` | Root containers and CIS policy gaps |
 
-## Adding a New Scanner
+## Adding Scanner Logic
 
-1. Create a new package under `pkg/scanner/<name>/`.
-2. Implement the `engine.Scanner` interface:
+1. Add or update code under `pkg/scanner/<scanner>/`.
+2. Keep check IDs stable once released.
+3. Return a clear title, severity, category, resource, description, and remediation.
+4. Add unit tests with Kubernetes fake clients.
+5. Add or update E2E fixtures when API-server behavior matters.
+6. Update [SCANNERS.md](SCANNERS.md) and README scanner counts.
+
+Every scanner implements:
 
 ```go
-package myscanner
-
-import (
-    "context"
-    "github.com/RamazanKara/kube-shield/pkg/scanner/engine"
-    "k8s.io/client-go/kubernetes"
-)
-
-type Scanner struct{}
-
-func New() *Scanner { return &Scanner{} }
-
-func (s *Scanner) Name() string        { return "myscanner" }
-func (s *Scanner) Category() engine.Category { return engine.Category("myscanner") }
-func (s *Scanner) Description() string  { return "My custom scanner" }
-
-func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*engine.ScanResult, error) {
-    var findings []engine.Finding
-    // ... scan logic ...
-    return &engine.ScanResult{
-        Scanner:  s.Name(),
-        Findings: findings,
-    }, nil
+type Scanner interface {
+    Name() string
+    Category() Category
+    Description() string
+    Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*ScanResult, error)
 }
 ```
 
-3. Register it in `pkg/scanner/registry.go`:
+Scanners should be stateless and safe to run concurrently.
 
-```go
-func DefaultRegistry() *engine.Registry {
-    r := engine.NewRegistry()
-    r.Register(workload.New())
-    r.Register(cis.New())
-    r.Register(rbac.New())
-    r.Register(netpol.New())
-    r.Register(secrets.New())
-    r.Register(myscanner.New())  // Add here
-    return r
-}
+## Output and CLI Changes
+
+For changes to flags, config, output formats, or exit behavior:
+
+- Update validation tests under `cmd/`.
+- Update report tests under `pkg/report/` when JSON, table, or SARIF changes.
+- Keep config precedence as CLI flags > env vars > config file > defaults.
+- Update README, [ARCHITECTURE.md](ARCHITECTURE.md), and [RELEASE.md](../RELEASE.md) if release behavior changes.
+
+## Packaging Checks
+
+```shell
+goreleaser check
+goreleaser release --snapshot --clean --skip=publish,sign
+docker build -f Dockerfile -t kube-shield:dev .
+docker run --rm kube-shield:dev version
+helm lint deploy/helm
+helm template kube-shield deploy/helm --namespace kube-shield
 ```
 
-4. Add E2E test fixtures and a test file in `test/e2e/`.
-
-## Project Structure
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full package layout and data flow.
-
-## Code Style
-
-- Follow standard Go conventions (`gofmt`, `go vet`)
-- Use `golangci-lint` for linting
-- Keep scanner implementations stateless
-- Use `kubernetes.Interface` (not `*kubernetes.Clientset`) for testability
-- Use structured logging via `pkg/logging`
+GoReleaser signing and attestations are validated in GitHub Actions because they require GitHub OIDC.
 
 ## CI/CD
 
-- **ci.yml**: Runs on every push/PR — builds, lints, unit tests
-- **e2e.yml**: Runs E2E tests with kind on PRs to main
-- **release-dry-run.yml**: Validates GoReleaser, Docker, SBOM, and Helm packaging on PRs
-- **release.yml**: Publishes signed artifacts, GHCR images, Helm OCI chart, and Homebrew cask from tags
+- `ci.yml`: unit/race tests, coverage gate, lint, security checks, and build matrix.
+- `e2e.yml`: kind-based E2E tests.
+- `release-dry-run.yml`: GoReleaser, Docker, SBOM, and Helm snapshot validation.
+- `release.yml`: tag-triggered publishing for GitHub releases, GHCR images, Helm OCI chart, signatures, attestations, and Homebrew cask.
+
+## Code Style
+
+- Use `gofmt` and keep Go code idiomatic.
+- Prefer structured APIs over string parsing.
+- Keep scanner implementations focused and testable.
+- Avoid logging or outputting secret values.
+- Use `kubernetes.Interface` rather than concrete clientsets.
+- Keep docs and tests in the same PR as user-visible behavior changes.
