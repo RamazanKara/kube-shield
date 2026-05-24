@@ -191,14 +191,7 @@ func isDefaultDeny(pol networkingv1.NetworkPolicy, policyType networkingv1.Polic
 		return false
 	}
 
-	hasPolicyType := false
-	for _, pt := range pol.Spec.PolicyTypes {
-		if pt == policyType {
-			hasPolicyType = true
-			break
-		}
-	}
-	if !hasPolicyType {
+	if !hasEffectivePolicyType(pol, policyType) {
 		return false
 	}
 
@@ -209,6 +202,22 @@ func isDefaultDeny(pol networkingv1.NetworkPolicy, policyType networkingv1.Polic
 		return len(pol.Spec.Egress) == 0
 	}
 
+	return false
+}
+
+func hasEffectivePolicyType(pol networkingv1.NetworkPolicy, policyType networkingv1.PolicyType) bool {
+	if len(pol.Spec.PolicyTypes) == 0 {
+		if policyType == networkingv1.PolicyTypeIngress {
+			return true
+		}
+		return len(pol.Spec.Egress) > 0
+	}
+
+	for _, pt := range pol.Spec.PolicyTypes {
+		if pt == policyType {
+			return true
+		}
+	}
 	return false
 }
 

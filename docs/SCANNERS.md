@@ -15,16 +15,16 @@ Checks pod and container security configurations.
 | WL-010 | Critical | Privileged container |
 | WL-011 | Medium | No security context defined |
 | WL-012 | High | Container may run as root |
-| WL-013 | High | Privilege escalation allowed |
-| WL-014 | Medium | Writable root filesystem |
+| WL-013 | Medium | Privilege escalation allowed |
+| WL-014 | Low | Writable root filesystem |
 | WL-020 | Critical | SYS_ADMIN capability |
 | WL-021 | Medium | NET_RAW capability |
 | WL-022 | Critical | ALL capabilities granted |
 | WL-023 | High | NET_ADMIN capability |
-| WL-030 | Low | Image uses latest/no tag |
+| WL-030 | Medium | Image uses latest/no tag |
 | WL-031 | Low | No resource limits |
-| WL-032 | Low | No resource requests |
-| WL-033 | Low | No liveness probe |
+| WL-032 | Info | No resource requests |
+| WL-033 | Info | No liveness probe |
 
 ## CIS Kubernetes Benchmark Scanner (`cis`)
 
@@ -42,7 +42,7 @@ Checks based on CIS Kubernetes Benchmark v1.12.
 | CIS-4.2.4 | High | Pod uses hostNetwork | 4.2 Pod Security |
 | CIS-4.2.6 | High | Container may run as root | 4.2 Pod Security |
 | CIS-4.2.9 | Medium | Container has added capabilities | 4.2 Pod Security |
-| CIS-4.3.1 | Medium | No network policy in namespace | 4.3 Network |
+| CIS-4.3.1 | High | No network policy in namespace | 4.3 Network |
 | CIS-4.4.1 | Medium | Secret exposed as env var | 4.4 Secrets |
 | CIS-4.5.1 | Low | No resource quotas in namespace | 4.5 Policies |
 | CIS-4.5.2 | Low | No LimitRange in namespace | 4.5 Policies |
@@ -60,8 +60,8 @@ Detects over-privileged roles and risky bindings.
 | RBAC-011 | Critical | Secret write access |
 | RBAC-020 | Critical | Privilege escalation verbs (escalate/bind/impersonate) |
 | RBAC-021 | High | Pod exec/attach access |
-| RBAC-022 | High | Node proxy access |
-| RBAC-023 | Medium | PersistentVolume write access |
+| RBAC-022 | Critical | Node proxy access |
+| RBAC-023 | High | PersistentVolume write access |
 | RBAC-030 | Critical | cluster-admin bound to ServiceAccount |
 | RBAC-031 | Critical | cluster-admin bound to unauthenticated users |
 | RBAC-032 | Medium | Role bound to default ServiceAccount |
@@ -76,7 +76,7 @@ Checks for missing or overly permissive network policies.
 | NET-002 | Medium | No default-deny ingress policy |
 | NET-003 | Medium | No default-deny egress policy |
 | NET-010 | High | Allow-all ingress rule |
-| NET-011 | High | Allow-all egress rule |
+| NET-011 | Medium | Allow-all egress rule |
 | NET-020 | Medium | Wide CIDR range in network policy |
 
 ## Secrets Scanner (`secrets`)
@@ -86,11 +86,11 @@ Detects insecure secret handling patterns.
 | Check ID | Severity | Title |
 |----------|----------|-------|
 | SEC-001 | Medium | Secret exposed as environment variable |
-| SEC-002 | Low | Missing secret reference |
+| SEC-002 | High | Missing secret reference |
 | SEC-003 | Medium | Entire secret exposed as env vars (envFrom) |
-| SEC-004 | High | Secret volume with permissive file mode |
+| SEC-004 | Medium | Secret volume with permissive file mode |
 | SEC-005 | High | Secret mounted at sensitive path |
-| SEC-010 | Low | Empty secret |
+| SEC-010 | Info | Empty secret |
 
 ## Severity Levels
 

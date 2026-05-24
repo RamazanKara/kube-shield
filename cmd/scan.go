@@ -132,13 +132,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	result.Findings = engine.FilterFindings(result.Findings, minSev, catFilter, "")
 
 	// Recalculate summary after filtering
-	result.Summary.Total = len(result.Findings)
-	result.Summary.BySeverity = make(map[engine.Severity]int)
-	result.Summary.ByCategory = make(map[engine.Category]int)
-	for _, f := range result.Findings {
-		result.Summary.BySeverity[f.Severity]++
-		result.Summary.ByCategory[f.Category]++
-	}
+	result.Summary = engine.SummarizeFindings(result.Findings)
 
 	// Output results
 	switch cfg.Output {

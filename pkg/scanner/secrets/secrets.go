@@ -10,6 +10,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const defaultSecretVolumeMode int32 = 0o644
+
 // Scanner checks for secret exposure and misconfigurations.
 type Scanner struct{}
 
@@ -81,8 +83,7 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 					// Check if referenced secret exists
 					secretKey := fmt.Sprintf("%s/%s", pod.Namespace, env.ValueFrom.SecretKeyRef.Name)
 					if !existingSecrets[secretKey] {
-						optional := env.ValueFrom.SecretKeyRef.Optional
-						if optional == nil || !*optional {
+						if !isOptional(env.ValueFrom.SecretKeyRef.Optional) {
 							findings = append(findings, engine.Finding{
 								ID:          fmt.Sprintf("SEC-002-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, env.ValueFrom.SecretKeyRef.Name),
 								CheckID:     "SEC-002",
@@ -111,47 +112,66 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 						Resource:    res,
 						Remediation: "Mount only specific secret keys as files. Avoid envFrom for secrets.",
 					})
+
+					secretKey := fmt.Sprintf("%s/%s", pod.Namespace, envFrom.SecretRef.Name)
+					if envFrom.SecretRef.Name != "" && !existingSecrets[secretKey] && !isOptional(envFrom.SecretRef.Optional) {
+						findings = append(findings, missingSecretFinding(
+							res,
+							fmt.Sprintf("%s/%s/envFrom/%s", pod.Name, c.Name, envFrom.SecretRef.Name),
+							fmt.Sprintf("Container %q envFrom", c.Name),
+							envFrom.SecretRef.Name,
+							pod.Namespace,
+						))
+					}
 				}
 			}
 		}
 
 		// Check for secrets in volume mounts
-		secretVolumes := make(map[string]string)
+		secretVolumes := make(map[string]secretVolumeRef)
 		for _, vol := range pod.Spec.Volumes {
 			if vol.Secret != nil {
-				secretVolumes[vol.Name] = vol.Secret.SecretName
+				secretVolumes[vol.Name] = secretVolumeRef{
+					secretName:  vol.Secret.SecretName,
+					defaultMode: vol.Secret.DefaultMode,
+				}
+
+				secretKey := fmt.Sprintf("%s/%s", pod.Namespace, vol.Secret.SecretName)
+				if vol.Secret.SecretName != "" && !existingSecrets[secretKey] && !isOptional(vol.Secret.Optional) {
+					findings = append(findings, missingSecretFinding(
+						res,
+						fmt.Sprintf("%s/volume/%s", pod.Name, vol.Name),
+						fmt.Sprintf("Volume %q", vol.Name),
+						vol.Secret.SecretName,
+						pod.Namespace,
+					))
+				}
 			}
 		}
 		for _, c := range allContainers {
 			for _, mount := range c.VolumeMounts {
-				if secretName, ok := secretVolumes[mount.Name]; ok {
-					// Check if the secret volume is mounted with a world-readable default mode
-					for _, vol := range pod.Spec.Volumes {
-						if vol.Name == mount.Name && vol.Secret != nil {
-							mode := vol.Secret.DefaultMode
-							if mode != nil && *mode > 0o440 {
-								findings = append(findings, engine.Finding{
-									ID:          fmt.Sprintf("SEC-004-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretName),
-									CheckID:     "SEC-004",
-									Title:       fmt.Sprintf("Secret volume with permissive file mode: %s", secretName),
-									Description: fmt.Sprintf("Secret %q is mounted in container %q at %q with file mode %#o. Secret files should be readable only by the owner.", secretName, c.Name, mount.MountPath, *mode),
-									Severity:    engine.SeverityMedium,
-									Category:    engine.CategorySecrets,
-									Resource:    res,
-									Remediation: "Set defaultMode: 0400 or 0440 on the secret volume to restrict file permissions.",
-								})
-							}
-							break
-						}
+				if secretVolume, ok := secretVolumes[mount.Name]; ok {
+					mode := secretVolume.effectiveDefaultMode()
+					if mode > 0o440 {
+						findings = append(findings, engine.Finding{
+							ID:          fmt.Sprintf("SEC-004-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretVolume.secretName),
+							CheckID:     "SEC-004",
+							Title:       fmt.Sprintf("Secret volume with permissive file mode: %s", secretVolume.secretName),
+							Description: fmt.Sprintf("Secret %q is mounted in container %q at %q with file mode %#o. Secret files should be readable only by the owner.", secretVolume.secretName, c.Name, mount.MountPath, mode),
+							Severity:    engine.SeverityMedium,
+							Category:    engine.CategorySecrets,
+							Resource:    res,
+							Remediation: "Set defaultMode: 0400 or 0440 on the secret volume to restrict file permissions.",
+						})
 					}
 
 					// Check if the secret is mounted at a sensitive path
 					if mount.MountPath == "/" || mount.MountPath == "/etc" || mount.MountPath == "/root" {
 						findings = append(findings, engine.Finding{
-							ID:          fmt.Sprintf("SEC-005-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretName),
+							ID:          fmt.Sprintf("SEC-005-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, secretVolume.secretName),
 							CheckID:     "SEC-005",
 							Title:       fmt.Sprintf("Secret mounted at sensitive path: %s", mount.MountPath),
-							Description: fmt.Sprintf("Secret %q is mounted at %q in container %q. Mounting secrets at sensitive system paths could override system files.", secretName, mount.MountPath, c.Name),
+							Description: fmt.Sprintf("Secret %q is mounted at %q in container %q. Mounting secrets at sensitive system paths could override system files.", secretVolume.secretName, mount.MountPath, c.Name),
 							Severity:    engine.SeverityHigh,
 							Category:    engine.CategorySecrets,
 							Resource:    res,
@@ -192,4 +212,33 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		Scanner:  s.Name(),
 		Findings: findings,
 	}, nil
+}
+
+type secretVolumeRef struct {
+	secretName  string
+	defaultMode *int32
+}
+
+func (v secretVolumeRef) effectiveDefaultMode() int32 {
+	if v.defaultMode == nil {
+		return defaultSecretVolumeMode
+	}
+	return *v.defaultMode
+}
+
+func isOptional(optional *bool) bool {
+	return optional != nil && *optional
+}
+
+func missingSecretFinding(res engine.Resource, idSuffix, source, secretName, namespace string) engine.Finding {
+	return engine.Finding{
+		ID:          fmt.Sprintf("SEC-002-%s/%s", namespace, idSuffix),
+		CheckID:     "SEC-002",
+		Title:       fmt.Sprintf("Missing secret reference: %s", secretName),
+		Description: fmt.Sprintf("%s references secret %q which does not exist in namespace %q.", source, secretName, namespace),
+		Severity:    engine.SeverityHigh,
+		Category:    engine.CategorySecrets,
+		Resource:    res,
+		Remediation: "Create the missing secret or mark the reference as optional.",
+	}
 }

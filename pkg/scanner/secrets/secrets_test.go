@@ -142,6 +142,42 @@ func TestScan_EnvFrom(t *testing.T) {
 	}
 }
 
+func TestScan_MissingEnvFromSecretReference(t *testing.T) {
+	client := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:  "web",
+					Image: "nginx:1.25",
+					EnvFrom: []corev1.EnvFromSource{{
+						SecretRef: &corev1.SecretEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "missing-envfrom-secret"},
+						},
+					}},
+				}},
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	s := New()
+	result, err := s.Scan(context.Background(), client, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, f := range result.Findings {
+		if f.CheckID == "SEC-002" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SEC-002 (missing envFrom secret)")
+	}
+}
+
 func TestScan_SecretVolumePermissiveMode(t *testing.T) {
 	mode := int32(0o644)
 	client := fake.NewSimpleClientset(
@@ -191,6 +227,88 @@ func TestScan_SecretVolumePermissiveMode(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected SEC-004 (permissive volume mode)")
+	}
+}
+
+func TestScan_SecretVolumeDefaultModeIsPermissive(t *testing.T) {
+	client := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:  "web",
+					Image: "nginx:1.25",
+					VolumeMounts: []corev1.VolumeMount{{
+						Name:      "secret-vol",
+						MountPath: "/etc/secrets",
+					}},
+				}},
+				Volumes: []corev1.Volume{{
+					Name: "secret-vol",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: "my-secret",
+						},
+					},
+				}},
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-secret", Namespace: "default"},
+			Data:       map[string][]byte{"token": []byte("abc123")},
+		},
+	)
+
+	s := New()
+	result, err := s.Scan(context.Background(), client, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, f := range result.Findings {
+		if f.CheckID == "SEC-004" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SEC-004 for default secret volume file mode")
+	}
+}
+
+func TestScan_MissingSecretVolumeReference(t *testing.T) {
+	client := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{
+					Name: "secret-vol",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: "missing-volume-secret",
+						},
+					},
+				}},
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	s := New()
+	result, err := s.Scan(context.Background(), client, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, f := range result.Findings {
+		if f.CheckID == "SEC-002" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SEC-002 (missing secret volume)")
 	}
 }
 

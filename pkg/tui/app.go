@@ -484,7 +484,7 @@ func (m Model) renderFindings() string {
 	header := fmt.Sprintf("  %-10s %-12s %-35s %s", "SEVERITY", "CHECK", "RESOURCE", "TITLE")
 	sb.WriteString(headerStyle.Render(header))
 	sb.WriteString("\n")
-	sb.WriteString("  " + strings.Repeat("─", m.width-4) + "\n")
+	sb.WriteString("  " + strings.Repeat("─", max(m.width-4, 0)) + "\n")
 
 	for i, f := range findings {
 		resource := f.Resource.String()

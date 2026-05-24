@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -192,6 +193,9 @@ func (e *Engine) Run(ctx context.Context, client kubernetes.Interface, namespace
 	if len(scanners) == 0 {
 		scanners = e.registry.List()
 	}
+	if len(scanners) == 0 {
+		return nil, ErrNoScanners
+	}
 
 	results := make([]*ScanResult, len(scanners))
 	var wg sync.WaitGroup
@@ -223,7 +227,11 @@ func (e *Engine) Run(ctx context.Context, client kubernetes.Interface, namespace
 
 	wg.Wait()
 
-	return buildReport(results), nil
+	report := buildReport(results)
+	if err := partialResultsError(results); err != nil {
+		return report, err
+	}
+	return report, nil
 }
 
 // RunAll executes all registered scanners.
@@ -253,28 +261,48 @@ func buildReport(results []*ScanResult) *Report {
 	report := &Report{
 		Results:     results,
 		GeneratedAt: time.Now(),
-		Summary: Summary{
-			BySeverity: make(map[Severity]int),
-			ByCategory: make(map[Category]int),
-		},
 	}
 
 	for _, r := range results {
 		if r == nil || r.Error != nil {
 			continue
 		}
-		for _, f := range r.Findings {
-			report.Findings = append(report.Findings, f)
-			report.Summary.Total++
-			report.Summary.BySeverity[f.Severity]++
-			report.Summary.ByCategory[f.Category]++
-		}
+		report.Findings = append(report.Findings, r.Findings...)
 	}
 
-	report.Summary.Score = calculateScore(report.Summary)
-	report.Summary.Grade = scoreToGrade(report.Summary.Score)
+	report.Summary = SummarizeFindings(report.Findings)
 
 	return report
+}
+
+// SummarizeFindings builds severity/category counts and score metadata for findings.
+func SummarizeFindings(findings []Finding) Summary {
+	summary := Summary{
+		Total:      len(findings),
+		BySeverity: make(map[Severity]int),
+		ByCategory: make(map[Category]int),
+	}
+	for _, f := range findings {
+		summary.BySeverity[f.Severity]++
+		summary.ByCategory[f.Category]++
+	}
+	summary.Score = calculateScore(summary)
+	summary.Grade = scoreToGrade(summary.Score)
+	return summary
+}
+
+func partialResultsError(results []*ScanResult) error {
+	errs := []error{ErrPartialResults}
+	for _, r := range results {
+		if r == nil || r.Error == nil {
+			continue
+		}
+		errs = append(errs, fmt.Errorf("%s scanner failed: %w", r.Scanner, r.Error))
+	}
+	if len(errs) == 1 {
+		return nil
+	}
+	return errors.Join(errs...)
 }
 
 func calculateScore(s Summary) float64 {

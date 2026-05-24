@@ -239,6 +239,24 @@ func TestRenderFindings_WithFilter(t *testing.T) {
 	}
 }
 
+func TestRenderFindings_NarrowWidthDoesNotPanic(t *testing.T) {
+	report := testReport()
+	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m.activeTab = TabFindings
+	m.width = 0
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("renderFindings panicked with narrow width: %v", r)
+		}
+	}()
+
+	output := m.renderFindings()
+	if !strings.Contains(output, "SEVERITY") {
+		t.Error("expected findings table header")
+	}
+}
+
 func TestRenderFindingDetail(t *testing.T) {
 	report := testReport()
 	m := NewModel(report, "test-cluster", nil, nil, "", nil)

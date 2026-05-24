@@ -109,6 +109,22 @@ func TestScan_DefaultDenyPresent(t *testing.T) {
 	}
 }
 
+func TestDefaultDenyIngressAllowsImplicitPolicyType(t *testing.T) {
+	policy := networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: "default-deny", Namespace: "secure"},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+		},
+	}
+
+	if !isDefaultDeny(policy, networkingv1.PolicyTypeIngress) {
+		t.Fatal("expected empty podSelector with omitted policyTypes to default-deny ingress")
+	}
+	if isDefaultDeny(policy, networkingv1.PolicyTypeEgress) {
+		t.Fatal("omitted policyTypes should not imply default-deny egress")
+	}
+}
+
 func TestScan_AllowAllIngress(t *testing.T) {
 	client := fake.NewSimpleClientset(
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "open"}},

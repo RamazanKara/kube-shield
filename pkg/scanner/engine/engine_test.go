@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -137,6 +138,47 @@ func TestEngine_UnknownScanner(t *testing.T) {
 	}
 }
 
+func TestEngine_NoScanners(t *testing.T) {
+	r := NewRegistry()
+	eng := NewEngine(r, 2)
+	client := fake.NewSimpleClientset()
+
+	_, err := eng.RunAll(context.Background(), client, "")
+	if !errors.Is(err, ErrNoScanners) {
+		t.Fatalf("expected ErrNoScanners, got %v", err)
+	}
+}
+
+func TestEngine_PartialResultsError(t *testing.T) {
+	r := NewRegistry()
+	r.Register(&mockScanner{
+		name:     "good",
+		category: CategoryWorkload,
+		findings: []Finding{
+			{ID: "f1", CheckID: "WL-001", Title: "Test finding", Severity: SeverityHigh, Category: CategoryWorkload},
+		},
+	})
+	r.Register(&mockScanner{
+		name:     "bad",
+		category: CategoryRBAC,
+		err:      errors.New("forbidden"),
+	})
+
+	eng := NewEngine(r, 2)
+	client := fake.NewSimpleClientset()
+
+	report, err := eng.RunAll(context.Background(), client, "")
+	if !errors.Is(err, ErrPartialResults) {
+		t.Fatalf("expected ErrPartialResults, got %v", err)
+	}
+	if report == nil {
+		t.Fatal("expected partial report")
+	}
+	if report.Summary.Total != 1 {
+		t.Fatalf("expected successful scanner finding in partial report, got %d", report.Summary.Total)
+	}
+}
+
 func TestSeverityFromString(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -206,6 +248,32 @@ func TestScoreCalculation(t *testing.T) {
 				t.Errorf("score = %f, want between %f and %f", score, tt.minScore, tt.maxScore)
 			}
 		})
+	}
+}
+
+func TestSummarizeFindings(t *testing.T) {
+	findings := []Finding{
+		{ID: "1", Severity: SeverityCritical, Category: CategoryWorkload},
+		{ID: "2", Severity: SeverityHigh, Category: CategoryRBAC},
+		{ID: "3", Severity: SeverityHigh, Category: CategoryRBAC},
+	}
+
+	summary := SummarizeFindings(findings)
+
+	if summary.Total != 3 {
+		t.Fatalf("expected total 3, got %d", summary.Total)
+	}
+	if summary.BySeverity[SeverityHigh] != 2 {
+		t.Fatalf("expected 2 high findings, got %d", summary.BySeverity[SeverityHigh])
+	}
+	if summary.ByCategory[CategoryRBAC] != 2 {
+		t.Fatalf("expected 2 RBAC findings, got %d", summary.ByCategory[CategoryRBAC])
+	}
+	if summary.Score != 80 {
+		t.Fatalf("expected score 80, got %.1f", summary.Score)
+	}
+	if summary.Grade != "B" {
+		t.Fatalf("expected grade B, got %s", summary.Grade)
 	}
 }
 
