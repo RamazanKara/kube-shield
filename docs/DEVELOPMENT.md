@@ -137,6 +137,17 @@ helm template kube-shield deploy/helm --namespace kube-shield
 
 GoReleaser signing and attestations are validated in GitHub Actions because they require GitHub OIDC.
 
+## Documentation Media
+
+The README TUI animation is generated with [VHS](https://github.com/charmbracelet/vhs) from a synthetic report, so it does not require a live Kubernetes cluster. VHS also needs `ttyd`, `ffmpeg`, and a Chromium-compatible browser available locally.
+
+```shell
+go install github.com/charmbracelet/vhs@latest
+PATH="$(go env GOPATH)/bin:$PATH" vhs docs/demo/tui.tape
+```
+
+The tape runs [docs/demo/tui_demo.go](demo/tui_demo.go) and writes [docs/assets/kube-shield-tui.gif](assets/kube-shield-tui.gif).
+
 ## CI/CD
 
 - `ci.yml`: unit/race tests, coverage gate, lint, security checks, and build matrix.

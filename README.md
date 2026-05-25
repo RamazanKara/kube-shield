@@ -80,6 +80,8 @@ kube-shield dashboard
 kube-shield dashboard --namespace production
 ```
 
+![kube-shield TUI dashboard demo](docs/assets/kube-shield-tui.gif)
+
 Use AI explanations:
 
 ```bash
