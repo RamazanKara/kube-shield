@@ -15,9 +15,14 @@ body:
     id: steps
     attributes:
       label: Reproduction Steps
-      description: Include commands, sanitized manifests, and expected versus actual behavior.
+      description: Include exact commands, flags, sanitized manifests, and expected versus actual behavior.
     validations:
       required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected, and does this block scans, releases, CI, or normal usage?
   - type: input
     id: version
     attributes:
@@ -56,4 +61,5 @@ body:
     id: logs
     attributes:
       label: Sanitized Output
+      description: Remove tokens, kubeconfig credentials, API keys, secret values, private cluster names, and customer data.
       render: shell

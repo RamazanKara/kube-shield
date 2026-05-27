@@ -2,6 +2,10 @@
 
 -
 
+## User Impact
+
+-
+
 ## Testing
 
 -
@@ -20,3 +24,7 @@
 - [ ] Output format changed
 - [ ] Release, Docker, Helm, or Homebrew packaging changed
 - [ ] No release impact
+
+## Notes For Reviewers
+
+-

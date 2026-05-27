@@ -2,6 +2,16 @@
 
 kube-shield is a Go CLI built around a small scanner engine, Kubernetes API clients, report writers, and an optional Bubble Tea terminal UI.
 
+This document is for contributors who want to understand where a change belongs before editing code.
+
+## Design Goals
+
+- Keep scanning deterministic and testable with Kubernetes fake clients.
+- Validate CLI/config input before opening a Kubernetes connection.
+- Keep scanner findings stable enough for CI, SARIF, docs, and downstream automation.
+- Prefer small package boundaries over framework-heavy abstractions.
+- Make release artifacts reproducible and verifiable.
+
 ## Package Layout
 
 ```text
@@ -80,6 +90,8 @@ type Scanner interface {
 
 Scanners receive a `kubernetes.Interface` so unit tests can use fake clients. Scanner implementations should be stateless because the engine runs them concurrently.
 
+Scanners should return findings, not write output. Filtering, summaries, table/JSON/SARIF formatting, and exit-code behavior belong outside scanner packages.
+
 ## Finding Model
 
 Each finding contains:
@@ -112,6 +124,8 @@ Command validation errors are returned before Kubernetes connection attempts.
 - JSON output serializes `engine.Report`.
 - SARIF output is for GitHub Code Scanning and uses build-time version metadata.
 
+Writers should not re-scan, mutate Kubernetes objects, or change finding severity. They format the report they are given.
+
 ## Release Architecture
 
 The release path is tag-triggered:
@@ -138,3 +152,5 @@ Build-time metadata is injected with ldflags:
 -X github.com/RamazanKara/kube-shield/pkg/version.Commit=${COMMIT}
 -X github.com/RamazanKara/kube-shield/pkg/version.Date=${DATE}
 ```
+
+The same metadata is used by `kube-shield version`, SARIF output, release archives, and container images.

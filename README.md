@@ -1,7 +1,5 @@
-<p align="center">
-  <h1 align="center">kube-shield</h1>
-  <p align="center"><strong>Kubernetes Security Posture Manager - k9s for security</strong></p>
-</p>
+<h1 align="center">kube-shield</h1>
+<p align="center"><strong>Kubernetes Security Posture Manager - k9s for security</strong></p>
 
 <p align="center">
   <a href="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml"><img src="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -14,18 +12,28 @@
 
 ---
 
-`kube-shield` scans Kubernetes clusters for security posture issues across workloads, CIS Kubernetes Benchmark v1.12 checks, RBAC, network policy, and secrets. It ships as a CLI, interactive terminal dashboard, container image, Helm OCI chart, and Homebrew cask.
+`kube-shield` is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark v1.12, RBAC, network policy, and secret patterns, then turns them into actionable findings.
 
-## Features
+![kube-shield TUI dashboard demo](docs/assets/kube-shield-tui.gif)
 
-- 5 built-in scanner families with stable check IDs and structured remediation.
-- Interactive TUI dashboard with findings, RBAC, network policy, and attack-path views.
-- Output formats for humans and automation: table, JSON, and SARIF.
-- CI-friendly severity thresholds and `--exit-code` gating.
-- Optional AI explanations through OpenAI or local Ollama.
-- Signed releases with checksums, SBOMs, Sigstore signatures, GitHub attestations, GHCR images, an OCI Helm chart, and a Homebrew cask.
+Use it when you want a lightweight security pass that is easy to run, easy to read, and still friendly to automation.
+
+## Why kube-shield
+
+- Finds common Kubernetes posture issues without installing a controller first.
+- Groups checks into workload, CIS, RBAC, network policy, and secrets scanners.
+- Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, or an interactive TUI.
+- Supports severity thresholds and `--exit-code` so CI can fail only on the risks you care about.
+- Includes structured remediation and optional AI explanations through OpenAI or local Ollama.
+- Ships signed release archives, SBOMs, attestations, GHCR images, an OCI Helm chart, and a Homebrew cask.
+
+## Scope
+
+kube-shield checks Kubernetes API-visible configuration. It does not replace runtime threat detection, admission control, node hardening, cloud IAM review, or a full CIS audit of control-plane host files. It is meant to make the most common cluster posture problems visible fast.
 
 ## Install
+
+Pick the install path that matches how you want to run scans.
 
 ### Homebrew
 
@@ -53,10 +61,15 @@ Download Linux, macOS, and Windows archives from the [GitHub releases page](http
 
 ## Quick Start
 
-```bash
-# Scan all namespaces with all scanners
-kube-shield scan
+Run a first scan against your current Kubernetes context:
 
+```bash
+kube-shield scan
+```
+
+Common next steps:
+
+```bash
 # Scan one namespace
 kube-shield scan --namespace production
 
@@ -79,8 +92,6 @@ Launch the dashboard:
 kube-shield dashboard
 kube-shield dashboard --namespace production
 ```
-
-![kube-shield TUI dashboard demo](docs/assets/kube-shield-tui.gif)
 
 Use AI explanations:
 

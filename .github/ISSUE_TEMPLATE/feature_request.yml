@@ -15,9 +15,14 @@ body:
     id: proposal
     attributes:
       label: Proposal
-      description: What should kube-shield do?
+      description: What should kube-shield do, and how would a user notice it working?
     validations:
       required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Optional command, manifest, output, or workflow sketch.
   - type: dropdown
     id: area
     attributes:

@@ -1,6 +1,13 @@
 # Contributing to kube-shield
 
-Thanks for helping improve kube-shield. This project scans Kubernetes clusters for security posture issues, so changes should favor correctness, clear remediation, and predictable output over cleverness.
+Thanks for helping improve kube-shield. The project is small on purpose: it should be easy to run, easy to trust, and clear about every finding it reports.
+
+Good contributions usually improve one of these things:
+
+- More accurate scanner behavior with fewer false positives.
+- Clearer remediation text for operators.
+- More reliable CLI, TUI, report, packaging, or release behavior.
+- Better tests, docs, and examples for existing behavior.
 
 ## Getting Started
 
@@ -17,6 +24,13 @@ Use a focused feature branch:
 ```shell
 git switch -c feature/my-change
 ```
+
+Before changing code, skim the relevant reference:
+
+- Scanner behavior: [docs/SCANNERS.md](docs/SCANNERS.md)
+- Package flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Local development: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Release-sensitive changes: [RELEASE.md](RELEASE.md)
 
 ## Development Checks
 
@@ -59,6 +73,12 @@ Keyless signing is validated in GitHub Actions where OIDC is available. Local sn
 - For public CLI, config, output, packaging, or release changes, update README and `RELEASE.md`.
 - For docs-only changes, still check links, command examples, and version references.
 
+Reviewers should be able to answer three questions quickly:
+
+- What changed for users?
+- How was it tested?
+- Could this alter release artifacts, check IDs, output schemas, or exit behavior?
+
 ## Adding a Scanner Check
 
 1. Add the check to the appropriate scanner package under `pkg/scanner/`.
@@ -66,6 +86,8 @@ Keyless signing is validated in GitHub Actions where OIDC is available. Local sn
 3. Add unit tests with Kubernetes fake clients.
 4. Add or update E2E fixtures when the behavior should be validated against a real API server.
 5. Document the check in `docs/SCANNERS.md`.
+
+Prefer precise checks over broad heuristics. If a check has unavoidable edge cases, document the assumptions in the scanner reference and cover the intended behavior with tests.
 
 ## Security Work
 

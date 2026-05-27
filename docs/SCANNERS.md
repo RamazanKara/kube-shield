@@ -1,6 +1,8 @@
 # Scanner Reference
 
-This reference lists the built-in kube-shield scanner families and stable check IDs.
+This reference lists the built-in kube-shield scanner families and stable check IDs. Use it when you need to understand what a finding means, decide whether a severity is expected, or update docs after changing scanner behavior.
+
+Scanner results are posture signals, not a full Kubernetes audit. kube-shield focuses on API-visible misconfigurations that can be checked consistently from a Kubernetes client.
 
 | Scanner | Checks | Category | Severity Range |
 |---------|--------|----------|----------------|
@@ -20,9 +22,13 @@ This reference lists the built-in kube-shield scanner families and stable check 
 | Low | Best-practice deviation |
 | Info | Operational observation |
 
+Severity is assigned by expected blast radius and exploitability. If a finding depends heavily on local policy or compensating controls, prefer the lower severity and explain the risk clearly in remediation text.
+
 ## Workload Scanner (`workload`)
 
 Checks pod and container security configuration.
+
+Use these findings to identify workloads that could escape expected pod boundaries, run with elevated privileges, or miss basic runtime hardening.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -50,6 +56,8 @@ Completed and failed pods are skipped.
 
 Checks API-accessible controls from CIS Kubernetes Benchmark v1.12.
 
+These checks cover the parts of the benchmark kube-shield can evaluate through the Kubernetes API. Node filesystem, control-plane host, and managed-provider settings are outside this scanner's scope.
+
 | Check ID | Severity | Title | CIS Section |
 |----------|----------|-------|-------------|
 | CIS-4.1.1 | Critical | cluster-admin role bound to ServiceAccount | 4.1 RBAC |
@@ -73,6 +81,8 @@ System namespaces are skipped for namespace-scoped CIS checks.
 
 Detects over-privileged roles, risky verbs, and risky bindings.
 
+These findings are most useful when reviewing service accounts used by workloads, automation, and human operators.
+
 | Check ID | Severity | Title |
 |----------|----------|-------|
 | RBAC-001 | Critical | Wildcard permissions on all resources |
@@ -94,6 +104,8 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 Checks namespace isolation and overly permissive NetworkPolicies.
 
+The scanner evaluates declared NetworkPolicy objects. It does not prove runtime dataplane enforcement by a specific CNI plugin.
+
 | Check ID | Severity | Title |
 |----------|----------|-------|
 | NET-001 | High | No network policies in namespace |
@@ -108,6 +120,8 @@ System namespaces are skipped. An empty `policyTypes` field is interpreted using
 ## Secrets Scanner (`secrets`)
 
 Detects secret exposure and broken secret references.
+
+The scanner reports risky references and mount patterns. It does not read or print secret values.
 
 | Check ID | Severity | Title |
 |----------|----------|-------|
@@ -147,3 +161,4 @@ When adding, removing, or changing a check:
 - Update README scanner counts when counts change.
 - Add or update unit tests and E2E fixtures.
 - Include the behavior change in `CHANGELOG.md`.
+- Keep titles short enough to scan in table, JSON, SARIF, and TUI output.

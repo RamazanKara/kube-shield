@@ -1,6 +1,6 @@
 # Repository Operations Checklist
 
-Use this checklist when reviewing repository settings, onboarding maintainers, or preparing a new release line.
+Use this checklist when reviewing repository settings, onboarding maintainers, or preparing a new release line. It covers GitHub settings and package state that are not fully captured in the git repository.
 
 ## Repository Metadata
 
@@ -25,6 +25,8 @@ Use this checklist when reviewing repository settings, onboarding maintainers, o
   - `security`
   - `sigstore`
 
+Keep the description and topics short, searchable, and aligned with the README. They are often the first thing a potential user sees before opening the project.
+
 ## Branch Protection
 
 Protect `main` with:
@@ -46,6 +48,8 @@ Protect `main` with:
 - Enable Dependabot version updates from `.github/dependabot.yml`.
 - Enable secret scanning and push protection.
 - Review CodeQL or equivalent static analysis if the project expands beyond Go.
+
+Private vulnerability reporting should be enabled before announcing new releases publicly.
 
 ## Repository Secrets
 
@@ -85,3 +89,4 @@ For the latest release:
 - Confirm release tooling versions in `.github/scripts/install-release-tools.sh`.
 - Review README install commands after each release.
 - Keep [SCANNERS.md](SCANNERS.md) aligned with scanner code and tests.
+- Refresh release verification examples when the latest published version changes.

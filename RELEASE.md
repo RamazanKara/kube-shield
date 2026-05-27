@@ -1,6 +1,8 @@
 # Release Process
 
-kube-shield releases publish:
+This runbook is for maintainers publishing a new kube-shield version. It covers the human checks around the automated release workflow.
+
+Each release publishes:
 
 - GitHub release archives for Linux, macOS, and Windows.
 - `checksums.txt`, SBOMs, and Sigstore signature bundles.
@@ -10,6 +12,13 @@ kube-shield releases publish:
 - Homebrew cask in `RamazanKara/homebrew-tap`.
 
 Public release tags are immutable. If a release is already public, ship follow-up fixes as the next patch version.
+
+## Release Principles
+
+- Keep scanner behavior, check IDs, output schemas, and exit-code behavior stable within a release line.
+- Prefer a patch release over rewriting any tag that already has a public GitHub release.
+- Run local packaging checks before pushing a tag; let GitHub Actions handle keyless signing and attestations.
+- Verify every install channel after the workflow succeeds.
 
 ## Prerequisites
 
@@ -31,9 +40,19 @@ TAG="v${VERSION}"
 Update versioned files before tagging:
 
 - `deploy/helm/Chart.yaml`: `version` and `appVersion`.
-- `CHANGELOG.md`: add the release date and user-facing changes.
-- README examples when the latest published version changes.
+- `CHANGELOG.md`: move user-facing changes from `Unreleased` under the new version and date.
+- README install, Docker, Helm, and verification examples when the latest published version changes.
 - Any scanner counts or check severities if scanner behavior changed.
+
+Before tagging, confirm `main` contains only changes intended for the release:
+
+```shell
+git fetch origin main --tags
+git switch main
+git pull --ff-only
+git status --short
+git log --oneline -5
+```
 
 ## Required Checks
 
@@ -59,7 +78,7 @@ make test-e2e
 
 The release dry-run workflow validates snapshot packaging in GitHub Actions. Local GoReleaser checks skip signing because keyless signing and attestations require GitHub OIDC.
 
-## Publish
+## Publish The Tag
 
 ```shell
 git fetch origin main --tags
@@ -113,3 +132,10 @@ brew install --cask ramazankara/tap/kube-shield
 ```
 
 Confirm the GitHub release contains archives, checksums, `.sbom.json` files, `.sigstore.json` files, and attestations for the release artifacts.
+
+## If Something Fails
+
+- If the tag exists but no public GitHub release was created, fix `main`, move the tag to the fixed commit, and push the tag again.
+- If a public GitHub release exists, do not rewrite the tag. Ship a new patch version.
+- If Homebrew publishing fails after the GitHub release succeeds, fix the tap publishing issue and rerun the release workflow only after confirming artifact digests remain unchanged.
+- If signing or attestation fails, treat the release as incomplete until verification commands pass.

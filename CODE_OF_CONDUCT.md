@@ -2,7 +2,7 @@
 
 ## Our Standard
 
-kube-shield is a security-focused open source project. Participation should be professional, respectful, and centered on making the software safer and more useful.
+kube-shield is a security-focused open source project. Participation should be professional, respectful, and centered on making the software safer and more useful for people operating real clusters.
 
 Examples of welcome behavior:
 
@@ -10,6 +10,7 @@ Examples of welcome behavior:
 - Giving actionable feedback and assuming good intent.
 - Respecting differing experience levels and operational contexts.
 - Disclosing security concerns responsibly.
+- Keeping criticism focused on code, documentation, behavior, and risk.
 
 Examples of unacceptable behavior:
 
@@ -17,6 +18,7 @@ Examples of unacceptable behavior:
 - Publishing private information without explicit permission.
 - Dismissing reports or questions in a hostile way.
 - Using project spaces to promote spam or unrelated content.
+- Pressuring people to reveal private cluster, customer, credential, or vulnerability details in public.
 
 ## Enforcement
 

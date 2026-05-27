@@ -9,7 +9,7 @@ Security fixes are provided for the latest released version of kube-shield.
 | 1.x | Yes |
 | 0.x | No |
 
-## Reporting a Vulnerability
+## Reporting Vulnerabilities
 
 Do not open a public GitHub issue for a suspected vulnerability.
 
@@ -25,6 +25,9 @@ Please include:
 - Clear reproduction steps.
 - Impact and affected environments.
 - Any known mitigations.
+- Whether any secret, credential, or private cluster data may have been exposed.
+
+Please avoid including live credentials, kubeconfig files, production secret values, or exploit details that are not needed to reproduce the issue.
 
 ## Handling Expectations
 
@@ -32,8 +35,10 @@ Maintainers aim to:
 
 - Acknowledge reports within 7 days.
 - Confirm impact and affected versions.
-- Coordinate a fix and release before public disclosure whenever possible.
+- Coordinate a fix and release before public disclosure when possible.
 - Credit reporters when they want public credit.
+
+If a report cannot be reproduced, maintainers may ask for a minimal sanitized example or additional environment details.
 
 ## Scope
 
@@ -43,6 +48,7 @@ In scope:
 - Findings that expose secrets, credentials, or cluster-sensitive data unexpectedly.
 - Supply-chain issues in distributed artifacts.
 - Bypass of documented release verification, signature, or attestation controls.
+- Bugs that cause kube-shield to scan or report outside the requested namespace, context, or filter scope.
 
 Out of scope:
 

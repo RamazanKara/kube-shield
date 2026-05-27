@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide is for local development, scanner work, and release-adjacent validation.
+This guide is for contributors changing code, scanner behavior, packaging, or documentation media.
 
 ## Prerequisites
 
@@ -22,6 +22,8 @@ make build
 ./bin/kube-shield scan
 ```
 
+If you do not have a cluster available, you can still run unit tests, linting, docs checks, and release snapshot validation. E2E tests create their own kind cluster.
+
 Build with explicit version metadata:
 
 ```shell
@@ -42,6 +44,8 @@ make release-check
 make release-snapshot
 ```
 
+Use the smallest check set that matches your change while developing, then run the broader set before opening or merging a pull request.
+
 ## Test Strategy
 
 ### Unit and Integration Tests
@@ -56,6 +60,8 @@ go tool cover -html=coverage.out
 
 The v1 release line keeps the total coverage gate at 60%.
 
+Run these for any change that touches scanner logic, config precedence, report output, CLI validation, or TUI rendering.
+
 ### Static and Security Checks
 
 ```shell
@@ -65,6 +71,8 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
 go mod verify
 ```
+
+Run these after dependency updates, release tooling changes, Dockerfile changes, or anything security-sensitive.
 
 ### End-to-End Tests
 
@@ -82,6 +90,8 @@ The E2E suite validates:
 - JSON and SARIF output.
 - `--exit-code` behavior.
 - Full scan summary counts.
+
+Run E2E for scanner behavior, Helm chart changes, Kubernetes client changes, and release packaging changes that could affect the container runtime.
 
 Fixtures live in `test/e2e/testdata/fixtures/`:
 
@@ -101,6 +111,7 @@ Fixtures live in `test/e2e/testdata/fixtures/`:
 4. Add unit tests with Kubernetes fake clients.
 5. Add or update E2E fixtures when API-server behavior matters.
 6. Update [SCANNERS.md](SCANNERS.md) and README scanner counts.
+7. Add a `CHANGELOG.md` entry when user-visible findings, severities, or output change.
 
 Every scanner implements:
 
@@ -123,6 +134,7 @@ For changes to flags, config, output formats, or exit behavior:
 - Update report tests under `pkg/report/` when JSON, table, or SARIF changes.
 - Keep config precedence as CLI flags > env vars > config file > defaults.
 - Update README, [ARCHITECTURE.md](ARCHITECTURE.md), and [RELEASE.md](../RELEASE.md) if release behavior changes.
+- Preserve backwards-compatible values unless a breaking change is intentional and documented.
 
 ## Packaging Checks
 

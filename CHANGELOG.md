@@ -4,8 +4,9 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
-- Refactors README and project docs into reusable user, developer, release, scanner, and repository operations references.
-- Clarifies current release verification, scanner severity documentation, and repository maintenance guidance.
+- Refines README, support, security, contributor, release, architecture, scanner, and development docs for first-time readers and maintainers.
+- Adds a reproducible README TUI demo animation and documents how to regenerate it.
+- Clarifies release verification, scanner severity documentation, and repository maintenance guidance.
 
 ## v1.0.1 - 2026-05-24
 
