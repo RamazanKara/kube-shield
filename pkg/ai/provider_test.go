@@ -86,23 +86,11 @@ func TestBuildPromptExplain(t *testing.T) {
 		Remediation: "Set securityContext.privileged to false",
 		Resource:    engine.Resource{Kind: "Pod", Name: "test-pod", Namespace: "default"},
 	}
-	prompt := buildPrompt(f, "explain")
+	prompt := buildExplainPrompt(f)
 	if prompt == "" {
 		t.Fatal("expected non-empty prompt")
 	}
 	if !containsAll(prompt, "Kubernetes security expert", "Privileged Container", "critical", "Pod") {
-		t.Errorf("prompt missing expected content: %s", prompt)
-	}
-}
-
-func TestBuildPromptRemediate(t *testing.T) {
-	f := engine.Finding{
-		Title:    "Root Container",
-		Severity: engine.SeverityHigh,
-		Category: engine.CategoryWorkload,
-	}
-	prompt := buildPrompt(f, "remediate")
-	if !containsAll(prompt, "YAML patch", "Root Container") {
 		t.Errorf("prompt missing expected content: %s", prompt)
 	}
 }
@@ -187,28 +175,6 @@ func TestOllamaExplain(t *testing.T) {
 	}
 	if result != "Ollama test explanation" {
 		t.Errorf("unexpected result: %s", result)
-	}
-}
-
-func TestOllamaRemediate(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := ollamaResponse{Response: "apiVersion: v1\nkind: Pod"}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(resp)
-	}))
-	defer srv.Close()
-
-	p, err := NewOllamaProvider(Config{Endpoint: srv.URL})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	result, err := p.Remediate(context.Background(), engine.Finding{Title: "Test"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result == "" {
-		t.Fatal("expected non-empty remediation")
 	}
 }
 

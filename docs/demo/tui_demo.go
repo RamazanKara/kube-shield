@@ -95,7 +95,7 @@ func main() {
 		ClusterInfo: "kind-kube-shield-demo",
 	}
 
-	model := tui.NewModel(report, "kind-kube-shield-demo (https://127.0.0.1:6443)", nil, nil, "", nil)
+	model := tui.NewModel(report, "kind-kube-shield-demo (https://127.0.0.1:6443)", nil, nil, "", nil, nil)
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		panic(err)

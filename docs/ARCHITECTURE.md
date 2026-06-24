@@ -24,7 +24,6 @@ kube-shield/
 ├── pkg/
 │   ├── ai/                       # OpenAI and Ollama providers
 │   ├── config/                   # Config loading and normalization
-│   ├── graph/                    # Attack-path graph construction
 │   ├── k8s/                      # Kubernetes client construction
 │   ├── logging/                  # slog wrapper
 │   ├── report/                   # Table, JSON, and SARIF writers
@@ -104,6 +103,7 @@ Each finding contains:
 - Optional CIS reference and external references.
 
 The report summary includes total count, counts by severity/category, a score from 0 to 100, and a letter grade.
+Known equivalent CIS/core findings are de-duplicated for summary counts and scoring; raw findings remain in the report for compliance traceability.
 
 ## Error Handling
 

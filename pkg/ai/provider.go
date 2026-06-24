@@ -13,11 +13,10 @@ import (
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 )
 
-// Provider is the interface for AI remediation providers.
+// Provider is the interface for AI explanation providers.
 type Provider interface {
 	Name() string
 	Explain(ctx context.Context, finding engine.Finding) (string, error)
-	Remediate(ctx context.Context, finding engine.Finding) (string, error)
 }
 
 // Config holds AI provider configuration.
@@ -42,20 +41,13 @@ func NewProvider(cfg Config) (Provider, error) {
 	}
 }
 
-// buildPrompt creates a remediation prompt for a finding.
-func buildPrompt(finding engine.Finding, action string) string {
+// buildExplainPrompt creates an explanation prompt for a finding.
+func buildExplainPrompt(finding engine.Finding) string {
 	var sb strings.Builder
 
-	switch action {
-	case "explain":
-		sb.WriteString("You are a Kubernetes security expert. Explain the following security finding in plain English.\n")
-		sb.WriteString("Include: what the risk is, how an attacker could exploit it, and the real-world impact.\n")
-		sb.WriteString("Keep the explanation concise (3-5 sentences).\n\n")
-	case "remediate":
-		sb.WriteString("You are a Kubernetes security expert. Generate a YAML patch to remediate the following security finding.\n")
-		sb.WriteString("Return ONLY the YAML that should be applied. Include comments explaining the changes.\n")
-		sb.WriteString("Make sure the YAML is valid and can be applied with kubectl apply.\n\n")
-	}
+	sb.WriteString("You are a Kubernetes security expert. Explain the following security finding in plain English.\n")
+	sb.WriteString("Include: what the risk is, how an attacker could exploit it, and the real-world impact.\n")
+	sb.WriteString("Keep the explanation concise (3-5 sentences).\n\n")
 
 	fmt.Fprintf(&sb, "Finding: %s\n", finding.Title)
 	fmt.Fprintf(&sb, "Severity: %s\n", finding.Severity)
@@ -97,7 +89,7 @@ type ollamaResponse struct {
 	Response string `json:"response"`
 }
 
-// OpenAIProvider uses the OpenAI API for remediation.
+// OpenAIProvider uses the OpenAI API for explanations.
 type OpenAIProvider struct {
 	apiKey   string
 	model    string
@@ -128,11 +120,7 @@ func NewOpenAIProvider(cfg Config) (*OpenAIProvider, error) {
 func (p *OpenAIProvider) Name() string { return "openai" }
 
 func (p *OpenAIProvider) Explain(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.chat(ctx, buildPrompt(finding, "explain"))
-}
-
-func (p *OpenAIProvider) Remediate(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.chat(ctx, buildPrompt(finding, "remediate"))
+	return p.chat(ctx, buildExplainPrompt(finding))
 }
 
 func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error) {
@@ -206,11 +194,7 @@ func NewOllamaProvider(cfg Config) (*OllamaProvider, error) {
 func (p *OllamaProvider) Name() string { return "ollama" }
 
 func (p *OllamaProvider) Explain(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.generate(ctx, buildPrompt(finding, "explain"))
-}
-
-func (p *OllamaProvider) Remediate(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.generate(ctx, buildPrompt(finding, "remediate"))
+	return p.generate(ctx, buildExplainPrompt(finding))
 }
 
 func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, error) {

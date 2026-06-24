@@ -250,11 +250,14 @@ type Report struct {
 
 // Summary provides an overview of findings.
 type Summary struct {
-	Total      int              `json:"total"`
-	BySeverity map[Severity]int `json:"bySeverity"`
-	ByCategory map[Category]int `json:"byCategory"`
-	Score      float64          `json:"score"`
-	Grade      string           `json:"grade"`
+	Total         int              `json:"total"`
+	BySeverity    map[Severity]int `json:"bySeverity"`
+	ByCategory    map[Category]int `json:"byCategory"`
+	Score         float64          `json:"score"`
+	Grade         string           `json:"grade"`
+	RawTotal      int              `json:"rawTotal,omitempty"`
+	RawBySeverity map[Severity]int `json:"rawBySeverity,omitempty"`
+	RawByCategory map[Category]int `json:"rawByCategory,omitempty"`
 }
 
 func buildReport(results []*ScanResult) *Report {
@@ -275,8 +278,20 @@ func buildReport(results []*ScanResult) *Report {
 	return report
 }
 
-// SummarizeFindings builds severity/category counts and score metadata for findings.
+// SummarizeFindings builds de-duplicated severity/category counts and score metadata.
 func SummarizeFindings(findings []Finding) Summary {
+	rawSummary := summarizeRawFindings(findings)
+	deduped := DeduplicateFindings(findings)
+	summary := summarizeRawFindings(deduped)
+	if rawSummary.Total != summary.Total {
+		summary.RawTotal = rawSummary.Total
+		summary.RawBySeverity = rawSummary.BySeverity
+		summary.RawByCategory = rawSummary.ByCategory
+	}
+	return summary
+}
+
+func summarizeRawFindings(findings []Finding) Summary {
 	summary := Summary{
 		Total:      len(findings),
 		BySeverity: make(map[Severity]int),
@@ -289,6 +304,99 @@ func SummarizeFindings(findings []Finding) Summary {
 	summary.Score = calculateScore(summary)
 	summary.Grade = scoreToGrade(summary.Score)
 	return summary
+}
+
+// DeduplicateFindings collapses known equivalent CIS/core findings for summaries.
+func DeduplicateFindings(findings []Finding) []Finding {
+	deduped := make([]Finding, 0, len(findings))
+	seen := make(map[string]int, len(findings))
+	for _, finding := range findings {
+		key := deduplicationKey(finding)
+		if idx, ok := seen[key]; ok {
+			if preferSummaryFinding(finding, deduped[idx]) {
+				deduped[idx] = finding
+			}
+			continue
+		}
+		seen[key] = len(deduped)
+		deduped = append(deduped, finding)
+	}
+	return deduped
+}
+
+func deduplicationKey(f Finding) string {
+	group := canonicalCheckID(f.CheckID)
+	switch group {
+	case "WL-001", "WL-002", "WL-003", "NET-001":
+		return group + "|" + f.Resource.String()
+	case "WL-010", "WL-012":
+		return group + "|" + f.Resource.String() + "|" + targetAfterColon(f.Title)
+	case "SEC-001":
+		return group + "|" + f.Resource.String() + "|" + envVarTarget(f.Title)
+	default:
+		if f.ID != "" {
+			return f.ID
+		}
+		return f.CheckID + "|" + f.Resource.String() + "|" + f.Title
+	}
+}
+
+func canonicalCheckID(checkID string) string {
+	switch checkID {
+	case "CIS-4.2.1":
+		return "WL-010"
+	case "CIS-4.2.2":
+		return "WL-001"
+	case "CIS-4.2.3":
+		return "WL-002"
+	case "CIS-4.2.4":
+		return "WL-003"
+	case "CIS-4.2.6":
+		return "WL-012"
+	case "CIS-4.3.1":
+		return "NET-001"
+	case "CIS-4.4.1":
+		return "SEC-001"
+	default:
+		return checkID
+	}
+}
+
+func targetAfterColon(title string) string {
+	_, target, ok := strings.Cut(title, ":")
+	if !ok {
+		return strings.TrimSpace(title)
+	}
+	target = strings.TrimSpace(target)
+	if idx := strings.LastIndex(target, "/"); idx >= 0 {
+		target = target[idx+1:]
+	}
+	return target
+}
+
+func envVarTarget(title string) string {
+	target := targetAfterColon(title)
+	envName, containerName, ok := strings.Cut(target, " in ")
+	if !ok {
+		return target
+	}
+	if idx := strings.LastIndex(containerName, "/"); idx >= 0 {
+		containerName = containerName[idx+1:]
+	}
+	return strings.TrimSpace(envName) + "/" + strings.TrimSpace(containerName)
+}
+
+func preferSummaryFinding(candidate, current Finding) bool {
+	if candidate.Severity != current.Severity {
+		return candidate.Severity > current.Severity
+	}
+	if candidate.Category != current.Category {
+		return candidate.Category != CategoryCIS && current.Category == CategoryCIS
+	}
+	if candidate.CheckID != current.CheckID {
+		return candidate.CheckID < current.CheckID
+	}
+	return candidate.ID < current.ID
 }
 
 func partialResultsError(results []*ScanResult) error {

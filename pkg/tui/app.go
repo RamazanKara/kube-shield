@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
-	"github.com/RamazanKara/kube-shield/pkg/graph"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -25,7 +24,7 @@ const (
 	TabFindings
 	TabRBAC
 	TabNetwork
-	TabGraph
+	TabRiskChains
 )
 
 func (t Tab) String() string {
@@ -38,12 +37,14 @@ func (t Tab) String() string {
 		return "RBAC"
 	case TabNetwork:
 		return "Network"
-	case TabGraph:
-		return "Attack Paths"
+	case TabRiskChains:
+		return "Risk Chains"
 	default:
 		return "Unknown"
 	}
 }
+
+var allTabs = []Tab{TabDashboard, TabFindings, TabRBAC, TabNetwork, TabRiskChains}
 
 // KeyMap defines the keybindings.
 type KeyMap struct {
@@ -96,10 +97,8 @@ type Model struct {
 	// For refresh support
 	k8sClient kubernetes.Interface
 	namespace string
+	scanners  []string
 	eng       *engine.Engine
-	// Cached graph analysis
-	graphCache *graph.SecurityGraph
-	graphPaths []graph.AttackPath
 }
 
 // aiExplainMsg carries the result of an AI explanation.
@@ -115,13 +114,13 @@ type refreshMsg struct {
 }
 
 // NewModel creates a new TUI model.
-func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider, k8sClient kubernetes.Interface, ns string, eng *engine.Engine) Model {
+func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider, k8sClient kubernetes.Interface, ns string, scanners []string, eng *engine.Engine) Model {
 	ti := textinput.New()
 	ti.Placeholder = "filter by name, namespace, severity..."
 	ti.CharLimit = 100
 
-	g := graph.BuildFromFindings(report.Findings)
-	paths := g.FindAttackPaths(5)
+	scannerNames := make([]string, len(scanners))
+	copy(scannerNames, scanners)
 
 	return Model{
 		report:      report,
@@ -131,9 +130,8 @@ func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider,
 		aiProvider:  aiProvider,
 		k8sClient:   k8sClient,
 		namespace:   ns,
+		scanners:    scannerNames,
 		eng:         eng,
-		graphCache:  g,
-		graphPaths:  paths,
 	}
 }
 
@@ -161,8 +159,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.report = msg.report
 			m.aiResult = ""
 			m.cursor = 0
-			m.graphCache = graph.BuildFromFindings(msg.report.Findings)
-			m.graphPaths = m.graphCache.FindAttackPaths(5)
 		}
 		m.viewport.SetContent(m.renderContent())
 		return m, nil
@@ -208,7 +204,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, keys.Tab):
-			m.activeTab = Tab((int(m.activeTab) + 1) % 5)
+			m.activeTab = Tab((int(m.activeTab) + 1) % len(allTabs))
 			m.cursor = 0
 			m.showDetail = false
 			m.viewport.SetContent(m.renderContent())
@@ -216,7 +212,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, keys.ShiftTab):
-			m.activeTab = Tab((int(m.activeTab) + 4) % 5)
+			m.activeTab = Tab((int(m.activeTab) + len(allTabs) - 1) % len(allTabs))
 			m.cursor = 0
 			m.showDetail = false
 			m.viewport.SetContent(m.renderContent())
@@ -291,7 +287,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, func() tea.Msg {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 					defer cancel()
-					report, err := m.eng.RunAll(ctx, m.k8sClient, m.namespace)
+					var (
+						report *engine.Report
+						err    error
+					)
+					if len(m.scanners) > 0 {
+						report, err = m.eng.Run(ctx, m.k8sClient, m.namespace, m.scanners)
+					} else {
+						report, err = m.eng.RunAll(ctx, m.k8sClient, m.namespace)
+					}
 					return refreshMsg{report: report, err: err}
 				}
 			}
@@ -336,9 +340,8 @@ func (m Model) renderHeader() string {
 }
 
 func (m Model) renderTabs() string {
-	tabs := []Tab{TabDashboard, TabFindings, TabRBAC, TabNetwork, TabGraph}
 	var rendered []string
-	for _, t := range tabs {
+	for _, t := range allTabs {
 		if t == m.activeTab {
 			rendered = append(rendered, tabActiveStyle.Render(t.String()))
 		} else {
@@ -395,8 +398,8 @@ func (m Model) renderContent() string {
 		return m.renderRBACPanel()
 	case TabNetwork:
 		return m.renderNetworkPanel()
-	case TabGraph:
-		return m.renderGraphPanel()
+	case TabRiskChains:
+		return m.renderRiskChainsPanel()
 	default:
 		return "Unknown tab"
 	}
@@ -545,7 +548,7 @@ func (m Model) renderFindingDetail() string {
 	if m.aiResult != "" {
 		result += "\n\n" + cardStyle.Render("  🤖 AI Analysis\n\n  "+strings.ReplaceAll(m.aiResult, "\n", "\n  "))
 	} else if m.aiProvider != nil {
-		result += "\n\n" + dimStyle.Render("  Press 'e' for AI-powered explanation")
+		result += "\n\n" + dimStyle.Render("  Press 'e' for AI explanation")
 	}
 
 	return result
@@ -614,19 +617,18 @@ func (m Model) renderNetworkPanel() string {
 	return sb.String()
 }
 
-func (m Model) renderGraphPanel() string {
+func (m Model) renderRiskChainsPanel() string {
 	var sb strings.Builder
-	sb.WriteString("\n  Attack Path Analysis\n\n")
+	sb.WriteString("\n  Risk Chains\n\n")
 
-	// Extract attack chains from critical/high findings
-	type attackChain struct {
+	type riskChain struct {
 		severity string
 		source   string
-		path     string
+		risk     string
 		target   string
 	}
 
-	var chains []attackChain
+	var chains []riskChain
 	for _, f := range m.report.Findings {
 		if f.Severity < engine.SeverityHigh {
 			continue
@@ -634,70 +636,68 @@ func (m Model) renderGraphPanel() string {
 
 		switch {
 		case strings.Contains(f.CheckID, "RBAC-001"), strings.Contains(f.CheckID, "RBAC-002"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "wildcard permissions",
+				risk:     "wildcard permissions",
 				target:   "all cluster resources",
 			})
 		case strings.Contains(f.CheckID, "RBAC-003"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "wildcard resources",
+				risk:     "wildcard resources",
 				target:   "all cluster resources",
 			})
 		case strings.Contains(f.CheckID, "RBAC-010"), strings.Contains(f.CheckID, "RBAC-011"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "secret access",
+				risk:     "secret access",
 				target:   "cluster secrets",
 			})
 		case strings.Contains(f.CheckID, "RBAC-021"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "pod exec",
+				risk:     "pod exec",
 				target:   "container shells",
 			})
 		case strings.Contains(f.CheckID, "RBAC-030"), strings.Contains(f.CheckID, "RBAC-031"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "cluster-admin binding",
+				risk:     "cluster-admin binding",
 				target:   "full cluster control",
 			})
 		case strings.Contains(f.CheckID, "WL-010"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "privileged container",
+				risk:     "privileged container",
 				target:   "host node",
 			})
 		case strings.Contains(f.CheckID, "WL-001"), strings.Contains(f.CheckID, "WL-002"), strings.Contains(f.CheckID, "WL-003"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "host namespace",
+				risk:     "host namespace",
 				target:   "host node",
 			})
 		case strings.Contains(f.CheckID, "SEC-001"):
-			chains = append(chains, attackChain{
+			chains = append(chains, riskChain{
 				severity: f.Severity.String(),
 				source:   f.Resource.String(),
-				path:     "env var exposure",
+				risk:     "env var exposure",
 				target:   "secret data leaked",
 			})
 		}
 	}
 
 	if len(chains) == 0 {
-		sb.WriteString("  ✅ No high-risk attack paths detected.\n\n")
-		sb.WriteString("  The attack path analyzer identifies chains of findings\n")
-		sb.WriteString("  that could be combined by an attacker for lateral movement.\n")
+		sb.WriteString("  ✅ No high-risk chains detected.\n")
 	} else {
-		fmt.Fprintf(&sb, "  Found %d potential attack chains:\n\n", len(chains))
+		fmt.Fprintf(&sb, "  Found %d high-risk chain(s):\n\n", len(chains))
 		for i, c := range chains {
 			if i >= 15 {
 				fmt.Fprintf(&sb, "\n  ... and %d more chains\n", len(chains)-15)
@@ -707,27 +707,10 @@ func (m Model) renderGraphPanel() string {
 			fmt.Fprintf(&sb, "  %s  %s ──[%s]──▶ %s\n",
 				sevStyle.Render(fmt.Sprintf("%-8s", c.severity)),
 				c.source,
-				c.path,
+				c.risk,
 				c.target)
 		}
-		sb.WriteString("\n  Legend: Source ──[permission/vulnerability]──▶ Target\n")
-	}
-
-	// Show attack paths from cached graph analysis
-	paths := m.graphPaths
-	if len(paths) > 0 {
-		sb.WriteString("\n\n  Graph Attack Paths:\n\n")
-		for i, p := range paths {
-			if i >= 10 {
-				fmt.Fprintf(&sb, "\n  ... and %d more paths\n", len(paths)-10)
-				break
-			}
-			var nodes []string
-			for _, n := range p.Nodes {
-				nodes = append(nodes, n.Name)
-			}
-			fmt.Fprintf(&sb, "  [%.0f] %s\n", p.Risk, strings.Join(nodes, " → "))
-		}
+		sb.WriteString("\n  Legend: Source ──[risk]──▶ Impact\n")
 	}
 
 	return cardStyle.Render(sb.String())

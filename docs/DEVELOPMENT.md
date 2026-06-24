@@ -4,7 +4,7 @@ This guide is for contributors changing code, scanner behavior, packaging, or do
 
 ## Prerequisites
 
-- Go 1.25+
+- Go 1.25.11 or newer 1.25.x
 - Docker
 - kubectl
 - kind, for E2E tests

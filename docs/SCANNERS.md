@@ -136,13 +136,14 @@ Optional secret references are not reported as missing.
 
 ## Scoring
 
-The score is calculated from the filtered finding set:
+The score is calculated from the filtered, de-duplicated finding set:
 
 ```text
 score = 100 - (critical*10 + high*5 + medium*2 + low*0.5)
 ```
 
 Info findings do not reduce the score. Scores are clamped at zero.
+Known CIS/core overlaps, such as `CIS-4.2.1` and `WL-010` for the same pod/container, are counted once in the summary. The raw findings remain in JSON and SARIF output.
 
 | Score | Grade |
 |-------|-------|

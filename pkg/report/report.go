@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -13,8 +14,13 @@ import (
 
 // TableWriter writes findings in a colored table format.
 func TableWriter(w io.Writer, report *engine.Report) error {
+	decorated := useDecorations(w)
 	if len(report.Findings) == 0 {
-		_, _ = fmt.Fprintln(w, "\n✅ No security findings detected! Your cluster looks good.")
+		if decorated {
+			_, _ = fmt.Fprintln(w, "\n✅ No security findings detected! Your cluster looks good.")
+		} else {
+			_, _ = fmt.Fprintln(w, "\nNo security findings detected. Your cluster looks good.")
+		}
 		return nil
 	}
 
@@ -31,7 +37,7 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("─", 100))
 
 	for _, f := range findings {
-		severityStr := colorSeverity(f.Severity)
+		severityStr := formatSeverity(f.Severity, decorated)
 		resource := f.Resource.String()
 		if len(resource) > 38 {
 			resource = resource[:35] + "..."
@@ -47,15 +53,19 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 	_, _ = fmt.Fprintf(w, "%s\n\n", strings.Repeat("─", 100))
 
 	// Summary
-	_, _ = fmt.Fprintf(w, "  📊 Security Score: %s (%.0f/100)\n", report.Summary.Grade, report.Summary.Score)
-	_, _ = fmt.Fprintf(w, "  📋 Total Findings: %d\n", report.Summary.Total)
-	_, _ = fmt.Fprintf(w, "     %s %d Critical  %s %d High  %s %d Medium  %s %d Low  %s %d Info\n",
-		"🔴", report.Summary.BySeverity[engine.SeverityCritical],
-		"🟠", report.Summary.BySeverity[engine.SeverityHigh],
-		"🟡", report.Summary.BySeverity[engine.SeverityMedium],
-		"🔵", report.Summary.BySeverity[engine.SeverityLow],
-		"⚪", report.Summary.BySeverity[engine.SeverityInfo],
-	)
+	scoreLabel := "Security Score"
+	totalLabel := "Total Findings"
+	if decorated {
+		scoreLabel = "📊 " + scoreLabel
+		totalLabel = "📋 " + totalLabel
+	}
+	_, _ = fmt.Fprintf(w, "  %s: %s (%.0f/100)\n", scoreLabel, report.Summary.Grade, report.Summary.Score)
+	if report.Summary.RawTotal > report.Summary.Total {
+		_, _ = fmt.Fprintf(w, "  %s: %d (%d raw)\n", totalLabel, report.Summary.Total, report.Summary.RawTotal)
+	} else {
+		_, _ = fmt.Fprintf(w, "  %s: %d\n", totalLabel, report.Summary.Total)
+	}
+	writeSeveritySummary(w, report, decorated)
 	_, _ = fmt.Fprintln(w)
 
 	return nil
@@ -161,7 +171,30 @@ func sarifLevel(s engine.Severity) string {
 	}
 }
 
-func colorSeverity(s engine.Severity) string {
+func writeSeveritySummary(w io.Writer, report *engine.Report, decorated bool) {
+	if decorated {
+		_, _ = fmt.Fprintf(w, "     %s %d Critical  %s %d High  %s %d Medium  %s %d Low  %s %d Info\n",
+			"🔴", report.Summary.BySeverity[engine.SeverityCritical],
+			"🟠", report.Summary.BySeverity[engine.SeverityHigh],
+			"🟡", report.Summary.BySeverity[engine.SeverityMedium],
+			"🔵", report.Summary.BySeverity[engine.SeverityLow],
+			"⚪", report.Summary.BySeverity[engine.SeverityInfo],
+		)
+		return
+	}
+	_, _ = fmt.Fprintf(w, "     Critical: %d  High: %d  Medium: %d  Low: %d  Info: %d\n",
+		report.Summary.BySeverity[engine.SeverityCritical],
+		report.Summary.BySeverity[engine.SeverityHigh],
+		report.Summary.BySeverity[engine.SeverityMedium],
+		report.Summary.BySeverity[engine.SeverityLow],
+		report.Summary.BySeverity[engine.SeverityInfo],
+	)
+}
+
+func formatSeverity(s engine.Severity, decorated bool) string {
+	if !decorated {
+		return s.String()
+	}
 	switch s {
 	case engine.SeverityCritical:
 		return "\033[1;31mCRITICAL\033[0m"
@@ -176,4 +209,19 @@ func colorSeverity(s engine.Severity) string {
 	default:
 		return s.String()
 	}
+}
+
+func useDecorations(w io.Writer) bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	file, ok := w.(*os.File)
+	if !ok {
+		return false
+	}
+	stat, err := file.Stat()
+	if err != nil {
+		return false
+	}
+	return stat.Mode()&os.ModeCharDevice != 0
 }

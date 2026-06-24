@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/RamazanKara/kube-shield/pkg/config"
+	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 )
 
@@ -13,22 +15,6 @@ var (
 		"table": {},
 		"json":  {},
 		"sarif": {},
-	}
-
-	validScanners = map[string]struct{}{
-		"workload": {},
-		"cis":      {},
-		"rbac":     {},
-		"netpol":   {},
-		"secrets":  {},
-	}
-
-	validCategories = map[string]struct{}{
-		"workload": {},
-		"cis":      {},
-		"rbac":     {},
-		"netpol":   {},
-		"secrets":  {},
 	}
 
 	validAIProviders = map[string]struct{}{
@@ -71,10 +57,10 @@ func validateScanConfig(cfg *config.Config) error {
 	if _, ok := engine.ParseSeverity(cfg.Severity); !ok {
 		return fmt.Errorf("invalid severity %q: supported values are critical, high, medium, low, info", cfg.Severity)
 	}
-	if err := validateValues("scanner", cfg.Scanners, validScanners); err != nil {
+	if err := validateValues("scanner", cfg.Scanners, scanner.NameSet()); err != nil {
 		return err
 	}
-	if err := validateValues("category", cfg.Categories, validCategories); err != nil {
+	if err := validateValues("category", cfg.Categories, scanner.CategorySet()); err != nil {
 		return err
 	}
 	if _, ok := validAIProviders[cfg.AI.Provider]; !ok {
@@ -89,7 +75,7 @@ func validateScanConfig(cfg *config.Config) error {
 func validateDashboardConfig(cfg *config.Config) error {
 	normalizeConfig(cfg)
 
-	if err := validateValues("scanner", cfg.Scanners, validScanners); err != nil {
+	if err := validateValues("scanner", cfg.Scanners, scanner.NameSet()); err != nil {
 		return err
 	}
 	if _, ok := validAIProviders[cfg.AI.Provider]; !ok {
@@ -104,10 +90,19 @@ func validateDashboardConfig(cfg *config.Config) error {
 func validateValues(name string, values []string, valid map[string]struct{}) error {
 	for _, value := range values {
 		if _, ok := valid[value]; !ok {
-			return fmt.Errorf("invalid %s %q: supported values are workload, cis, rbac, netpol, secrets", name, value)
+			return fmt.Errorf("invalid %s %q: supported values are %s", name, value, strings.Join(sortedKeys(valid), ", "))
 		}
 	}
 	return nil
+}
+
+func sortedKeys(values map[string]struct{}) []string {
+	keys := make([]string, 0, len(values))
+	for value := range values {
+		keys = append(keys, value)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func normalizeConfig(cfg *config.Config) {

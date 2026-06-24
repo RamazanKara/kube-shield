@@ -9,11 +9,8 @@ import (
 	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
-	"github.com/RamazanKara/kube-shield/pkg/config"
-	"github.com/RamazanKara/kube-shield/pkg/k8s"
 	"github.com/RamazanKara/kube-shield/pkg/logging"
 	"github.com/RamazanKara/kube-shield/pkg/report"
-	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +26,7 @@ var (
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan a Kubernetes cluster for security issues",
-	Long: `Scan performs a comprehensive security analysis of your Kubernetes cluster.
+	Long: `Scan reads Kubernetes API objects and reports common security posture findings.
 
 By default, all scanners are enabled: workload, cis, rbac, netpol, secrets.
 Use --scanners to run specific scanners only.
@@ -69,19 +66,14 @@ func init() {
 }
 
 func runScan(cmd *cobra.Command, args []string) error {
-	cfg := config.Load()
-	applyScanFlagOverrides(cmd.Flags(), cfg)
-	if err := validateScanConfig(cfg); err != nil {
+	runtime, err := prepareScanRuntime(cmd, applyScanFlagOverrides, validateScanConfig)
+	if err != nil {
 		return err
 	}
+	cfg := runtime.cfg
+	k8sClient := runtime.k8sClient
 
 	log := logging.New(cfg.Verbose, cfg.Output)
-
-	// Create Kubernetes client
-	k8sClient, err := k8s.NewClient(cfg.Kubeconfig, cfg.Context)
-	if err != nil {
-		return fmt.Errorf("failed to connect to cluster: %w", err)
-	}
 
 	log.Info("starting scan",
 		"cluster", k8sClient.ServerURL,
@@ -98,12 +90,6 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "   Scanning...\n\n")
 
-	// Register scanners using centralized registry
-	registry := scanner.DefaultRegistry()
-
-	// Create engine
-	eng := engine.NewEngine(registry, 5)
-
 	// Run scan with timeout and signal handling for graceful cancellation
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
@@ -111,12 +97,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	var result *engine.Report
-	if len(cfg.Scanners) > 0 {
-		result, err = eng.Run(ctx, k8sClient.Clientset, cfg.Namespace, cfg.Scanners)
-	} else {
-		result, err = eng.RunAll(ctx, k8sClient.Clientset, cfg.Namespace)
-	}
+	result, err := runtime.run(ctx)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
@@ -150,7 +131,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// AI-powered explanation for critical/high findings
+	// Optional AI explanation for critical/high findings
 	if cfg.AI.Provider != "" {
 		aiCfg := ai.Config{
 			Provider: cfg.AI.Provider,

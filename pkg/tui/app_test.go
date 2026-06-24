@@ -67,7 +67,7 @@ func testReport() *engine.Report {
 
 func TestNewModel(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 
 	if m.activeTab != TabDashboard {
 		t.Errorf("expected initial tab Dashboard, got %v", m.activeTab)
@@ -78,9 +78,6 @@ func TestNewModel(t *testing.T) {
 	if m.clusterInfo != "test-cluster" {
 		t.Errorf("expected clusterInfo 'test-cluster', got %q", m.clusterInfo)
 	}
-	if m.graphCache == nil {
-		t.Error("expected graphCache to be initialized")
-	}
 	if m.cursor != 0 {
 		t.Errorf("expected cursor at 0, got %d", m.cursor)
 	}
@@ -88,7 +85,7 @@ func TestNewModel(t *testing.T) {
 
 func TestFilteredFindings(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 
 	// No filter — return all
 	all := m.filteredFindings()
@@ -137,7 +134,7 @@ func TestFilteredFindings(t *testing.T) {
 
 func TestMaxCursorItems(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 
 	// Findings tab — all 6
 	m.activeTab = TabFindings
@@ -170,10 +167,10 @@ func TestMaxCursorItems(t *testing.T) {
 		t.Errorf("TabDashboard: expected 0, got %d", got)
 	}
 
-	// Graph tab — no cursor items
-	m.activeTab = TabGraph
+	// Risk chains tab — no cursor items
+	m.activeTab = TabRiskChains
 	if got := m.maxCursorItems(); got != 0 {
-		t.Errorf("TabGraph: expected 0, got %d", got)
+		t.Errorf("TabRiskChains: expected 0, got %d", got)
 	}
 }
 
@@ -186,7 +183,7 @@ func TestTabString(t *testing.T) {
 		{TabFindings, "Findings"},
 		{TabRBAC, "RBAC"},
 		{TabNetwork, "Network"},
-		{TabGraph, "Attack Paths"},
+		{TabRiskChains, "Risk Chains"},
 		{Tab(99), "Unknown"},
 	}
 	for _, tt := range tests {
@@ -198,7 +195,7 @@ func TestTabString(t *testing.T) {
 
 func TestRenderDashboard(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 
 	output := m.renderDashboard()
 	if !strings.Contains(output, "Security Grade") {
@@ -219,7 +216,7 @@ func TestRenderFindings_Empty(t *testing.T) {
 			ByCategory: make(map[engine.Category]int),
 		},
 	}
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabFindings
 
 	output := m.renderFindings()
@@ -230,7 +227,7 @@ func TestRenderFindings_Empty(t *testing.T) {
 
 func TestRenderFindings_WithFilter(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.filterText = "zzz-no-match"
 
 	output := m.renderFindings()
@@ -241,7 +238,7 @@ func TestRenderFindings_WithFilter(t *testing.T) {
 
 func TestRenderFindings_NarrowWidthDoesNotPanic(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabFindings
 	m.width = 0
 
@@ -259,7 +256,7 @@ func TestRenderFindings_NarrowWidthDoesNotPanic(t *testing.T) {
 
 func TestRenderFindingDetail(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabFindings
 	m.showDetail = true
 	m.cursor = 0
@@ -278,7 +275,7 @@ func TestRenderFindingDetail(t *testing.T) {
 
 func TestRenderRBACPanel(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabRBAC
 
 	output := m.renderRBACPanel()
@@ -292,7 +289,7 @@ func TestRenderRBACPanel(t *testing.T) {
 
 func TestRenderNetworkPanel(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabNetwork
 
 	output := m.renderNetworkPanel()
@@ -304,20 +301,23 @@ func TestRenderNetworkPanel(t *testing.T) {
 	}
 }
 
-func TestRenderGraphPanel(t *testing.T) {
+func TestRenderRiskChainsPanel(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
-	m.activeTab = TabGraph
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
+	m.activeTab = TabRiskChains
 
-	output := m.renderGraphPanel()
-	if !strings.Contains(output, "Attack Path") {
-		t.Error("expected attack path header")
+	output := m.renderRiskChainsPanel()
+	if !strings.Contains(output, "Risk Chains") {
+		t.Error("expected risk chains header")
+	}
+	if strings.Contains(output, "Attack Path") {
+		t.Error("risk chains panel should not refer to attack paths")
 	}
 }
 
 func TestRenderHelp(t *testing.T) {
 	report := testReport()
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 
 	output := m.renderHelp()
 	if !strings.Contains(output, "Keyboard Shortcuts") {
@@ -338,7 +338,7 @@ func TestRenderRBACPanel_NoFindings(t *testing.T) {
 			ByCategory: make(map[engine.Category]int),
 		},
 	}
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabRBAC
 
 	output := m.renderRBACPanel()
@@ -357,7 +357,7 @@ func TestRenderNetworkPanel_NoFindings(t *testing.T) {
 			ByCategory: make(map[engine.Category]int),
 		},
 	}
-	m := NewModel(report, "test-cluster", nil, nil, "", nil)
+	m := NewModel(report, "test-cluster", nil, nil, "", nil, nil)
 	m.activeTab = TabNetwork
 
 	output := m.renderNetworkPanel()

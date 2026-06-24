@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RamazanKara/kube-shield/pkg/scanner"
 	"github.com/spf13/viper"
 )
 
@@ -36,7 +37,7 @@ func DefaultConfig() *Config {
 		Output:   "table",
 		Severity: "low",
 		Timeout:  5 * time.Minute,
-		Scanners: []string{"workload", "cis", "rbac", "netpol", "secrets"},
+		Scanners: scanner.Names(),
 	}
 }
 

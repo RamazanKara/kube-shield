@@ -6,10 +6,6 @@ import (
 	"os"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
-	"github.com/RamazanKara/kube-shield/pkg/config"
-	"github.com/RamazanKara/kube-shield/pkg/k8s"
-	"github.com/RamazanKara/kube-shield/pkg/scanner"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/RamazanKara/kube-shield/pkg/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -18,14 +14,14 @@ import (
 var dashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Launch the interactive security dashboard (TUI)",
-	Long: `Launch a beautiful interactive terminal UI to explore security findings.
+	Long: `Launch an interactive terminal dashboard for reviewing scan findings.
 
 The dashboard provides:
   • Security score overview with grade (A-F)
   • Findings explorer with drill-down details
-  • RBAC analysis panel
-  • Network policy visualization
-  • Attack path graph
+  • RBAC and network policy finding panels
+  • Risk chains derived from high-risk findings
+  • Optional AI explanations for individual findings
 
 Examples:
   kube-shield dashboard
@@ -42,32 +38,19 @@ func init() {
 }
 
 func runDashboard(cmd *cobra.Command, args []string) error {
-	cfg := config.Load()
-	applyDashboardFlagOverrides(cmd.Flags(), cfg)
-	if err := validateDashboardConfig(cfg); err != nil {
+	runtime, err := prepareScanRuntime(cmd, applyDashboardFlagOverrides, validateDashboardConfig)
+	if err != nil {
 		return err
 	}
-
-	k8sClient, err := k8s.NewClient(cfg.Kubeconfig, cfg.Context)
-	if err != nil {
-		return fmt.Errorf("failed to connect to cluster: %w", err)
-	}
+	cfg := runtime.cfg
+	k8sClient := runtime.k8sClient
 
 	fmt.Fprintf(os.Stderr, "🛡️  Scanning cluster %s...\n", k8sClient.ServerURL)
-
-	registry := scanner.DefaultRegistry()
-
-	eng := engine.NewEngine(registry, 5)
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 
-	var report *engine.Report
-	if len(cfg.Scanners) > 0 {
-		report, err = eng.Run(ctx, k8sClient.Clientset, cfg.Namespace, cfg.Scanners)
-	} else {
-		report, err = eng.RunAll(ctx, k8sClient.Clientset, cfg.Namespace)
-	}
+	report, err := runtime.run(ctx)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
@@ -88,7 +71,7 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	}
 
 	clusterInfo := fmt.Sprintf("%s (%s)", k8sClient.Context, k8sClient.ServerURL)
-	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, cfg.Namespace, eng)
+	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, cfg.Namespace, cfg.Scanners, runtime.engine)
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

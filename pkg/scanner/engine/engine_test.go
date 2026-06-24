@@ -277,6 +277,61 @@ func TestSummarizeFindings(t *testing.T) {
 	}
 }
 
+func TestSummarizeFindingsDeduplicatesCISOverlap(t *testing.T) {
+	findings := []Finding{
+		{
+			ID:       "WL-010-default/Pod/app/container/web",
+			CheckID:  "WL-010",
+			Title:    "Privileged container: web",
+			Severity: SeverityCritical,
+			Category: CategoryWorkload,
+			Resource: Resource{Kind: "Pod", Name: "app", Namespace: "default"},
+		},
+		{
+			ID:       "CIS-4.2.1-default/app/web",
+			CheckID:  "CIS-4.2.1",
+			Title:    "Privileged container: app/web",
+			Severity: SeverityCritical,
+			Category: CategoryCIS,
+			Resource: Resource{Kind: "Pod", Name: "app", Namespace: "default"},
+		},
+		{
+			ID:       "CIS-4.3.1-default",
+			CheckID:  "CIS-4.3.1",
+			Title:    "No network policy: default",
+			Severity: SeverityHigh,
+			Category: CategoryCIS,
+			Resource: Resource{Kind: "Namespace", Name: "default"},
+		},
+		{
+			ID:       "NET-001-default",
+			CheckID:  "NET-001",
+			Title:    "No network policies in namespace: default",
+			Severity: SeverityHigh,
+			Category: CategoryNetpol,
+			Resource: Resource{Kind: "Namespace", Name: "default"},
+		},
+	}
+
+	summary := SummarizeFindings(findings)
+
+	if summary.Total != 2 {
+		t.Fatalf("expected 2 de-duplicated findings, got %d", summary.Total)
+	}
+	if summary.RawTotal != 4 {
+		t.Fatalf("expected raw total 4, got %d", summary.RawTotal)
+	}
+	if summary.BySeverity[SeverityCritical] != 1 || summary.BySeverity[SeverityHigh] != 1 {
+		t.Fatalf("unexpected de-duplicated severity counts: %#v", summary.BySeverity)
+	}
+	if summary.ByCategory[CategoryWorkload] != 1 || summary.ByCategory[CategoryNetpol] != 1 {
+		t.Fatalf("expected non-CIS categories to win duplicates, got %#v", summary.ByCategory)
+	}
+	if summary.Score != 85 {
+		t.Fatalf("expected de-duplicated score 85, got %.1f", summary.Score)
+	}
+}
+
 func TestFilterFindings(t *testing.T) {
 	findings := []Finding{
 		{ID: "1", Severity: SeverityCritical, Category: CategoryWorkload, Resource: Resource{Namespace: "prod"}},

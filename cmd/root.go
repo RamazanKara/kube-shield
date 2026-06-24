@@ -21,19 +21,18 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "kube-shield",
 	Short: "Kubernetes Security Posture Manager",
-	Long: `kube-shield is a comprehensive Kubernetes security posture management tool.
+	Long: `kube-shield is a Kubernetes security posture scanner for local reviews,
+CI gates, and scheduled cluster checks.
 
-It scans your clusters for security issues including CIS benchmark violations,
-RBAC misconfigurations, network policy gaps, secret exposure, and more.
+It reads Kubernetes API objects and reports common workload, CIS, RBAC,
+network policy, and secret configuration risks.
 
 Features:
-  • Beautiful interactive terminal UI (TUI)
-  • Deep RBAC analysis with effective permissions resolution
-  • Network policy validation and connectivity mapping
-  • AI-powered remediation suggestions
-  • Attack path visualization
-  • Multi-cluster support
-  • SARIF output for GitHub Code Scanning integration`,
+  • Interactive terminal dashboard for findings review
+  • Workload, CIS, RBAC, network policy, and secrets scanners
+  • Table, JSON, and SARIF output
+  • Severity thresholds and CI-friendly exit codes
+  • Optional AI explanations for high-risk findings`,
 }
 
 func Execute() error {

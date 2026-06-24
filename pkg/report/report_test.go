@@ -123,6 +123,28 @@ func TestTableWriter(t *testing.T) {
 	}
 }
 
+func TestTableWriterPlainOutputForNonTTY(t *testing.T) {
+	var buf bytes.Buffer
+	report := sampleReport()
+	report.Summary.RawTotal = 7
+
+	err := TableWriter(&buf, report)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := buf.String()
+	if strings.Contains(output, "\033[") {
+		t.Fatalf("non-TTY output should not contain ANSI escapes: %q", output)
+	}
+	if strings.Contains(output, "📊") || strings.Contains(output, "🔴") {
+		t.Fatalf("non-TTY output should not contain emoji: %q", output)
+	}
+	if !strings.Contains(output, "Total Findings: 5 (7 raw)") {
+		t.Fatalf("expected raw total note, got: %s", output)
+	}
+}
+
 func TestTableWriter_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	report := &engine.Report{}
