@@ -58,7 +58,7 @@ go tool cover -func=coverage.out | tail -n 1
 go tool cover -html=coverage.out
 ```
 
-The v1 release line keeps the total coverage gate at 60%.
+The v1 release line keeps the total coverage gate at 80%.
 
 Run these for any change that touches scanner logic, config precedence, report output, CLI validation, or TUI rendering.
 
@@ -110,7 +110,7 @@ Fixtures live in `test/e2e/testdata/fixtures/`:
 3. Return a clear title, severity, category, resource, description, and remediation.
 4. Add unit tests with Kubernetes fake clients.
 5. Add or update E2E fixtures when API-server behavior matters.
-6. Update [SCANNERS.md](SCANNERS.md) and README scanner counts.
+6. Update the rule catalog in `pkg/scanner/engine/rules.go`, then run `go generate ./...` to refresh [SCANNERS.md](SCANNERS.md).
 7. Add a `CHANGELOG.md` entry when user-visible findings, severities, or output change.
 
 Every scanner implements:
@@ -124,7 +124,7 @@ type Scanner interface {
 }
 ```
 
-Scanners should be stateless and safe to run concurrently.
+Scanners should be stateless and safe to run concurrently. Use `engine.ContextScanner` only when a scanner needs scan options or the metadata client; the secrets scanner uses it so default scans can validate Secret references without requesting Secret data.
 
 ## Output and CLI Changes
 
@@ -135,6 +135,7 @@ For changes to flags, config, output formats, or exit behavior:
 - Keep config precedence as CLI flags > env vars > config file > defaults.
 - Update README, [ARCHITECTURE.md](ARCHITECTURE.md), and [RELEASE.md](../RELEASE.md) if release behavior changes.
 - Preserve backwards-compatible values unless a breaking change is intentional and documented.
+- For suppressions, keep malformed and expired entries fail-closed and preserve suppressed findings in JSON/SARIF for auditability.
 
 ## Packaging Checks
 
@@ -164,6 +165,7 @@ The tape runs [docs/demo/tui_demo.go](demo/tui_demo.go) and writes [docs/assets/
 
 - `ci.yml`: unit/race tests, coverage gate, lint, security checks, and build matrix.
 - `e2e.yml`: kind-based E2E tests.
+- `scorecard.yml`: OpenSSF Scorecard with SARIF upload.
 - `release-dry-run.yml`: GoReleaser, Docker, SBOM, and Helm snapshot validation.
 - `release.yml`: tag-triggered publishing for GitHub releases, GHCR images, Helm OCI chart, signatures, attestations, and Homebrew cask.
 
@@ -173,5 +175,6 @@ The tape runs [docs/demo/tui_demo.go](demo/tui_demo.go) and writes [docs/assets/
 - Prefer structured APIs over string parsing.
 - Keep scanner implementations focused and testable.
 - Avoid logging or outputting secret values.
+- Do not read Kubernetes Secret data unless a feature is explicitly opt-in and documented in [THREAT_MODEL.md](THREAT_MODEL.md).
 - Use `kubernetes.Interface` rather than concrete clientsets.
 - Keep docs and tests in the same PR as user-visible behavior changes.

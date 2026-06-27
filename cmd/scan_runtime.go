@@ -17,6 +17,8 @@ type scanRuntime struct {
 	engine    *engine.Engine
 }
 
+var prepareScanRuntimeFunc = prepareScanRuntime
+
 func prepareScanRuntime(cmd *cobra.Command, applyOverrides func(changedFlags, *config.Config), validate func(*config.Config) error) (*scanRuntime, error) {
 	cfg := config.Load()
 	applyOverrides(cmd.Flags(), cfg)
@@ -37,8 +39,16 @@ func prepareScanRuntime(cmd *cobra.Command, applyOverrides func(changedFlags, *c
 }
 
 func (r *scanRuntime) run(ctx context.Context) (*engine.Report, error) {
-	if len(r.cfg.Scanners) > 0 {
-		return r.engine.Run(ctx, r.k8sClient.Clientset, r.cfg.Namespace, r.cfg.Scanners)
+	scanCtx := engine.ScanContext{
+		Client:         r.k8sClient.Clientset,
+		MetadataClient: r.k8sClient.MetadataClient,
+		Namespace:      r.cfg.Namespace,
+		Options: engine.ScannerOptions{
+			ReadSecretData: r.cfg.ReadSecretData,
+		},
 	}
-	return r.engine.RunAll(ctx, r.k8sClient.Clientset, r.cfg.Namespace)
+	if len(r.cfg.Scanners) > 0 {
+		return r.engine.RunWithContext(ctx, scanCtx, r.cfg.Scanners)
+	}
+	return r.engine.RunAllWithContext(ctx, scanCtx)
 }

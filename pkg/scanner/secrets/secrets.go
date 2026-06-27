@@ -7,10 +7,13 @@ import (
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 )
 
 const defaultSecretVolumeMode int32 = 0o644
+
+var secretGVR = schema.GroupVersionResource{Version: "v1", Resource: "secrets"}
 
 // Scanner checks for secret exposure and misconfigurations.
 type Scanner struct{}
@@ -24,7 +27,16 @@ func (s *Scanner) Description() string {
 }
 
 func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*engine.ScanResult, error) {
+	return s.ScanWithContext(ctx, engine.ScanContext{
+		Client:    client,
+		Namespace: namespace,
+	})
+}
+
+func (s *Scanner) ScanWithContext(ctx context.Context, scanCtx engine.ScanContext) (*engine.ScanResult, error) {
 	var findings []engine.Finding
+	client := scanCtx.Client
+	namespace := scanCtx.Namespace
 
 	// List pods
 	var pods *corev1.PodList
@@ -38,22 +50,9 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	// List secrets for reference checking
-	var secretsList *corev1.SecretList
-	if namespace != "" {
-		secretsList, err = client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
-	} else {
-		secretsList, err = client.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
-	}
+	inventory, err := loadSecretInventory(ctx, scanCtx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %w", err)
-	}
-
-	// Build secret existence map
-	existingSecrets := make(map[string]bool)
-	for i := range secretsList.Items {
-		secret := &secretsList.Items[i]
-		existingSecrets[fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)] = true
+		return nil, err
 	}
 
 	for i := range pods.Items {
@@ -82,7 +81,7 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 
 					// Check if referenced secret exists
 					secretKey := fmt.Sprintf("%s/%s", pod.Namespace, env.ValueFrom.SecretKeyRef.Name)
-					if !existingSecrets[secretKey] {
+					if inventory.checked && !inventory.exists[secretKey] {
 						if !isOptional(env.ValueFrom.SecretKeyRef.Optional) {
 							findings = append(findings, engine.Finding{
 								ID:          fmt.Sprintf("SEC-002-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, env.ValueFrom.SecretKeyRef.Name),
@@ -114,7 +113,7 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 					})
 
 					secretKey := fmt.Sprintf("%s/%s", pod.Namespace, envFrom.SecretRef.Name)
-					if envFrom.SecretRef.Name != "" && !existingSecrets[secretKey] && !isOptional(envFrom.SecretRef.Optional) {
+					if inventory.checked && envFrom.SecretRef.Name != "" && !inventory.exists[secretKey] && !isOptional(envFrom.SecretRef.Optional) {
 						findings = append(findings, missingSecretFinding(
 							res,
 							fmt.Sprintf("%s/%s/envFrom/%s", pod.Name, c.Name, envFrom.SecretRef.Name),
@@ -137,7 +136,7 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 				}
 
 				secretKey := fmt.Sprintf("%s/%s", pod.Namespace, vol.Secret.SecretName)
-				if vol.Secret.SecretName != "" && !existingSecrets[secretKey] && !isOptional(vol.Secret.Optional) {
+				if inventory.checked && vol.Secret.SecretName != "" && !inventory.exists[secretKey] && !isOptional(vol.Secret.Optional) {
 					findings = append(findings, missingSecretFinding(
 						res,
 						fmt.Sprintf("%s/volume/%s", pod.Name, vol.Name),
@@ -186,24 +185,24 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		// (already covered by workload scanner, intentionally no-op here)
 	}
 
-	// Check for secrets with suspicious names that might contain credentials
-	for i := range secretsList.Items {
-		secret := &secretsList.Items[i]
-		if secret.Type == corev1.SecretTypeOpaque {
-			res := engine.Resource{Kind: "Secret", Name: secret.Name, Namespace: secret.Namespace}
+	if scanCtx.Options.ReadSecretData {
+		for i := range inventory.full.Items {
+			secret := &inventory.full.Items[i]
+			if secret.Type == corev1.SecretTypeOpaque {
+				res := engine.Resource{Kind: "Secret", Name: secret.Name, Namespace: secret.Namespace}
 
-			// Check for empty secrets
-			if len(secret.Data) == 0 && len(secret.StringData) == 0 {
-				findings = append(findings, engine.Finding{
-					ID:          fmt.Sprintf("SEC-010-%s/%s", secret.Namespace, secret.Name),
-					CheckID:     "SEC-010",
-					Title:       fmt.Sprintf("Empty secret: %s", secret.Name),
-					Description: "Secret exists but has no data. This may indicate a misconfiguration.",
-					Severity:    engine.SeverityInfo,
-					Category:    engine.CategorySecrets,
-					Resource:    res,
-					Remediation: "Verify the secret contains the intended data or remove it if unused.",
-				})
+				if len(secret.Data) == 0 && len(secret.StringData) == 0 {
+					findings = append(findings, engine.Finding{
+						ID:          fmt.Sprintf("SEC-010-%s/%s", secret.Namespace, secret.Name),
+						CheckID:     "SEC-010",
+						Title:       fmt.Sprintf("Empty secret: %s", secret.Name),
+						Description: "Secret exists but has no data. This may indicate a misconfiguration.",
+						Severity:    engine.SeverityInfo,
+						Category:    engine.CategorySecrets,
+						Resource:    res,
+						Remediation: "Verify the secret contains the intended data or remove it if unused.",
+					})
+				}
 			}
 		}
 	}
@@ -212,6 +211,63 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		Scanner:  s.Name(),
 		Findings: findings,
 	}, nil
+}
+
+type secretInventory struct {
+	exists  map[string]bool
+	checked bool
+	full    *corev1.SecretList
+}
+
+func loadSecretInventory(ctx context.Context, scanCtx engine.ScanContext) (secretInventory, error) {
+	inventory := secretInventory{exists: make(map[string]bool)}
+	namespace := scanCtx.Namespace
+
+	if scanCtx.Options.ReadSecretData {
+		var (
+			secretsList *corev1.SecretList
+			err         error
+		)
+		if namespace != "" {
+			secretsList, err = scanCtx.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+		} else {
+			secretsList, err = scanCtx.Client.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
+		}
+		if err != nil {
+			return inventory, fmt.Errorf("failed to list secrets with data: %w", err)
+		}
+		inventory.checked = true
+		inventory.full = secretsList
+		for i := range secretsList.Items {
+			secret := &secretsList.Items[i]
+			inventory.exists[fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)] = true
+		}
+		return inventory, nil
+	}
+
+	if scanCtx.MetadataClient == nil {
+		return inventory, nil
+	}
+
+	secretResource := scanCtx.MetadataClient.Resource(secretGVR)
+	var (
+		secretsList *metav1.PartialObjectMetadataList
+		err         error
+	)
+	if namespace != "" {
+		secretsList, err = secretResource.Namespace(namespace).List(ctx, metav1.ListOptions{})
+	} else {
+		secretsList, err = secretResource.List(ctx, metav1.ListOptions{})
+	}
+	if err != nil {
+		return inventory, fmt.Errorf("failed to list secret metadata: %w", err)
+	}
+	inventory.checked = true
+	for i := range secretsList.Items {
+		secret := &secretsList.Items[i]
+		inventory.exists[fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)] = true
+	}
+	return inventory, nil
 }
 
 type secretVolumeRef struct {

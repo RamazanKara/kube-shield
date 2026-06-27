@@ -46,6 +46,9 @@ func TestNewClient(t *testing.T) {
 	if client.Clientset == nil {
 		t.Error("expected non-nil Clientset")
 	}
+	if client.MetadataClient == nil {
+		t.Error("expected non-nil MetadataClient")
+	}
 	if client.Context != "test-context" {
 		t.Errorf("expected context 'test-context', got %q", client.Context)
 	}

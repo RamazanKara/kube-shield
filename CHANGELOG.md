@@ -4,6 +4,13 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+## v1.0.3 - 2026-06-27
+
+- Adds rule catalog metadata, generated scanner docs, and `kube-shield rules list/show` for auditable finding rationale, confidence, data access, standards, and references.
+- Adds deterministic finding fingerprints and expiring suppressions with JSON/SARIF audit output.
+- Hardens secret handling so default secret scans use metadata-only Secret inventory; `SEC-010` now requires explicit `--read-secret-data`.
+- Raises CI coverage gating to 80%, adds Dependabot and OpenSSF Scorecard, and pins GitHub Actions to immutable SHAs where practical.
+- Adds a threat model covering Kubernetes API access, Secret handling, AI data egress, suppressions, release integrity, and non-goals.
 - Removes overclaimed graph/remediation surfaces, adds de-duplicated scoring for known CIS/core overlaps, and pins Go to the patched 1.25.11 toolchain.
 - Refines README, support, security, contributor, release, architecture, scanner, and development docs for first-time readers and maintainers.
 - Adds a reproducible README TUI demo animation and documents how to regenerate it.

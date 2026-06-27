@@ -37,6 +37,12 @@ func applyScanFlagOverrides(cmdFlags changedFlags, cfg *config.Config) {
 	if cmdFlags.Changed("exit-code") {
 		cfg.ExitCode = exitCode
 	}
+	if cmdFlags.Changed("read-secret-data") {
+		cfg.ReadSecretData = readSecretData
+	}
+	if cmdFlags.Changed("suppressions") {
+		cfg.Suppressions = strings.TrimSpace(suppressionsPath)
+	}
 	if cmdFlags.Changed("category") {
 		cfg.Categories = normalizeList(categories)
 	}
@@ -110,6 +116,7 @@ func normalizeConfig(cfg *config.Config) {
 	cfg.Severity = strings.ToLower(strings.TrimSpace(cfg.Severity))
 	cfg.Scanners = normalizeList(cfg.Scanners)
 	cfg.Categories = normalizeList(cfg.Categories)
+	cfg.Suppressions = strings.TrimSpace(cfg.Suppressions)
 	cfg.AI.Provider = strings.ToLower(strings.TrimSpace(cfg.AI.Provider))
 }
 

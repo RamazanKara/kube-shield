@@ -12,15 +12,18 @@ import (
 	"github.com/RamazanKara/kube-shield/pkg/logging"
 	"github.com/RamazanKara/kube-shield/pkg/report"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
+	"github.com/RamazanKara/kube-shield/pkg/suppressions"
 	"github.com/spf13/cobra"
 )
 
 var (
-	scanners   []string
-	severity   string
-	timeout    time.Duration
-	exitCode   bool
-	categories []string
+	scanners         []string
+	severity         string
+	timeout          time.Duration
+	exitCode         bool
+	readSecretData   bool
+	suppressionsPath string
+	categories       []string
 )
 
 var scanCmd = &cobra.Command{
@@ -60,13 +63,15 @@ func init() {
 	scanCmd.Flags().StringVar(&severity, "severity", "low", "minimum severity to report (critical,high,medium,low,info)")
 	scanCmd.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "scan timeout")
 	scanCmd.Flags().BoolVar(&exitCode, "exit-code", false, "exit with non-zero code if findings match severity threshold")
+	scanCmd.Flags().BoolVar(&readSecretData, "read-secret-data", false, "allow checks that read Kubernetes Secret data")
+	scanCmd.Flags().StringVar(&suppressionsPath, "suppressions", "", "path to finding suppressions YAML file")
 	scanCmd.Flags().StringSliceVar(&categories, "category", nil, "filter by category (workload,cis,rbac,netpol,secrets)")
 
 	rootCmd.AddCommand(scanCmd)
 }
 
 func runScan(cmd *cobra.Command, args []string) error {
-	runtime, err := prepareScanRuntime(cmd, applyScanFlagOverrides, validateScanConfig)
+	runtime, err := prepareScanRuntimeFunc(cmd, applyScanFlagOverrides, validateScanConfig)
 	if err != nil {
 		return err
 	}
@@ -114,6 +119,14 @@ func runScan(cmd *cobra.Command, args []string) error {
 
 	// Recalculate summary after filtering
 	result.Summary = engine.SummarizeFindings(result.Findings)
+
+	if cfg.Suppressions != "" {
+		loadedSuppressions, err := suppressions.LoadFile(cfg.Suppressions, time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to load suppressions: %w", err)
+		}
+		suppressions.ApplyReport(result, loadedSuppressions)
+	}
 
 	// Output results
 	switch cfg.Output {

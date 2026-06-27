@@ -90,21 +90,33 @@ func TestApplyScanFlagOverridesOnlyUsesChangedFlags(t *testing.T) {
 
 	oldSeverity := severity
 	oldScanners := scanners
+	oldReadSecretData := readSecretData
+	oldSuppressionsPath := suppressionsPath
 	t.Cleanup(func() {
 		severity = oldSeverity
 		scanners = oldScanners
+		readSecretData = oldReadSecretData
+		suppressionsPath = oldSuppressionsPath
 	})
 
 	severity = "critical"
 	scanners = []string{"rbac"}
+	readSecretData = true
+	suppressionsPath = "suppressions.yaml"
 
-	applyScanFlagOverrides(fakeChangedFlags{"severity": true}, cfg)
+	applyScanFlagOverrides(fakeChangedFlags{"severity": true, "read-secret-data": true, "suppressions": true}, cfg)
 
 	if cfg.Severity != "critical" {
 		t.Fatalf("expected changed severity to override config, got %q", cfg.Severity)
 	}
 	if got := strings.Join(cfg.Scanners, ","); got != "workload" {
 		t.Fatalf("unchanged scanners should not override config, got %s", got)
+	}
+	if !cfg.ReadSecretData {
+		t.Fatal("expected read-secret-data flag to override config")
+	}
+	if cfg.Suppressions != "suppressions.yaml" {
+		t.Fatalf("expected suppressions path override, got %q", cfg.Suppressions)
 	}
 }
 

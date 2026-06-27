@@ -145,6 +145,21 @@ func TestTableWriterPlainOutputForNonTTY(t *testing.T) {
 	}
 }
 
+func TestTableWriterShowsSuppressedTotal(t *testing.T) {
+	var buf bytes.Buffer
+	report := sampleReport()
+	report.Summary.SuppressedTotal = 2
+
+	err := TableWriter(&buf, report)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "Suppressed Findings: 2") {
+		t.Fatalf("expected suppressed count in table output, got: %s", buf.String())
+	}
+}
+
 func TestTableWriter_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	report := &engine.Report{}
@@ -258,6 +273,46 @@ func TestSARIFWriter(t *testing.T) {
 	}
 }
 
+func TestSARIFWriterIncludesSuppressedResults(t *testing.T) {
+	var buf bytes.Buffer
+	report := sampleReport()
+	suppressed := engine.EnrichFinding(report.Findings[0])
+	suppressed.Suppression = &engine.SuppressionInfo{
+		ID:      "accepted-risk",
+		Reason:  "temporary exception",
+		Expires: "2099-01-01",
+	}
+	report.Findings = report.Findings[1:]
+	report.SuppressedFindings = []engine.Finding{suppressed}
+	report.Summary = engine.SummarizeFindings(report.Findings)
+	report.Summary.SuppressedTotal = 1
+
+	if err := SARIFWriter(&buf, report); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var sarif map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &sarif); err != nil {
+		t.Fatalf("SARIF output is not valid JSON: %v", err)
+	}
+	runs := sarif["runs"].([]interface{})
+	run := runs[0].(map[string]interface{})
+	results := run["results"].([]interface{})
+	if len(results) != 5 {
+		t.Fatalf("expected active plus suppressed SARIF results, got %d", len(results))
+	}
+	foundSuppressed := false
+	for _, raw := range results {
+		result := raw.(map[string]interface{})
+		if _, ok := result["suppressions"]; ok {
+			foundSuppressed = true
+		}
+	}
+	if !foundSuppressed {
+		t.Fatal("expected SARIF suppressed result metadata")
+	}
+}
+
 func TestSARIFWriter_UsesExistingScannerReference(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -277,7 +332,7 @@ func TestSARIFWriter_UsesExistingScannerReference(t *testing.T) {
 	rules := driver["rules"].([]interface{})
 	rule := rules[0].(map[string]interface{})
 
-	if got := rule["helpUri"]; got != "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md" {
+	if got := rule["helpUri"]; got != "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md#wl-010" {
 		t.Fatalf("unexpected helpUri: %v", got)
 	}
 }

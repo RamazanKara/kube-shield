@@ -37,6 +37,7 @@ kube-shield/
 │   │   └── secrets/              # Secret exposure/reference checks
 │   ├── tui/                      # Interactive dashboard
 │   └── version/                  # Build metadata injected by ldflags
+├── pkg/suppressions/             # Expiring finding suppressions
 ├── deploy/helm/                  # CronJob Helm chart
 ├── test/e2e/                     # kind-based E2E suite
 └── .github/workflows/            # CI, E2E, dry-run, release workflows
@@ -48,8 +49,9 @@ kube-shield/
 graph TD
     User["User / CI"] --> CLI["cmd/ Cobra CLI"]
     CLI --> Config["pkg/config + Viper"]
-    CLI --> K8s["pkg/k8s client"]
+    CLI --> K8s["pkg/k8s typed + metadata clients"]
     CLI --> Engine["pkg/scanner/engine"]
+    Engine --> Rules["rule catalog"]
     Engine --> Registry["pkg/scanner registry"]
     Registry --> Workload["workload"]
     Registry --> CIS["cis"]
@@ -68,13 +70,14 @@ graph TD
 2. Viper loads environment variables and config files.
 3. Command-specific flag overrides are applied so precedence is CLI flags > env vars > config file > defaults.
 4. CLI values are validated before connecting to Kubernetes.
-5. `pkg/k8s.NewClient` builds a client from in-cluster config, `KUBECONFIG`, or `~/.kube/config`.
+5. `pkg/k8s.NewClient` builds typed and metadata clients from in-cluster config, `KUBECONFIG`, or `~/.kube/config`.
 6. `scanner.DefaultRegistry()` registers the five built-in scanners.
-7. `engine.Engine` runs selected scanners concurrently with a bounded semaphore.
-8. The engine builds an `engine.Report` and returns partial-result errors if any scanner fails.
+7. `engine.Engine` runs selected scanners concurrently with a bounded semaphore and passes `engine.ScanContext` to scanners that need metadata clients or scan options.
+8. The engine enriches findings with rule catalog metadata, stable fingerprints, and an `engine.Report`; it returns partial-result errors if any scanner fails.
 9. The command filters findings by severity/category and recomputes the summary.
-10. `pkg/report` writes table, JSON, or SARIF output.
-11. Optional AI analysis explains high-severity findings after report output.
+10. Optional suppressions remove approved findings from exit-code decisions while preserving them in JSON/SARIF audit output.
+11. `pkg/report` writes table, JSON, or SARIF output.
+12. Optional AI analysis explains high-severity findings after report output.
 
 ## Scanner Contract
 
@@ -89,6 +92,16 @@ type Scanner interface {
 
 Scanners receive a `kubernetes.Interface` so unit tests can use fake clients. Scanner implementations should be stateless because the engine runs them concurrently.
 
+Scanners that need metadata clients or scan options can also implement:
+
+```go
+type ContextScanner interface {
+    ScanWithContext(ctx context.Context, scanCtx ScanContext) (*ScanResult, error)
+}
+```
+
+The secrets scanner uses this path so default scans can list Secret metadata without requesting Secret data. Secret data access is opt-in through `ReadSecretData`.
+
 Scanners should return findings, not write output. Filtering, summaries, table/JSON/SARIF formatting, and exit-code behavior belong outside scanner packages.
 
 ## Finding Model
@@ -100,9 +113,10 @@ Each finding contains:
 - Severity and category.
 - Kubernetes resource identity.
 - Remediation guidance.
-- Optional CIS reference and external references.
+- Rule catalog metadata such as fingerprint, confidence, standards, and references.
+- Optional CIS reference and suppression metadata.
 
-The report summary includes total count, counts by severity/category, a score from 0 to 100, and a letter grade.
+The report summary includes total count, counts by severity/category, a score from 0 to 100, a letter grade, and suppressed-finding counts when suppressions apply.
 Known equivalent CIS/core findings are de-duplicated for summary counts and scoring; raw findings remain in the report for compliance traceability.
 
 ## Error Handling

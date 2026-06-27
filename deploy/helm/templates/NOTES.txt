@@ -13,4 +13,8 @@ To inspect scan output:
 
   kubectl logs "job/$JOB"
 
+Secret checks use Kubernetes Secret metadata by default. The chart grants only list on core
+secrets so missing references can be validated, and kube-shield does not request full Secret
+objects unless readSecretData=true is set for the SEC-010 empty-secret check.
+
 For more information, visit: https://github.com/RamazanKara/kube-shield

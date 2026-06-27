@@ -33,7 +33,7 @@ Public release tags are immutable. If a release is already public, ship follow-u
 Choose the next version:
 
 ```shell
-VERSION=1.0.2
+VERSION=1.0.3
 TAG="v${VERSION}"
 ```
 
@@ -41,6 +41,7 @@ Update versioned files before tagging:
 
 - `deploy/helm/Chart.yaml`: `version` and `appVersion`.
 - `CHANGELOG.md`: move user-facing changes from `Unreleased` under the new version and date.
+- Generated scanner docs: run `go generate ./...` after any rule catalog changes.
 - README install, Docker, Helm, and verification examples when the latest published version changes.
 - Any scanner counts or check severities if scanner behavior changed.
 
@@ -65,6 +66,7 @@ go vet ./...
 golangci-lint run ./...
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
+go generate ./...
 go test -race -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out | tail -n 1
 goreleaser check
@@ -98,10 +100,10 @@ gh run watch <run-id> --repo RamazanKara/kube-shield --exit-status
 
 ## Post-release Verification
 
-Replace `1.0.2` with the published version:
+Replace `1.0.3` with the published version:
 
 ```shell
-VERSION=1.0.2
+VERSION=1.0.3
 TAG="v${VERSION}"
 
 gh release view "${TAG}" --repo RamazanKara/kube-shield

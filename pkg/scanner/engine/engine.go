@@ -2,6 +2,8 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
 )
 
 // Severity represents the severity level of a finding.
@@ -77,16 +80,20 @@ const (
 
 // Finding represents a single security finding.
 type Finding struct {
-	ID          string   `json:"id"`
-	CheckID     string   `json:"checkId"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Severity    Severity `json:"severity"`
-	Category    Category `json:"category"`
-	Resource    Resource `json:"resource"`
-	Remediation string   `json:"remediation"`
-	CISRef      string   `json:"cisRef,omitempty"`
-	References  []string `json:"references,omitempty"`
+	ID          string            `json:"id"`
+	CheckID     string            `json:"checkId"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	Severity    Severity          `json:"severity"`
+	Category    Category          `json:"category"`
+	Resource    Resource          `json:"resource"`
+	Remediation string            `json:"remediation"`
+	CISRef      string            `json:"cisRef,omitempty"`
+	References  []string          `json:"references,omitempty"`
+	Fingerprint string            `json:"fingerprint,omitempty"`
+	Confidence  string            `json:"confidence,omitempty"`
+	Standards   []StandardMapping `json:"standards,omitempty"`
+	Suppression *SuppressionInfo  `json:"suppression,omitempty"`
 }
 
 // Resource identifies a Kubernetes resource.
@@ -118,6 +125,31 @@ type Scanner interface {
 	Category() Category
 	Description() string
 	Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*ScanResult, error)
+}
+
+// ScannerOptions controls scanner behavior that has security or compatibility tradeoffs.
+type ScannerOptions struct {
+	ReadSecretData bool
+}
+
+// ScanContext carries all clients and options needed by scanners that require richer context.
+type ScanContext struct {
+	Client         kubernetes.Interface
+	MetadataClient metadata.Interface
+	Namespace      string
+	Options        ScannerOptions
+}
+
+// ContextScanner is implemented by scanners that need metadata clients or scan options.
+type ContextScanner interface {
+	ScanWithContext(ctx context.Context, scanCtx ScanContext) (*ScanResult, error)
+}
+
+// SuppressionInfo records why a finding was suppressed in machine-readable output.
+type SuppressionInfo struct {
+	ID      string `json:"id"`
+	Reason  string `json:"reason"`
+	Expires string `json:"expires"`
 }
 
 // Registry holds all registered scanners.
@@ -181,6 +213,11 @@ func NewEngine(registry *Registry, concurrency int) *Engine {
 
 // Run executes all specified scanners in parallel.
 func (e *Engine) Run(ctx context.Context, client kubernetes.Interface, namespace string, scannerNames []string) (*Report, error) {
+	return e.RunWithContext(ctx, ScanContext{Client: client, Namespace: namespace}, scannerNames)
+}
+
+// RunWithContext executes all specified scanners in parallel with full scan context.
+func (e *Engine) RunWithContext(ctx context.Context, scanCtx ScanContext, scannerNames []string) (*Report, error) {
 	scanners := make([]Scanner, 0, len(scannerNames))
 	for _, name := range scannerNames {
 		s, ok := e.registry.Get(name)
@@ -209,7 +246,15 @@ func (e *Engine) Run(ctx context.Context, client kubernetes.Interface, namespace
 			defer func() { <-sem }()
 
 			start := time.Now()
-			result, err := scanner.Scan(ctx, client, namespace)
+			var (
+				result *ScanResult
+				err    error
+			)
+			if contextScanner, ok := scanner.(ContextScanner); ok {
+				result, err = contextScanner.ScanWithContext(ctx, scanCtx)
+			} else {
+				result, err = scanner.Scan(ctx, scanCtx.Client, scanCtx.Namespace)
+			}
 			if err != nil {
 				results[idx] = &ScanResult{
 					Scanner:   scanner.Name(),
@@ -239,25 +284,32 @@ func (e *Engine) RunAll(ctx context.Context, client kubernetes.Interface, namesp
 	return e.Run(ctx, client, namespace, nil)
 }
 
+// RunAllWithContext executes all registered scanners with full scan context.
+func (e *Engine) RunAllWithContext(ctx context.Context, scanCtx ScanContext) (*Report, error) {
+	return e.RunWithContext(ctx, scanCtx, nil)
+}
+
 // Report aggregates results from all scanners.
 type Report struct {
-	Findings    []Finding     `json:"findings"`
-	Results     []*ScanResult `json:"results"`
-	Summary     Summary       `json:"summary"`
-	GeneratedAt time.Time     `json:"generatedAt"`
-	ClusterInfo string        `json:"clusterInfo,omitempty"`
+	Findings           []Finding     `json:"findings"`
+	SuppressedFindings []Finding     `json:"suppressedFindings,omitempty"`
+	Results            []*ScanResult `json:"results"`
+	Summary            Summary       `json:"summary"`
+	GeneratedAt        time.Time     `json:"generatedAt"`
+	ClusterInfo        string        `json:"clusterInfo,omitempty"`
 }
 
 // Summary provides an overview of findings.
 type Summary struct {
-	Total         int              `json:"total"`
-	BySeverity    map[Severity]int `json:"bySeverity"`
-	ByCategory    map[Category]int `json:"byCategory"`
-	Score         float64          `json:"score"`
-	Grade         string           `json:"grade"`
-	RawTotal      int              `json:"rawTotal,omitempty"`
-	RawBySeverity map[Severity]int `json:"rawBySeverity,omitempty"`
-	RawByCategory map[Category]int `json:"rawByCategory,omitempty"`
+	Total           int              `json:"total"`
+	BySeverity      map[Severity]int `json:"bySeverity"`
+	ByCategory      map[Category]int `json:"byCategory"`
+	Score           float64          `json:"score"`
+	Grade           string           `json:"grade"`
+	RawTotal        int              `json:"rawTotal,omitempty"`
+	RawBySeverity   map[Severity]int `json:"rawBySeverity,omitempty"`
+	RawByCategory   map[Category]int `json:"rawByCategory,omitempty"`
+	SuppressedTotal int              `json:"suppressedTotal,omitempty"`
 }
 
 func buildReport(results []*ScanResult) *Report {
@@ -270,12 +322,56 @@ func buildReport(results []*ScanResult) *Report {
 		if r == nil || r.Error != nil {
 			continue
 		}
-		report.Findings = append(report.Findings, r.Findings...)
+		report.Findings = append(report.Findings, EnrichFindings(r.Findings)...)
 	}
 
 	report.Summary = SummarizeFindings(report.Findings)
 
 	return report
+}
+
+// EnrichFindings applies rule metadata and stable fingerprints to findings.
+func EnrichFindings(findings []Finding) []Finding {
+	enriched := make([]Finding, len(findings))
+	for i, finding := range findings {
+		enriched[i] = EnrichFinding(finding)
+	}
+	return enriched
+}
+
+// EnrichFinding applies rule metadata and a stable fingerprint to one finding.
+func EnrichFinding(f Finding) Finding {
+	if rule, ok := RuleByID(f.CheckID); ok {
+		if f.Confidence == "" {
+			f.Confidence = string(rule.Confidence)
+		}
+		if len(f.References) == 0 {
+			f.References = append([]string(nil), rule.References...)
+		}
+		if len(f.Standards) == 0 {
+			f.Standards = append([]StandardMapping(nil), rule.Standards...)
+		}
+		if f.Remediation == "" {
+			f.Remediation = rule.Remediation
+		}
+	}
+	if f.Fingerprint == "" {
+		f.Fingerprint = FindingFingerprint(f)
+	}
+	return f
+}
+
+// FindingFingerprint returns a deterministic fingerprint for suppressions and baselines.
+func FindingFingerprint(f Finding) string {
+	parts := []string{
+		f.CheckID,
+		f.Resource.Kind,
+		f.Resource.Namespace,
+		f.Resource.Name,
+		f.Title,
+	}
+	sum := sha256.Sum256([]byte(strings.Join(parts, "\x00")))
+	return "ks-" + hex.EncodeToString(sum[:])[:20]
 }
 
 // SummarizeFindings builds de-duplicated severity/category counts and score metadata.

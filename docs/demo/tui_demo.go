@@ -57,14 +57,14 @@ func main() {
 		},
 		{
 			ID:          "demo-cis-automount",
-			CheckID:     "CIS-5.1.5",
+			CheckID:     "CIS-4.1.6",
 			Title:       "Service account token automount is enabled",
 			Description: "The default service account can mount API credentials into pods.",
 			Severity:    engine.SeverityMedium,
 			Category:    engine.CategoryCIS,
 			Resource:    engine.Resource{Namespace: "payments", Kind: "ServiceAccount", Name: "default"},
 			Remediation: "Set automountServiceAccountToken: false and create dedicated service accounts for workloads.",
-			CISRef:      "CIS Kubernetes Benchmark v1.12 5.1.5",
+			CISRef:      "CIS Kubernetes Benchmark v1.12 4.1.6",
 		},
 		{
 			ID:          "demo-workload-root",
@@ -95,7 +95,7 @@ func main() {
 		ClusterInfo: "kind-kube-shield-demo",
 	}
 
-	model := tui.NewModel(report, "kind-kube-shield-demo (https://127.0.0.1:6443)", nil, nil, "", nil, nil)
+	model := tui.NewModel(report, "kind-kube-shield-demo (https://127.0.0.1:6443)", nil, nil, nil, "", nil, engine.ScannerOptions{}, nil)
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		panic(err)

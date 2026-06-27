@@ -33,8 +33,18 @@ func TestBuiltInsAreValid(t *testing.T) {
 		if def.SeverityRange == "" {
 			t.Fatalf("scanner %q has empty severity range", def.Name)
 		}
-		if def.New == nil || def.New().Name() != def.Name {
+		if def.New == nil {
+			t.Fatalf("scanner %q has nil factory", def.Name)
+		}
+		instance := def.New()
+		if instance.Name() != def.Name {
 			t.Fatalf("scanner %q factory does not return matching scanner", def.Name)
+		}
+		if instance.Category() != def.Category {
+			t.Fatalf("scanner %q returned category %q, want %q", def.Name, instance.Category(), def.Category)
+		}
+		if instance.Description() == "" {
+			t.Fatalf("scanner %q returned empty description", def.Name)
 		}
 	}
 
@@ -74,7 +84,7 @@ func TestCatalogMatchesScannerDocs(t *testing.T) {
 
 func readCatalogDoc(t *testing.T, path string) string {
 	t.Helper()
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- test reads fixed repository documentation paths.
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
 	}

@@ -37,6 +37,7 @@ Protect `main` with:
   - CI
   - E2E Tests
   - Release Dry Run
+  - Scorecard
 - Branches must be up to date before merge.
 - Block force pushes and branch deletion.
 - Restrict bypass permissions to maintainers.
@@ -47,6 +48,7 @@ Protect `main` with:
 - Enable Dependabot security updates.
 - Enable Dependabot version updates from `.github/dependabot.yml`.
 - Enable secret scanning and push protection.
+- Confirm OpenSSF Scorecard SARIF uploads appear in GitHub code scanning.
 - Review CodeQL or equivalent static analysis if the project expands beyond Go.
 
 Private vulnerability reporting should be enabled before announcing new releases publicly.
@@ -85,8 +87,8 @@ For the latest release:
 
 - Review open Dependabot PRs weekly.
 - Run `govulncheck` after dependency updates.
-- Keep GitHub Actions pins current with maintained Node runtimes.
+- Keep pinned GitHub Actions SHAs current with maintained Node runtimes.
 - Confirm release tooling versions in `.github/scripts/install-release-tools.sh`.
 - Review README install commands after each release.
-- Keep [SCANNERS.md](SCANNERS.md) aligned with scanner code and tests.
+- Keep generated [SCANNERS.md](SCANNERS.md) aligned by updating the rule catalog and running `go generate ./...`.
 - Refresh release verification examples when the latest published version changes.

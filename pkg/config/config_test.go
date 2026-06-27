@@ -42,6 +42,8 @@ func TestLoad(t *testing.T) {
 	viper.Set("scanners", []string{"workload", "rbac"})
 	viper.Set("timeout", 10*time.Minute)
 	viper.Set("exit-code", true)
+	viper.Set("read-secret-data", true)
+	viper.Set("suppressions", "suppressions.yaml")
 	viper.Set("category", []string{"workload"})
 	defer viper.Reset()
 
@@ -85,6 +87,12 @@ func TestLoad(t *testing.T) {
 	}
 	if !cfg.ExitCode {
 		t.Error("expected exit-code true")
+	}
+	if !cfg.ReadSecretData {
+		t.Error("expected read-secret-data true")
+	}
+	if cfg.Suppressions != "suppressions.yaml" {
+		t.Errorf("expected suppressions path, got %q", cfg.Suppressions)
 	}
 	if len(cfg.Categories) != 1 || cfg.Categories[0] != "workload" {
 		t.Errorf("expected categories [workload], got %v", cfg.Categories)

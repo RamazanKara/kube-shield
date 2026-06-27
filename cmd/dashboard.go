@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/RamazanKara/kube-shield/pkg/ai"
+	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/RamazanKara/kube-shield/pkg/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -38,7 +39,7 @@ func init() {
 }
 
 func runDashboard(cmd *cobra.Command, args []string) error {
-	runtime, err := prepareScanRuntime(cmd, applyDashboardFlagOverrides, validateDashboardConfig)
+	runtime, err := prepareScanRuntimeFunc(cmd, applyDashboardFlagOverrides, validateDashboardConfig)
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,17 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	}
 
 	clusterInfo := fmt.Sprintf("%s (%s)", k8sClient.Context, k8sClient.ServerURL)
-	model := tui.NewModel(report, clusterInfo, aiProvider, k8sClient.Clientset, cfg.Namespace, cfg.Scanners, runtime.engine)
+	model := tui.NewModel(
+		report,
+		clusterInfo,
+		aiProvider,
+		k8sClient.Clientset,
+		k8sClient.MetadataClient,
+		cfg.Namespace,
+		cfg.Scanners,
+		engine.ScannerOptions{ReadSecretData: cfg.ReadSecretData},
+		runtime.engine,
+	)
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

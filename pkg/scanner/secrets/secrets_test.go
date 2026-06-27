@@ -7,10 +7,36 @@ import (
 	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/metadata"
+	metadatafake "k8s.io/client-go/metadata/fake"
 )
 
 func boolPtr(b bool) *bool { return &b }
+
+func secretMetadataClient(t *testing.T, secrets ...corev1.Secret) metadata.Interface {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	if err := metav1.AddMetaToScheme(scheme); err != nil {
+		t.Fatalf("add metadata scheme: %v", err)
+	}
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Version: "v1", Kind: "Secret"}, &metav1.PartialObjectMetadata{})
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{Version: "v1", Kind: "SecretList"}, &metav1.PartialObjectMetadataList{})
+
+	objects := make([]runtime.Object, 0, len(secrets))
+	for _, secret := range secrets {
+		objects = append(objects, &metav1.PartialObjectMetadata{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secret.Name,
+				Namespace: secret.Namespace,
+			},
+		})
+	}
+	return metadatafake.NewSimpleMetadataClient(scheme, objects...)
+}
 
 func TestScan_SecretAsEnvVar(t *testing.T) {
 	client := fake.NewSimpleClientset(
@@ -40,7 +66,10 @@ func TestScan_SecretAsEnvVar(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -83,7 +112,10 @@ func TestScan_MissingSecretReference(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -126,7 +158,10 @@ func TestScan_EnvFrom(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -162,7 +197,10 @@ func TestScan_MissingEnvFromSecretReference(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -211,7 +249,10 @@ func TestScan_SecretVolumePermissiveMode(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -261,7 +302,10 @@ func TestScan_SecretVolumeDefaultModeIsPermissive(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -296,7 +340,10 @@ func TestScan_MissingSecretVolumeReference(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t),
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -362,7 +409,7 @@ func TestScan_SecretMountedAtSensitivePath(t *testing.T) {
 	}
 }
 
-func TestScan_EmptySecret(t *testing.T) {
+func TestScan_EmptySecretDisabledByDefault(t *testing.T) {
 	client := fake.NewSimpleClientset(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "empty-secret", Namespace: "default"},
@@ -371,7 +418,41 @@ func TestScan_EmptySecret(t *testing.T) {
 	)
 
 	s := New()
-	result, err := s.Scan(context.Background(), client, "")
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client:         client,
+		MetadataClient: secretMetadataClient(t, corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "empty-secret", Namespace: "default"}}),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, f := range result.Findings {
+		if f.CheckID == "SEC-010" {
+			t.Fatal("SEC-010 should require explicit secret data access")
+		}
+	}
+	for _, action := range client.Actions() {
+		if action.GetResource().Resource == "secrets" {
+			t.Fatalf("default scan should not request secret data, got action %s on %s", action.GetVerb(), action.GetResource().Resource)
+		}
+	}
+}
+
+func TestScan_EmptySecretWithReadSecretData(t *testing.T) {
+	client := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "empty-secret", Namespace: "default"},
+			Type:       corev1.SecretTypeOpaque,
+		},
+	)
+
+	s := New()
+	result, err := s.ScanWithContext(context.Background(), engine.ScanContext{
+		Client: client,
+		Options: engine.ScannerOptions{
+			ReadSecretData: true,
+		},
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

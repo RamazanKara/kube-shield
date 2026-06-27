@@ -10,17 +10,19 @@ import (
 
 // Config holds all configuration for kube-shield.
 type Config struct {
-	Kubeconfig string        `yaml:"kubeconfig" mapstructure:"kubeconfig"`
-	Context    string        `yaml:"context" mapstructure:"context"`
-	Namespace  string        `yaml:"namespace" mapstructure:"namespace"`
-	Output     string        `yaml:"output" mapstructure:"output"`
-	Verbose    bool          `yaml:"verbose" mapstructure:"verbose"`
-	Scanners   []string      `yaml:"scanners" mapstructure:"scanners"`
-	Severity   string        `yaml:"severity" mapstructure:"severity"`
-	Timeout    time.Duration `yaml:"timeout" mapstructure:"timeout"`
-	ExitCode   bool          `yaml:"exitCode" mapstructure:"exit-code"`
-	Categories []string      `yaml:"categories" mapstructure:"categories"`
-	AI         AIConfig      `yaml:"ai" mapstructure:"ai"`
+	Kubeconfig     string        `yaml:"kubeconfig" mapstructure:"kubeconfig"`
+	Context        string        `yaml:"context" mapstructure:"context"`
+	Namespace      string        `yaml:"namespace" mapstructure:"namespace"`
+	Output         string        `yaml:"output" mapstructure:"output"`
+	Verbose        bool          `yaml:"verbose" mapstructure:"verbose"`
+	Scanners       []string      `yaml:"scanners" mapstructure:"scanners"`
+	Severity       string        `yaml:"severity" mapstructure:"severity"`
+	Timeout        time.Duration `yaml:"timeout" mapstructure:"timeout"`
+	ExitCode       bool          `yaml:"exit-code" mapstructure:"exit-code"`
+	ReadSecretData bool          `yaml:"read-secret-data" mapstructure:"read-secret-data"`
+	Suppressions   string        `yaml:"suppressions" mapstructure:"suppressions"`
+	Categories     []string      `yaml:"categories" mapstructure:"categories"`
+	AI             AIConfig      `yaml:"ai" mapstructure:"ai"`
 }
 
 // AIConfig holds AI provider configuration.
@@ -77,6 +79,12 @@ func Load() *Config {
 	}
 	if viper.IsSet("exit-code") {
 		cfg.ExitCode = viper.GetBool("exit-code")
+	}
+	if viper.IsSet("read-secret-data") {
+		cfg.ReadSecretData = viper.GetBool("read-secret-data")
+	}
+	if v := viper.GetString("suppressions"); v != "" {
+		cfg.Suppressions = v
 	}
 	if categories := normalizeStringSlice(viper.GetStringSlice("category")); len(categories) > 0 {
 		cfg.Categories = categories

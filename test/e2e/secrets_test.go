@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/RamazanKara/kube-shield/pkg/k8s"
+	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
 	"github.com/RamazanKara/kube-shield/pkg/scanner/secrets"
 )
 
@@ -21,7 +22,14 @@ func TestSecretsScanner(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	result, err := scanner.Scan(ctx, client.Clientset, namespace)
+	result, err := scanner.ScanWithContext(ctx, engine.ScanContext{
+		Client:         client.Clientset,
+		MetadataClient: client.MetadataClient,
+		Namespace:      namespace,
+		Options: engine.ScannerOptions{
+			ReadSecretData: true,
+		},
+	})
 	if err != nil {
 		t.Fatalf("secrets scan failed: %v", err)
 	}

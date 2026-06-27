@@ -14,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
 )
 
 // Tab represents a navigation tab.
@@ -95,10 +96,12 @@ type Model struct {
 	aiResult   string
 	aiLoading  bool
 	// For refresh support
-	k8sClient kubernetes.Interface
-	namespace string
-	scanners  []string
-	eng       *engine.Engine
+	k8sClient      kubernetes.Interface
+	metadataClient metadata.Interface
+	namespace      string
+	scanners       []string
+	scanOptions    engine.ScannerOptions
+	eng            *engine.Engine
 }
 
 // aiExplainMsg carries the result of an AI explanation.
@@ -114,7 +117,7 @@ type refreshMsg struct {
 }
 
 // NewModel creates a new TUI model.
-func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider, k8sClient kubernetes.Interface, ns string, scanners []string, eng *engine.Engine) Model {
+func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider, k8sClient kubernetes.Interface, metadataClient metadata.Interface, ns string, scanners []string, scanOptions engine.ScannerOptions, eng *engine.Engine) Model {
 	ti := textinput.New()
 	ti.Placeholder = "filter by name, namespace, severity..."
 	ti.CharLimit = 100
@@ -123,15 +126,17 @@ func NewModel(report *engine.Report, clusterInfo string, aiProvider ai.Provider,
 	copy(scannerNames, scanners)
 
 	return Model{
-		report:      report,
-		clusterInfo: clusterInfo,
-		activeTab:   TabDashboard,
-		filterInput: ti,
-		aiProvider:  aiProvider,
-		k8sClient:   k8sClient,
-		namespace:   ns,
-		scanners:    scannerNames,
-		eng:         eng,
+		report:         report,
+		clusterInfo:    clusterInfo,
+		activeTab:      TabDashboard,
+		filterInput:    ti,
+		aiProvider:     aiProvider,
+		k8sClient:      k8sClient,
+		metadataClient: metadataClient,
+		namespace:      ns,
+		scanners:       scannerNames,
+		scanOptions:    scanOptions,
+		eng:            eng,
 	}
 }
 
@@ -291,10 +296,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						report *engine.Report
 						err    error
 					)
+					scanCtx := engine.ScanContext{
+						Client:         m.k8sClient,
+						MetadataClient: m.metadataClient,
+						Namespace:      m.namespace,
+						Options:        m.scanOptions,
+					}
 					if len(m.scanners) > 0 {
-						report, err = m.eng.Run(ctx, m.k8sClient, m.namespace, m.scanners)
+						report, err = m.eng.RunWithContext(ctx, scanCtx, m.scanners)
 					} else {
-						report, err = m.eng.RunAll(ctx, m.k8sClient, m.namespace)
+						report, err = m.eng.RunAllWithContext(ctx, scanCtx)
 					}
 					return refreshMsg{report: report, err: err}
 				}

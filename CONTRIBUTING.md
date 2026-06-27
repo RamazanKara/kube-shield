@@ -51,6 +51,7 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
 go test -race -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out | tail -n 1
+go generate ./...
 ```
 
 For release-related changes, also run:
@@ -69,7 +70,7 @@ Keyless signing is validated in GitHub Actions where OIDC is available. Local sn
 - Keep changes focused and explain the user-visible behavior.
 - Add or update tests for scanner logic, report output, CLI validation, and config precedence.
 - Do not include real kubeconfig files, cluster names, tokens, API keys, or secret values.
-- For scanner changes, update `docs/SCANNERS.md` and README scanner counts.
+- For scanner changes, update the rule catalog, run `go generate ./...`, and update README scanner counts.
 - For public CLI, config, output, packaging, or release changes, update README and `RELEASE.md`.
 - For docs-only changes, still check links, command examples, and version references.
 
@@ -85,7 +86,7 @@ Reviewers should be able to answer three questions quickly:
 2. Return a stable `CheckID`, severity, category, affected resource, and remediation.
 3. Add unit tests with Kubernetes fake clients.
 4. Add or update E2E fixtures when the behavior should be validated against a real API server.
-5. Document the check in `docs/SCANNERS.md`.
+5. Add rule metadata in `pkg/scanner/engine/rules.go` and regenerate `docs/SCANNERS.md`.
 
 Prefer precise checks over broad heuristics. If a check has unavoidable edge cases, document the assumptions in the scanner reference and cover the intended behavior with tests.
 

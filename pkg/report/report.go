@@ -21,6 +21,9 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 		} else {
 			_, _ = fmt.Fprintln(w, "\nNo security findings detected. Your cluster looks good.")
 		}
+		if report.Summary.SuppressedTotal > 0 {
+			_, _ = fmt.Fprintf(w, "Suppressed Findings: %d\n", report.Summary.SuppressedTotal)
+		}
 		return nil
 	}
 
@@ -65,6 +68,9 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 	} else {
 		_, _ = fmt.Fprintf(w, "  %s: %d\n", totalLabel, report.Summary.Total)
 	}
+	if report.Summary.SuppressedTotal > 0 {
+		_, _ = fmt.Fprintf(w, "  Suppressed Findings: %d\n", report.Summary.SuppressedTotal)
+	}
 	writeSeveritySummary(w, report, decorated)
 	_, _ = fmt.Fprintln(w)
 
@@ -80,6 +86,8 @@ func JSONWriter(w io.Writer, report *engine.Report) error {
 
 // SARIFWriter writes findings in SARIF format for GitHub Code Scanning.
 func SARIFWriter(w io.Writer, report *engine.Report) error {
+	findings := append([]engine.Finding{}, report.Findings...)
+	findings = append(findings, report.SuppressedFindings...)
 	sarif := map[string]interface{}{
 		"version": "2.1.0",
 		"$schema": "https://json.schemastore.org/sarif-2.1.0.json",
@@ -90,10 +98,10 @@ func SARIFWriter(w io.Writer, report *engine.Report) error {
 						"name":           "kube-shield",
 						"informationUri": "https://github.com/RamazanKara/kube-shield",
 						"version":        version.Version,
-						"rules":          buildSARIFRules(report.Findings),
+						"rules":          buildSARIFRules(findings),
 					},
 				},
-				"results": buildSARIFResults(report.Findings),
+				"results": buildSARIFResults(findings),
 			},
 		},
 	}
@@ -113,7 +121,7 @@ func buildSARIFRules(findings []engine.Finding) []map[string]interface{} {
 		}
 		seen[f.CheckID] = true
 
-		rules = append(rules, map[string]interface{}{
+		rule := map[string]interface{}{
 			"id": f.CheckID,
 			"shortDescription": map[string]string{
 				"text": f.Title,
@@ -121,8 +129,24 @@ func buildSARIFRules(findings []engine.Finding) []map[string]interface{} {
 			"defaultConfiguration": map[string]string{
 				"level": sarifLevel(f.Severity),
 			},
-			"helpUri": "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md",
-		})
+			"helpUri": "https://github.com/RamazanKara/kube-shield/blob/main/docs/SCANNERS.md#" + strings.ToLower(f.CheckID),
+		}
+		if metadata, ok := engine.RuleByID(f.CheckID); ok {
+			rule["shortDescription"] = map[string]string{"text": metadata.Title}
+			rule["fullDescription"] = map[string]string{"text": metadata.Rationale}
+			rule["help"] = map[string]string{"text": metadata.Remediation}
+			rule["properties"] = map[string]interface{}{
+				"category":       metadata.Category,
+				"scanner":        metadata.Scanner,
+				"confidence":     metadata.Confidence,
+				"impact":         metadata.Impact,
+				"dataAccess":     metadata.DataAccess,
+				"defaultEnabled": metadata.DefaultEnabled,
+				"standards":      metadata.Standards,
+				"references":     metadata.References,
+			}
+		}
+		rules = append(rules, rule)
 	}
 
 	return rules
@@ -132,7 +156,7 @@ func buildSARIFResults(findings []engine.Finding) []map[string]interface{} {
 	var results []map[string]interface{}
 
 	for _, f := range findings {
-		results = append(results, map[string]interface{}{
+		result := map[string]interface{}{
 			"ruleId":  f.CheckID,
 			"level":   sarifLevel(f.Severity),
 			"message": map[string]string{"text": f.Description},
@@ -154,7 +178,21 @@ func buildSARIFResults(findings []engine.Finding) []map[string]interface{} {
 					},
 				},
 			},
-		})
+			"properties": map[string]interface{}{
+				"fingerprint": f.Fingerprint,
+				"confidence":  f.Confidence,
+				"category":    f.Category,
+			},
+		}
+		if f.Suppression != nil {
+			result["suppressions"] = []map[string]string{
+				{
+					"kind":          "external",
+					"justification": fmt.Sprintf("%s (expires %s)", f.Suppression.Reason, f.Suppression.Expires),
+				},
+			}
+		}
+		results = append(results, result)
 	}
 
 	return results

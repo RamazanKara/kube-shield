@@ -32,6 +32,8 @@ scanners:
 severity: low
 # -- Output format (json, table, sarif)
 output: json
+# -- Enable checks that read Kubernetes Secret data. Disabled by default; required only for SEC-010.
+readSecretData: false
 
 serviceAccount:
   # -- Create a ServiceAccount

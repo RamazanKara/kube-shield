@@ -6,16 +6,18 @@ import (
 	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Client wraps the Kubernetes clientset with multi-cluster support.
 type Client struct {
-	Clientset kubernetes.Interface
-	Config    *rest.Config
-	Context   string
-	ServerURL string
+	Clientset      kubernetes.Interface
+	MetadataClient metadata.Interface
+	Config         *rest.Config
+	Context        string
+	ServerURL      string
 }
 
 // NewClient creates a new Kubernetes client.
@@ -30,11 +32,17 @@ func NewClient(kubeconfigPath, contextName string) (*Client, error) {
 		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
+	metadataClient, err := metadata.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes metadata client: %w", err)
+	}
+
 	return &Client{
-		Clientset: clientset,
-		Config:    config,
-		Context:   resolvedContext,
-		ServerURL: config.Host,
+		Clientset:      clientset,
+		MetadataClient: metadataClient,
+		Config:         config,
+		Context:        resolvedContext,
+		ServerURL:      config.Host,
 	}, nil
 }
 

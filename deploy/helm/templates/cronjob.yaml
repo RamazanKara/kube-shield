@@ -40,6 +40,9 @@ spec:
                 - --scanners
                 - "{{ join "," .Values.scanners }}"
                 {{- end }}
+                {{- if .Values.readSecretData }}
+                - --read-secret-data
+                {{- end }}
               resources:
                 {{- toYaml .Values.resources | nindent 16 }}
               securityContext:

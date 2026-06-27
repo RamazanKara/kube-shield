@@ -277,6 +277,32 @@ func TestSummarizeFindings(t *testing.T) {
 	}
 }
 
+func TestEnrichFindingAddsRuleMetadataAndStableFingerprint(t *testing.T) {
+	finding := Finding{
+		CheckID:  "WL-010",
+		Title:    "Privileged container: app",
+		Severity: SeverityCritical,
+		Category: CategoryWorkload,
+		Resource: Resource{Kind: "Pod", Name: "app", Namespace: "default"},
+	}
+
+	first := EnrichFinding(finding)
+	second := EnrichFinding(finding)
+
+	if first.Fingerprint == "" {
+		t.Fatal("expected fingerprint")
+	}
+	if first.Fingerprint != second.Fingerprint {
+		t.Fatalf("fingerprint should be stable: %s != %s", first.Fingerprint, second.Fingerprint)
+	}
+	if first.Confidence == "" {
+		t.Fatal("expected rule confidence metadata")
+	}
+	if len(first.References) == 0 {
+		t.Fatal("expected rule references")
+	}
+}
+
 func TestSummarizeFindingsDeduplicatesCISOverlap(t *testing.T) {
 	findings := []Finding{
 		{

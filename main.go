@@ -1,5 +1,7 @@
 package main
 
+//go:generate go run ./internal/cmd/gen-scanners-docs/main.go
+
 import (
 	"os"
 
