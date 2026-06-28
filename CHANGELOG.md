@@ -4,6 +4,8 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+- Hardens supply-chain posture for a higher OpenSSF Scorecard: adds a CodeQL SAST workflow, scopes GitHub Actions token permissions to the job level (least privilege), pins Docker base images by digest, and fixes the Scorecard results upload.
+
 ## v1.0.4 - 2026-06-28
 
 - Recovers from scanner panics so one faulty scanner degrades to a partial result instead of crashing the whole scan, and reports nil scanner results as scanner errors.
