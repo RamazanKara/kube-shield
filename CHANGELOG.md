@@ -4,6 +4,14 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+## v1.0.4 - 2026-06-28
+
+- Recovers from scanner panics so one faulty scanner degrades to a partial result instead of crashing the whole scan, and reports nil scanner results as scanner errors.
+- Fixes a deduplication edge case where finding titles with whitespace around a `/` produced an untrimmed target key (found by fuzzing).
+- Adds Go native fuzz tests for finding fingerprinting, deduplication title parsing, and suppression parsing, with a committed regression corpus.
+- Documents shell completion setup for bash, zsh, fish, and PowerShell.
+- Extracts the scoring penalty weights into named constants for readability.
+
 ## v1.0.3 - 2026-06-27
 
 - Adds rule catalog metadata, generated scanner docs, and `kube-shield rules list/show` for auditable finding rationale, confidence, data access, standards, and references.
