@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,11 +13,13 @@ import (
 
 // mockScanner is a test scanner.
 type mockScanner struct {
-	name     string
-	category Category
-	findings []Finding
-	err      error
-	delay    time.Duration
+	name       string
+	category   Category
+	findings   []Finding
+	err        error
+	delay      time.Duration
+	panicValue any
+	nilResult  bool
 }
 
 func (m *mockScanner) Name() string        { return m.name }
@@ -27,8 +30,14 @@ func (m *mockScanner) Scan(ctx context.Context, client kubernetes.Interface, nam
 	if m.delay > 0 {
 		time.Sleep(m.delay)
 	}
+	if m.panicValue != nil {
+		panic(m.panicValue)
+	}
 	if m.err != nil {
 		return nil, m.err
+	}
+	if m.nilResult {
+		return nil, nil
 	}
 	return &ScanResult{
 		Scanner:  m.name,
@@ -176,6 +185,65 @@ func TestEngine_PartialResultsError(t *testing.T) {
 	}
 	if report.Summary.Total != 1 {
 		t.Fatalf("expected successful scanner finding in partial report, got %d", report.Summary.Total)
+	}
+}
+
+func TestEngine_RecoversFromScannerPanic(t *testing.T) {
+	r := NewRegistry()
+	r.Register(&mockScanner{
+		name:     "good",
+		category: CategoryWorkload,
+		findings: []Finding{
+			{ID: "f1", CheckID: "WL-001", Title: "Test finding", Severity: SeverityHigh, Category: CategoryWorkload},
+		},
+	})
+	r.Register(&mockScanner{
+		name:       "boom",
+		category:   CategoryRBAC,
+		panicValue: "kaboom",
+	})
+
+	eng := NewEngine(r, 2)
+	client := fake.NewSimpleClientset()
+
+	report, err := eng.RunAll(context.Background(), client, "")
+	if !errors.Is(err, ErrPartialResults) {
+		t.Fatalf("expected ErrPartialResults after panic, got %v", err)
+	}
+	if report == nil {
+		t.Fatal("expected partial report despite panic")
+	}
+	if report.Summary.Total != 1 {
+		t.Fatalf("expected the healthy scanner's finding to survive, got %d", report.Summary.Total)
+	}
+
+	var foundPanic bool
+	for _, res := range report.Results {
+		if res != nil && res.Scanner == "boom" && res.Error != nil {
+			foundPanic = true
+			if !strings.Contains(res.Error.Error(), "panicked") {
+				t.Fatalf("expected panic to be recorded as an error, got %v", res.Error)
+			}
+		}
+	}
+	if !foundPanic {
+		t.Fatal("expected the panicking scanner to be recorded with an error result")
+	}
+}
+
+func TestEngine_HandlesNilResult(t *testing.T) {
+	r := NewRegistry()
+	r.Register(&mockScanner{name: "empty", category: CategoryWorkload, nilResult: true})
+
+	eng := NewEngine(r, 1)
+	client := fake.NewSimpleClientset()
+
+	report, err := eng.RunAll(context.Background(), client, "")
+	if !errors.Is(err, ErrPartialResults) {
+		t.Fatalf("expected ErrPartialResults for nil result, got %v", err)
+	}
+	if report == nil {
+		t.Fatal("expected report even when a scanner returns nil")
 	}
 }
 

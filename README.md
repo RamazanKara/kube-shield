@@ -317,6 +317,26 @@ brew install --cask ramazankara/tap/kube-shield
 | `?` | Toggle help |
 | `q` / `Ctrl+C` | Quit |
 
+## Shell Completion
+
+kube-shield ships completion scripts for bash, zsh, fish, and PowerShell. Homebrew installs them automatically. For other install methods, generate the script for your shell:
+
+```bash
+# bash (current shell)
+source <(kube-shield completion bash)
+
+# zsh (persisted)
+kube-shield completion zsh > "${fpath[1]}/_kube-shield"
+
+# fish
+kube-shield completion fish > ~/.config/fish/completions/kube-shield.fish
+
+# PowerShell (persisted)
+kube-shield completion powershell | Out-String | Add-Content $PROFILE
+```
+
+Run `kube-shield completion <shell> --help` for shell-specific setup notes.
+
 ## Documentation
 
 - [Scanner reference](docs/SCANNERS.md)

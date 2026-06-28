@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -246,6 +247,20 @@ func (e *Engine) RunWithContext(ctx context.Context, scanCtx ScanContext, scanne
 			defer func() { <-sem }()
 
 			start := time.Now()
+
+			// Recover from scanner panics so one faulty scanner degrades to a
+			// partial result instead of crashing the entire scan.
+			defer func() {
+				if r := recover(); r != nil {
+					results[idx] = &ScanResult{
+						Scanner:   scanner.Name(),
+						Error:     fmt.Errorf("scanner panicked: %v\n%s", r, debug.Stack()),
+						Duration:  time.Since(start),
+						Timestamp: start,
+					}
+				}
+			}()
+
 			var (
 				result *ScanResult
 				err    error
@@ -255,18 +270,26 @@ func (e *Engine) RunWithContext(ctx context.Context, scanCtx ScanContext, scanne
 			} else {
 				result, err = scanner.Scan(ctx, scanCtx.Client, scanCtx.Namespace)
 			}
-			if err != nil {
+			switch {
+			case err != nil:
 				results[idx] = &ScanResult{
 					Scanner:   scanner.Name(),
 					Error:     err,
 					Duration:  time.Since(start),
 					Timestamp: start,
 				}
-				return
+			case result == nil:
+				results[idx] = &ScanResult{
+					Scanner:   scanner.Name(),
+					Error:     errors.New("scanner returned no result"),
+					Duration:  time.Since(start),
+					Timestamp: start,
+				}
+			default:
+				result.Duration = time.Since(start)
+				result.Timestamp = start
+				results[idx] = result
 			}
-			result.Duration = time.Since(start)
-			result.Timestamp = start
-			results[idx] = result
 		}(i, s)
 	}
 
@@ -465,7 +488,7 @@ func targetAfterColon(title string) string {
 	}
 	target = strings.TrimSpace(target)
 	if idx := strings.LastIndex(target, "/"); idx >= 0 {
-		target = target[idx+1:]
+		target = strings.TrimSpace(target[idx+1:])
 	}
 	return target
 }
@@ -509,18 +532,27 @@ func partialResultsError(results []*ScanResult) error {
 	return errors.Join(errs...)
 }
 
+// Severity penalty weights subtracted from the perfect score of 100 by
+// calculateScore. Info findings carry no penalty.
+const (
+	penaltyCritical = 10.0
+	penaltyHigh     = 5.0
+	penaltyMedium   = 2.0
+	penaltyLow      = 0.5
+	perfectScore    = 100.0
+)
+
 func calculateScore(s Summary) float64 {
 	if s.Total == 0 {
-		return 100.0
+		return perfectScore
 	}
 
-	// Weighted penalty: Critical=10, High=5, Medium=2, Low=0.5, Info=0
-	penalty := float64(s.BySeverity[SeverityCritical])*10 +
-		float64(s.BySeverity[SeverityHigh])*5 +
-		float64(s.BySeverity[SeverityMedium])*2 +
-		float64(s.BySeverity[SeverityLow])*0.5
+	penalty := float64(s.BySeverity[SeverityCritical])*penaltyCritical +
+		float64(s.BySeverity[SeverityHigh])*penaltyHigh +
+		float64(s.BySeverity[SeverityMedium])*penaltyMedium +
+		float64(s.BySeverity[SeverityLow])*penaltyLow
 
-	score := 100.0 - penalty
+	score := perfectScore - penalty
 	if score < 0 {
 		score = 0
 	}
