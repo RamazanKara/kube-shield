@@ -70,7 +70,7 @@ sboms:
 binary_signs:
   - id: binary-sigstore
     cmd: cosign
-    signature: "${artifact}.{{ .Os }}_{{ .Arch }}.sigstore.json"
+    signature: "${artifact}.{{ .Os }}_{{ .Arch }}.sigstore"
     args:
       - "sign-blob"
       - "--bundle=${signature}"
@@ -81,7 +81,7 @@ binary_signs:
 signs:
   - id: checksum-sigstore
     cmd: cosign
-    signature: "${artifact}.sigstore.json"
+    signature: "${artifact}.sigstore"
     args:
       - "sign-blob"
       - "--bundle=${signature}"
@@ -90,7 +90,7 @@ signs:
     artifacts: checksum
   - id: archive-sbom-sigstore
     cmd: cosign
-    signature: "${artifact}.sigstore.json"
+    signature: "${artifact}.sigstore"
     args:
       - "sign-blob"
       - "--bundle=${signature}"

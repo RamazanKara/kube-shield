@@ -4,7 +4,10 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+## v1.0.5 - 2026-06-28
+
 - Hardens supply-chain posture for a higher OpenSSF Scorecard: adds a CodeQL SAST workflow, scopes GitHub Actions token permissions to the job level (least privilege), pins Docker base images by digest, and fixes the Scorecard results upload.
+- Renames release signature bundles from `.sigstore.json` to `.sigstore` so OpenSSF Scorecard recognizes signed release artifacts. The `cosign verify-blob --bundle` workflow is unchanged apart from the file name.
 
 ## v1.0.4 - 2026-06-28
 
