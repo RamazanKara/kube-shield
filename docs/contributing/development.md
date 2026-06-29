@@ -105,12 +105,12 @@ Fixtures live in `test/e2e/testdata/fixtures/`:
 
 ## Adding Scanner Logic
 
-1. Add or update code under `pkg/scanner/<scanner>/`.
+1. Add or update code under `internal/scanner/<scanner>/`.
 2. Keep check IDs stable once released.
 3. Return a clear title, severity, category, resource, description, and remediation.
 4. Add unit tests with Kubernetes fake clients.
 5. Add or update E2E fixtures when API-server behavior matters.
-6. Update the rule catalog in `pkg/scanner/engine/rules.go`, then run `go generate ./...` to refresh [SCANNERS.md](SCANNERS.md).
+6. Update the rule catalog in `internal/scanner/engine/rules.go`, then run `go generate ./...` to refresh [the scanner reference](../reference/scanners.md).
 7. Add a `CHANGELOG.md` entry when user-visible findings, severities, or output change.
 
 Every scanner implements:
@@ -130,10 +130,10 @@ Scanners should be stateless and safe to run concurrently. Use `engine.ContextSc
 
 For changes to flags, config, output formats, or exit behavior:
 
-- Update validation tests under `cmd/`.
-- Update report tests under `pkg/report/` when JSON, table, or SARIF changes.
+- Update validation tests under `internal/cli/`.
+- Update report tests under `internal/report/` when JSON, table, or SARIF changes.
 - Keep config precedence as CLI flags > env vars > config file > defaults.
-- Update README, [ARCHITECTURE.md](ARCHITECTURE.md), and [RELEASE.md](../RELEASE.md) if release behavior changes.
+- Update README, [the architecture guide](../design/architecture.md), and [RELEASE.md](../../RELEASE.md) if release behavior changes.
 - Preserve backwards-compatible values unless a breaking change is intentional and documented.
 - For suppressions, keep malformed and expired entries fail-closed and preserve suppressed findings in JSON/SARIF for auditability.
 
@@ -159,7 +159,7 @@ go install github.com/charmbracelet/vhs@latest
 PATH="$(go env GOPATH)/bin:$PATH" vhs docs/demo/tui.tape
 ```
 
-The tape runs [docs/demo/tui_demo.go](demo/tui_demo.go) and writes [docs/assets/kube-shield-tui.gif](assets/kube-shield-tui.gif).
+The tape runs [docs/demo/tui_demo.go](../demo/tui_demo.go) and writes [docs/assets/kube-shield-tui.gif](../assets/kube-shield-tui.gif).
 
 ## CI/CD
 
@@ -175,6 +175,6 @@ The tape runs [docs/demo/tui_demo.go](demo/tui_demo.go) and writes [docs/assets/
 - Prefer structured APIs over string parsing.
 - Keep scanner implementations focused and testable.
 - Avoid logging or outputting secret values.
-- Do not read Kubernetes Secret data unless a feature is explicitly opt-in and documented in [THREAT_MODEL.md](THREAT_MODEL.md).
+- Do not read Kubernetes Secret data unless a feature is explicitly opt-in and documented in [the threat model](../design/threat-model.md).
 - Use `kubernetes.Interface` rather than concrete clientsets.
 - Keep docs and tests in the same PR as user-visible behavior changes.

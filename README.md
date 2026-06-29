@@ -214,7 +214,7 @@ Environment variables use the `KUBE_SHIELD_` prefix:
 | `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
 | `secrets` | 6 | High to Info | Secret exposure and reference hygiene |
 
-See [docs/SCANNERS.md](docs/SCANNERS.md) for every check ID, severity, confidence, data-access level, standards mapping, and remediation category.
+See [docs/reference/scanners.md](docs/reference/scanners.md) for every check ID, severity, confidence, data-access level, standards mapping, and remediation category.
 
 Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check.
 
@@ -339,12 +339,12 @@ Run `kube-shield completion <shell> --help` for shell-specific setup notes.
 
 ## Documentation
 
-- [Scanner reference](docs/SCANNERS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Threat model](docs/THREAT_MODEL.md)
-- [Development guide](docs/DEVELOPMENT.md)
+- [Scanner reference](docs/reference/scanners.md)
+- [Architecture](docs/design/architecture.md)
+- [Threat model](docs/design/threat-model.md)
+- [Development guide](docs/contributing/development.md)
 - [Release process](RELEASE.md)
-- [Repository operations checklist](docs/REPOSITORY_SETUP.md)
+- [Repository operations checklist](docs/maintainers/repository-setup.md)
 - [Security policy](SECURITY.md)
 - [Support](SUPPORT.md)
 - [Contributing](CONTRIBUTING.md)

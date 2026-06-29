@@ -45,11 +45,10 @@ Protect `main` with:
 ## Security Settings
 
 - Enable GitHub private vulnerability reporting.
-- Enable Dependabot security updates.
-- Enable Dependabot version updates from `.github/dependabot.yml`.
+- Dependabot is intentionally disabled (no `.github/dependabot.yml`); dependencies, pinned action SHAs, and base-image digests are updated manually.
 - Enable secret scanning and push protection.
 - Confirm OpenSSF Scorecard SARIF uploads appear in GitHub code scanning.
-- Review CodeQL or equivalent static analysis if the project expands beyond Go.
+- CodeQL static analysis runs on pushes and pull requests (`codeql.yml`).
 
 Private vulnerability reporting should be enabled before announcing new releases publicly.
 
@@ -77,7 +76,7 @@ For the latest release:
 - Release contains archives for Linux, macOS, and Windows on amd64/arm64.
 - Release contains `checksums.txt`.
 - Release contains `.sbom.json` files.
-- Release contains `.sigstore.json` signature bundles.
+- Release contains `.sigstore` signature bundles.
 - GitHub artifact attestations verify.
 - GHCR image pulls on amd64 and arm64.
 - Helm OCI chart resolves and installs.
@@ -85,10 +84,10 @@ For the latest release:
 
 ## Periodic Maintenance
 
-- Review open Dependabot PRs weekly.
+- Update Go dependencies, pinned action SHAs, and base-image digests manually (Dependabot is disabled).
 - Run `govulncheck` after dependency updates.
 - Keep pinned GitHub Actions SHAs current with maintained Node runtimes.
 - Confirm release tooling versions in `.github/scripts/install-release-tools.sh`.
 - Review README install commands after each release.
-- Keep generated [SCANNERS.md](SCANNERS.md) aligned by updating the rule catalog and running `go generate ./...`.
+- Keep the generated [scanner reference](../reference/scanners.md) aligned by updating the rule catalog and running `go generate ./...`.
 - Refresh release verification examples when the latest published version changes.

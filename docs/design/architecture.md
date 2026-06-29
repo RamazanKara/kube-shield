@@ -16,17 +16,15 @@ This document is for contributors who want to understand where a change belongs 
 
 ```text
 kube-shield/
-├── cmd/                          # Cobra commands and CLI validation
-│   ├── root.go                   # Root command, global flags, Viper setup
-│   ├── scan.go                   # scan command
-│   ├── dashboard.go              # dashboard command
-│   └── version.go                # version command
-├── pkg/
+├── cmd/kube-shield/              # Main entrypoint (package main, //go:generate)
+├── internal/                     # Private application code (not importable)
+│   ├── cli/                      # Cobra commands, global flags, Viper setup, validation
 │   ├── ai/                       # OpenAI and Ollama providers
 │   ├── config/                   # Config loading and normalization
 │   ├── k8s/                      # Kubernetes client construction
 │   ├── logging/                  # slog wrapper
 │   ├── report/                   # Table, JSON, and SARIF writers
+│   ├── suppressions/             # Expiring finding suppressions
 │   ├── scanner/
 │   │   ├── registry.go           # Default scanner registry
 │   │   ├── engine/               # Scanner interface, engine, report types
@@ -36,32 +34,36 @@ kube-shield/
 │   │   ├── netpol/               # NetworkPolicy checks
 │   │   └── secrets/              # Secret exposure/reference checks
 │   ├── tui/                      # Interactive dashboard
+│   ├── tools/gen-scanners-docs/  # Generates docs/reference/scanners.md
 │   └── version/                  # Build metadata injected by ldflags
-├── pkg/suppressions/             # Expiring finding suppressions
 ├── deploy/helm/                  # CronJob Helm chart
+├── examples/                     # Sample config, suppressions, CI snippets
 ├── test/e2e/                     # kind-based E2E suite
-└── .github/workflows/            # CI, E2E, dry-run, release workflows
+├── docs/                         # Documentation site sources (MkDocs)
+└── .github/workflows/            # CI, E2E, CodeQL, dry-run, release workflows
 ```
+
+Application packages live under `internal/` because kube-shield is a CLI, not a library; this keeps the public surface to the `kube-shield` binary itself.
 
 ## Component Flow
 
 ```mermaid
 graph TD
-    User["User / CI"] --> CLI["cmd/ Cobra CLI"]
-    CLI --> Config["pkg/config + Viper"]
-    CLI --> K8s["pkg/k8s typed + metadata clients"]
-    CLI --> Engine["pkg/scanner/engine"]
+    User["User / CI"] --> CLI["internal/cli Cobra CLI"]
+    CLI --> Config["internal/config + Viper"]
+    CLI --> K8s["internal/k8s typed + metadata clients"]
+    CLI --> Engine["internal/scanner/engine"]
     Engine --> Rules["rule catalog"]
-    Engine --> Registry["pkg/scanner registry"]
+    Engine --> Registry["internal/scanner registry"]
     Registry --> Workload["workload"]
     Registry --> CIS["cis"]
     Registry --> RBAC["rbac"]
     Registry --> Netpol["netpol"]
     Registry --> Secrets["secrets"]
     Engine --> Report["engine.Report"]
-    Report --> Writers["pkg/report writers"]
-    Report --> TUI["pkg/tui dashboard"]
-    Report --> AI["pkg/ai explanations"]
+    Report --> Writers["internal/report writers"]
+    Report --> TUI["internal/tui dashboard"]
+    Report --> AI["internal/ai explanations"]
 ```
 
 ## Scan Flow
@@ -70,13 +72,13 @@ graph TD
 2. Viper loads environment variables and config files.
 3. Command-specific flag overrides are applied so precedence is CLI flags > env vars > config file > defaults.
 4. CLI values are validated before connecting to Kubernetes.
-5. `pkg/k8s.NewClient` builds typed and metadata clients from in-cluster config, `KUBECONFIG`, or `~/.kube/config`.
+5. `internal/k8s.NewClient` builds typed and metadata clients from in-cluster config, `KUBECONFIG`, or `~/.kube/config`.
 6. `scanner.DefaultRegistry()` registers the five built-in scanners.
 7. `engine.Engine` runs selected scanners concurrently with a bounded semaphore and passes `engine.ScanContext` to scanners that need metadata clients or scan options.
 8. The engine enriches findings with rule catalog metadata, stable fingerprints, and an `engine.Report`; it returns partial-result errors if any scanner fails.
 9. The command filters findings by severity/category and recomputes the summary.
 10. Optional suppressions remove approved findings from exit-code decisions while preserving them in JSON/SARIF audit output.
-11. `pkg/report` writes table, JSON, or SARIF output.
+11. `internal/report` writes table, JSON, or SARIF output.
 12. Optional AI analysis explains high-severity findings after report output.
 
 ## Scanner Contract
@@ -121,7 +123,7 @@ Known equivalent CIS/core findings are de-duplicated for summary counts and scor
 
 ## Error Handling
 
-Sentinel errors live in `pkg/scanner/engine/errors.go`:
+Sentinel errors live in `internal/scanner/engine/errors.go`:
 
 | Error | Meaning |
 |-------|---------|
@@ -162,9 +164,9 @@ The local `Dockerfile` remains a multi-stage developer build. `Dockerfile.releas
 Build-time metadata is injected with ldflags:
 
 ```shell
--X github.com/RamazanKara/kube-shield/pkg/version.Version=${VERSION}
--X github.com/RamazanKara/kube-shield/pkg/version.Commit=${COMMIT}
--X github.com/RamazanKara/kube-shield/pkg/version.Date=${DATE}
+-X github.com/RamazanKara/kube-shield/internal/version.Version=${VERSION}
+-X github.com/RamazanKara/kube-shield/internal/version.Commit=${COMMIT}
+-X github.com/RamazanKara/kube-shield/internal/version.Date=${DATE}
 ```
 
 The same metadata is used by `kube-shield version`, SARIF output, release archives, and container images.

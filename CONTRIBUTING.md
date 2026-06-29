@@ -27,9 +27,9 @@ git switch -c feature/my-change
 
 Before changing code, skim the relevant reference:
 
-- Scanner behavior: [docs/SCANNERS.md](docs/SCANNERS.md)
-- Package flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Local development: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Scanner behavior: [docs/reference/scanners.md](docs/reference/scanners.md)
+- Package flow: [docs/design/architecture.md](docs/design/architecture.md)
+- Local development: [docs/contributing/development.md](docs/contributing/development.md)
 - Release-sensitive changes: [RELEASE.md](RELEASE.md)
 
 ## Development Checks
@@ -82,11 +82,7 @@ Reviewers should be able to answer three questions quickly:
 
 ## Adding a Scanner Check
 
-1. Add the check to the appropriate scanner package under `pkg/scanner/`.
-2. Return a stable `CheckID`, severity, category, affected resource, and remediation.
-3. Add unit tests with Kubernetes fake clients.
-4. Add or update E2E fixtures when the behavior should be validated against a real API server.
-5. Add rule metadata in `pkg/scanner/engine/rules.go` and regenerate `docs/SCANNERS.md`.
+The full, canonical workflow lives in the [development guide](docs/contributing/development.md#adding-scanner-logic). In short: add the check to the scanner package under `internal/scanner/`, return a stable `CheckID` with severity/category/resource/remediation, add unit tests and E2E fixtures, register rule metadata in `internal/scanner/engine/rules.go`, and run `go generate ./...` to refresh the scanner reference.
 
 Prefer precise checks over broad heuristics. If a check has unavoidable edge cases, document the assumptions in the scanner reference and cover the intended behavior with tests.
 

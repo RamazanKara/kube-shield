@@ -30,10 +30,10 @@ Public release tags are immutable. If a release is already public, ship follow-u
 
 ## Version Prep
 
-Choose the next version:
+Choose the next version (replace `X.Y.Z` with the actual release version):
 
 ```shell
-VERSION=1.0.3
+VERSION=X.Y.Z
 TAG="v${VERSION}"
 ```
 
@@ -100,22 +100,22 @@ gh run watch <run-id> --repo RamazanKara/kube-shield --exit-status
 
 ## Post-release Verification
 
-Replace `1.0.3` with the published version:
+These mirror the user-facing commands in the README's "Release Verification" section, parameterized for maintainers. Replace `X.Y.Z` with the published version:
 
 ```shell
-VERSION=1.0.3
+VERSION=X.Y.Z
 TAG="v${VERSION}"
 
 gh release view "${TAG}" --repo RamazanKara/kube-shield
 gh release download "${TAG}" --repo RamazanKara/kube-shield \
   --pattern checksums.txt \
-  --pattern checksums.txt.sigstore.json \
+  --pattern checksums.txt.sigstore \
   --pattern "kube-shield_${VERSION}_linux_amd64.tar.gz"
 
 gh attestation verify "kube-shield_${VERSION}_linux_amd64.tar.gz" \
   --repo RamazanKara/kube-shield
 
-cosign verify-blob --bundle checksums.txt.sigstore.json \
+cosign verify-blob --bundle checksums.txt.sigstore \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
@@ -133,7 +133,7 @@ helm show chart "oci://ghcr.io/ramazankara/charts/kube-shield" --version "${VERS
 brew install --cask ramazankara/tap/kube-shield
 ```
 
-Confirm the GitHub release contains archives, checksums, `.sbom.json` files, `.sigstore.json` files, and attestations for the release artifacts.
+Confirm the GitHub release contains archives, checksums, `.sbom.json` files, `.sigstore` files, and attestations for the release artifacts.
 
 ## If Something Fails
 
