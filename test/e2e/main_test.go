@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 
 	// Build the binary
 	fmt.Println("==> Building kube-shield binary...")
-	if err := runCmd(projectDir, "go", "build", "-o", binaryPath, "."); err != nil {
+	if err := runCmd(projectDir, "go", "build", "-o", binaryPath, "./cmd/kube-shield"); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build binary: %v\n", err)
 		os.Exit(1)
 	}
