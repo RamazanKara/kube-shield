@@ -8,7 +8,7 @@ From the published OCI registry:
 
 ```bash
 helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
-  --version 1.0.5 \
+  --version 1.1.0 \
   --namespace kube-shield \
   --create-namespace
 ```

@@ -4,6 +4,8 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+## v1.1.0 - 2026-06-29
+
 - Restructures the repository to the conventional Go CLI layout: the entrypoint moves to `cmd/kube-shield/`, application packages move from `pkg/` to `internal/`, and the docs generator moves to `internal/tools/`. **Install with `go install github.com/RamazanKara/kube-shield/cmd/kube-shield@latest`.** The former `pkg/` packages are now internal and are no longer importable as a library. The CLI, flags, output, and container/Helm usage are unchanged.
 - Reorganizes documentation into an audience-based structure and publishes a MkDocs Material site to GitHub Pages at https://ramazankara.github.io/kube-shield/.
 - Adds CI/CD integration, recipes, troubleshooting, FAQ, CLI reference, and configuration reference documentation, plus an `examples/` directory with a sample config, suppressions file, and GitHub Actions, GitLab CI, and Jenkins snippets.

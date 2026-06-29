@@ -44,12 +44,12 @@ See the [Helm chart README](https://github.com/RamazanKara/kube-shield/blob/main
 Install `gh` (with attestation support) and `cosign`, then verify a release:
 
 ```bash
-gh release download v1.0.5 --repo RamazanKara/kube-shield \
+gh release download v1.1.0 --repo RamazanKara/kube-shield \
   --pattern checksums.txt \
   --pattern checksums.txt.sigstore \
-  --pattern kube-shield_1.0.5_linux_amd64.tar.gz
+  --pattern kube-shield_1.1.0_linux_amd64.tar.gz
 
-gh attestation verify kube-shield_1.0.5_linux_amd64.tar.gz --repo RamazanKara/kube-shield
+gh attestation verify kube-shield_1.1.0_linux_amd64.tar.gz --repo RamazanKara/kube-shield
 
 cosign verify-blob --bundle checksums.txt.sigstore \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
