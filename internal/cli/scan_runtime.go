@@ -1,0 +1,54 @@
+package cli
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/RamazanKara/kube-shield/internal/config"
+	"github.com/RamazanKara/kube-shield/internal/k8s"
+	"github.com/RamazanKara/kube-shield/internal/scanner"
+	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/spf13/cobra"
+)
+
+type scanRuntime struct {
+	cfg       *config.Config
+	k8sClient *k8s.Client
+	engine    *engine.Engine
+}
+
+var prepareScanRuntimeFunc = prepareScanRuntime
+
+func prepareScanRuntime(cmd *cobra.Command, applyOverrides func(changedFlags, *config.Config), validate func(*config.Config) error) (*scanRuntime, error) {
+	cfg := config.Load()
+	applyOverrides(cmd.Flags(), cfg)
+	if err := validate(cfg); err != nil {
+		return nil, err
+	}
+
+	k8sClient, err := k8s.NewClient(cfg.Kubeconfig, cfg.Context)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to cluster: %w", err)
+	}
+
+	return &scanRuntime{
+		cfg:       cfg,
+		k8sClient: k8sClient,
+		engine:    engine.NewEngine(scanner.DefaultRegistry(), 5),
+	}, nil
+}
+
+func (r *scanRuntime) run(ctx context.Context) (*engine.Report, error) {
+	scanCtx := engine.ScanContext{
+		Client:         r.k8sClient.Clientset,
+		MetadataClient: r.k8sClient.MetadataClient,
+		Namespace:      r.cfg.Namespace,
+		Options: engine.ScannerOptions{
+			ReadSecretData: r.cfg.ReadSecretData,
+		},
+	}
+	if len(r.cfg.Scanners) > 0 {
+		return r.engine.RunWithContext(ctx, scanCtx, r.cfg.Scanners)
+	}
+	return r.engine.RunAllWithContext(ctx, scanCtx)
+}

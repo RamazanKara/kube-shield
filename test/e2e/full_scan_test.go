@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/pkg/k8s"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/cis"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/netpol"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/rbac"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/secrets"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/workload"
+	"github.com/RamazanKara/kube-shield/internal/k8s"
+	"github.com/RamazanKara/kube-shield/internal/scanner/cis"
+	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/internal/scanner/netpol"
+	"github.com/RamazanKara/kube-shield/internal/scanner/rbac"
+	"github.com/RamazanKara/kube-shield/internal/scanner/secrets"
+	"github.com/RamazanKara/kube-shield/internal/scanner/workload"
 )
 
 func TestFullScan(t *testing.T) {

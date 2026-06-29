@@ -53,7 +53,7 @@ jobs:
       - name: Check generated docs
         run: |
           go generate ./...
-          git diff --exit-code docs/SCANNERS.md
+          git diff --exit-code docs/reference/scanners.md
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
       - name: Check coverage threshold
@@ -91,7 +91,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: go build -ldflags "-s -w" -o bin/kube-shield-${{ matrix.goos }}-${{ matrix.goarch }} .
+        run: go build -ldflags "-s -w" -o bin/kube-shield-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/kube-shield
       - name: Generate SBOM
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0

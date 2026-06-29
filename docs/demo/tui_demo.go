@@ -5,8 +5,8 @@ package main
 import (
 	"time"
 
-	"github.com/RamazanKara/kube-shield/pkg/scanner/engine"
-	"github.com/RamazanKara/kube-shield/pkg/tui"
+	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

@@ -44,7 +44,7 @@ brew install --cask ramazankara/tap/kube-shield
 ### Go
 
 ```bash
-go install github.com/RamazanKara/kube-shield@latest
+go install github.com/RamazanKara/kube-shield/cmd/kube-shield@latest
 ```
 
 ### Docker

@@ -12,7 +12,7 @@ before:
 
 builds:
   - id: kube-shield
-    main: .
+    main: ./cmd/kube-shield
     binary: kube-shield
     env:
       - CGO_ENABLED=0
@@ -25,9 +25,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Version={{ .Version }}
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Commit={{ .Commit }}
-      - -X github.com/RamazanKara/kube-shield/pkg/version.Date={{ .Date }}
+      - -X github.com/RamazanKara/kube-shield/internal/version.Version={{ .Version }}
+      - -X github.com/RamazanKara/kube-shield/internal/version.Commit={{ .Commit }}
+      - -X github.com/RamazanKara/kube-shield/internal/version.Date={{ .Date }}
 
 archives:
   - id: default

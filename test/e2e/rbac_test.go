@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/pkg/k8s"
-	"github.com/RamazanKara/kube-shield/pkg/scanner/rbac"
+	"github.com/RamazanKara/kube-shield/internal/k8s"
+	"github.com/RamazanKara/kube-shield/internal/scanner/rbac"
 )
 
 func TestRBACScanner(t *testing.T) {

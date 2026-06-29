@@ -4,15 +4,15 @@ BINARY_NAME=kube-shield
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE    ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-LDFLAGS  = -ldflags "-s -w -X github.com/RamazanKara/kube-shield/pkg/version.Version=$(VERSION) -X github.com/RamazanKara/kube-shield/pkg/version.Commit=$(COMMIT) -X github.com/RamazanKara/kube-shield/pkg/version.Date=$(DATE)"
+LDFLAGS  = -ldflags "-s -w -X github.com/RamazanKara/kube-shield/internal/version.Version=$(VERSION) -X github.com/RamazanKara/kube-shield/internal/version.Commit=$(COMMIT) -X github.com/RamazanKara/kube-shield/internal/version.Date=$(DATE)"
 
 ## build: Build the kube-shield binary
 build:
-	go build $(LDFLAGS) -o bin/$(BINARY_NAME) .
+	go build $(LDFLAGS) -o bin/$(BINARY_NAME) ./cmd/kube-shield
 
 ## install: Install kube-shield to $GOPATH/bin
 install:
-	go install $(LDFLAGS) .
+	go install $(LDFLAGS) ./cmd/kube-shield
 
 ## test: Run all tests
 test:
