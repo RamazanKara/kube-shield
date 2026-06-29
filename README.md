@@ -8,6 +8,7 @@
   <a href="https://github.com/RamazanKara/kube-shield/releases"><img src="https://img.shields.io/github/v/release/RamazanKara/kube-shield" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://codecov.io/gh/RamazanKara/kube-shield"><img src="https://codecov.io/gh/RamazanKara/kube-shield/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://ramazankara.github.io/kube-shield/"><img src="https://img.shields.io/badge/docs-mkdocs--material-blue" alt="Docs"></a>
 </p>
 
 ---
@@ -17,6 +18,8 @@
 ![kube-shield TUI dashboard demo](docs/assets/kube-shield-tui.gif)
 
 Use it when you want a lightweight security pass that is easy to run, easy to read, and still friendly to automation.
+
+📖 **[Full documentation](https://ramazankara.github.io/kube-shield/)** — installation, configuration, recipes, CI/CD integration, troubleshooting, and the complete scanner reference.
 
 ## Why kube-shield
 

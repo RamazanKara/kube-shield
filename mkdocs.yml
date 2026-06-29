@@ -1,0 +1,86 @@
+site_name: kube-shield
+site_description: Kubernetes Security Posture Manager — k9s for security
+site_url: https://ramazankara.github.io/kube-shield/
+repo_url: https://github.com/RamazanKara/kube-shield
+repo_name: RamazanKara/kube-shield
+edit_uri: edit/main/docs/
+copyright: Apache License 2.0
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - User Guide:
+      - Scanners: user-guide/scanners.md
+      - Suppressions: user-guide/suppressions.md
+      - Output & Display: user-guide/output-and-display.md
+      - AI Explanations: user-guide/ai-explanations.md
+  - Guides:
+      - CI/CD Integration: guides/ci-cd.md
+      - Recipes: guides/recipes.md
+      - Troubleshooting: guides/troubleshooting.md
+      - FAQ: guides/faq.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Configuration: reference/configuration.md
+      - Scanner Catalog: reference/scanners.md
+  - Design:
+      - Architecture: design/architecture.md
+      - Threat Model: design/threat-model.md
+  - Contributing:
+      - Development: contributing/development.md
+      - Contributing Guide: https://github.com/RamazanKara/kube-shield/blob/main/CONTRIBUTING.md
+      - Code of Conduct: https://github.com/RamazanKara/kube-shield/blob/main/CODE_OF_CONDUCT.md
+  - Maintainers:
+      - Repository Setup: maintainers/repository-setup.md
+      - Release Process: https://github.com/RamazanKara/kube-shield/blob/main/RELEASE.md
+  - Project:
+      - Changelog: https://github.com/RamazanKara/kube-shield/blob/main/CHANGELOG.md
+      - Security Policy: https://github.com/RamazanKara/kube-shield/blob/main/SECURITY.md
+      - Support: https://github.com/RamazanKara/kube-shield/blob/main/SUPPORT.md

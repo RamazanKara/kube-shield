@@ -133,7 +133,7 @@ For changes to flags, config, output formats, or exit behavior:
 - Update validation tests under `internal/cli/`.
 - Update report tests under `internal/report/` when JSON, table, or SARIF changes.
 - Keep config precedence as CLI flags > env vars > config file > defaults.
-- Update README, [the architecture guide](../design/architecture.md), and [RELEASE.md](../../RELEASE.md) if release behavior changes.
+- Update README, [the architecture guide](../design/architecture.md), and [RELEASE.md](https://github.com/RamazanKara/kube-shield/blob/main/RELEASE.md) if release behavior changes.
 - Preserve backwards-compatible values unless a breaking change is intentional and documented.
 - For suppressions, keep malformed and expired entries fail-closed and preserve suppressed findings in JSON/SARIF for auditability.
 

@@ -1,7 +1,10 @@
 # Binaries
 bin/
 dist/
-kube-shield
+/kube-shield
+
+# Docs site build output
+site/
 
 # Test
 coverage.out
