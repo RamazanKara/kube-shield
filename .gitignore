@@ -23,3 +23,5 @@ vendor/
 
 # Config (may contain secrets)
 .kube-shield.yaml
+# ...but keep the committed example config
+!examples/.kube-shield.yaml

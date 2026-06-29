@@ -1,0 +1,24 @@
+# Example GitLab CI job: run kube-shield and publish findings as a SAST report.
+# Set a KUBECONFIG CI/CD variable (type: File) with read access to the cluster.
+
+kube-shield:
+  stage: test
+  image:
+    name: ghcr.io/ramazankara/kube-shield:latest
+    entrypoint: [""]
+  variables:
+    KUBECONFIG: $KUBECONFIG
+  script:
+    # Emit SARIF for the report, and gate the pipeline on critical findings.
+    - kube-shield scan --output sarif > kube-shield.sarif
+    - kube-shield scan --exit-code --severity critical
+  artifacts:
+    when: always
+    reports:
+      sast: kube-shield.sarif
+    paths:
+      - kube-shield.sarif
+  # Run on a schedule so cluster drift is caught even without code changes.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"

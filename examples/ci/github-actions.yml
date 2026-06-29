@@ -1,0 +1,44 @@
+# Example GitHub Actions workflow: run kube-shield against a cluster, publish
+# findings to GitHub code scanning (SARIF), and fail the job on critical findings.
+#
+# Requires a KUBECONFIG repository secret with read access to the target cluster.
+# Pin third-party actions to a commit SHA in production.
+name: kube-shield
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write # required to upload SARIF
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
+
+      - name: Run kube-shield
+        id: scan
+        run: |
+          docker run --rm -v "$HOME/.kube:/home/kubeshield/.kube:ro" \
+            ghcr.io/ramazankara/kube-shield:latest \
+            scan --output sarif --exit-code --severity critical \
+            > kube-shield.sarif || echo "gate_failed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3 # pin to a commit SHA in production
+        with:
+          sarif_file: kube-shield.sarif
+
+      - name: Enforce gate
+        if: steps.scan.outputs.gate_failed == 'true'
+        run: |
+          echo "::error::kube-shield found critical findings"
+          exit 1

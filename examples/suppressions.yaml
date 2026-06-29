@@ -1,0 +1,28 @@
+# Example kube-shield suppressions file.
+# Use with: kube-shield scan --suppressions suppressions.yaml --exit-code
+#
+# Suppressions are fail-closed: a malformed entry or a missing/expired `expires`
+# stops the scan. Suppressed findings do not trigger --exit-code, but they are
+# preserved in JSON (under suppressedFindings) and marked as external
+# suppressions in SARIF for auditability.
+#
+# Match a finding by checkId and/or fingerprint, optionally narrowed to a
+# specific resource. Every entry requires a unique id, a reason, and an expiry.
+
+suppressions:
+  - id: accepted-risk-2026-001
+    checkId: WL-010
+    resource:
+      kind: Pod
+      namespace: production
+      name: legacy-worker
+    reason: Accepted temporarily while the workload is migrated to a non-privileged image.
+    expires: 2026-12-31
+
+  - id: netpol-baseline-2026-002
+    checkId: NET-001
+    resource:
+      kind: Namespace
+      name: monitoring
+    reason: Monitoring namespace is isolated at the mesh layer; NetworkPolicy rollout tracked in TICKET-123.
+    expires: 2026-09-30

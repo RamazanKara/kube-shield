@@ -1,0 +1,37 @@
+// Example Jenkins pipeline: run kube-shield, archive the SARIF report, and
+// fail the build on critical findings.
+//
+// Requires a "kubeconfig" secret-file credential with read access to the cluster.
+pipeline {
+    agent any
+
+    triggers {
+        cron('H 6 * * *') // daily scheduled scan
+    }
+
+    stages {
+        stage('kube-shield scan') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        docker run --rm \
+                          -v "$KUBECONFIG:/home/kubeshield/.kube/config:ro" \
+                          ghcr.io/ramazankara/kube-shield:latest \
+                          scan --output sarif > kube-shield.sarif
+
+                        docker run --rm \
+                          -v "$KUBECONFIG:/home/kubeshield/.kube/config:ro" \
+                          ghcr.io/ramazankara/kube-shield:latest \
+                          scan --exit-code --severity critical
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'kube-shield.sarif', allowEmptyArchive: true
+        }
+    }
+}

@@ -1,0 +1,36 @@
+# Example kube-shield configuration.
+# Place this file at ./.kube-shield.yaml or $HOME/.kube-shield.yaml.
+# Precedence: CLI flags > environment variables (KUBE_SHIELD_*) > this file > defaults.
+
+# Kubernetes context to use (empty = current context).
+context: ""
+# Namespace to scan (empty = all namespaces).
+namespace: ""
+# Output format: table, json, or sarif.
+output: table
+
+# Scanners to run.
+scanners:
+  - workload
+  - cis
+  - rbac
+  - netpol
+  - secrets
+
+# Minimum severity to report: critical, high, medium, low, info.
+severity: low
+# Scan timeout.
+timeout: 5m
+# Exit non-zero when findings at or above `severity` are present (useful in CI).
+exit-code: false
+# Enable checks that read Kubernetes Secret data (currently only SEC-010).
+read-secret-data: false
+# Path to a suppressions file (see suppressions.yaml).
+suppressions: ""
+
+# Optional AI explanations for high-risk findings.
+ai:
+  provider: ""   # openai, ollama, or empty to disable
+  model: ""      # e.g. gpt-4o-mini, llama3.2
+  apikey: ""     # prefer the KUBE_SHIELD_AI_APIKEY environment variable
+  endpoint: ""   # custom endpoint, e.g. http://localhost:11434 for Ollama
