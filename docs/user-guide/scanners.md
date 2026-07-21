@@ -5,12 +5,14 @@ kube-shield groups its checks into five scanners. Run a subset with `--scanners`
 | Scanner | Checks | Severity range | Focus |
 |---------|--------|----------------|-------|
 | `workload` | 17 | Critical to Info | Pod and container security posture |
-| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark v1.12 API-accessible checks |
+| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
 | `rbac` | 12 | Critical to Medium | Over-permissive roles and risky bindings |
 | `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
 | `secrets` | 6 | High to Info | Secret exposure and reference hygiene |
 
-For every check ID — with severity, confidence, data-access level, standards mapping (Pod Security Standards, CIS Kubernetes Benchmark v1.12), and remediation — see the generated [scanner reference](../reference/scanners.md).
+For every check ID — with severity, confidence, data-access level, standards mapping (Pod Security Standards, CIS Kubernetes Benchmark), and remediation — see the generated [scanner reference](../reference/scanners.md).
+
+The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers; aligning the catalog with the current benchmark release is tracked in [issue #19](https://github.com/RamazanKara/kube-shield/issues/19).
 
 ## Scoring
 

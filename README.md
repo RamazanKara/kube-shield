@@ -13,7 +13,7 @@
 
 ---
 
-`kube-shield` is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark v1.12, RBAC, network policy, and secret patterns, then turns them into actionable findings.
+`kube-shield` is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark, RBAC, network policy, and secret patterns, then turns them into actionable findings.
 
 ![kube-shield TUI dashboard demo](docs/assets/kube-shield-tui.gif)
 
@@ -212,12 +212,14 @@ Environment variables use the `KUBE_SHIELD_` prefix:
 | Scanner | Checks | Severity Range | Focus |
 |---------|--------|----------------|-------|
 | `workload` | 17 | Critical to Info | Pod and container security posture |
-| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark v1.12 API-accessible checks |
+| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
 | `rbac` | 12 | Critical to Medium | Over-permissive roles and risky bindings |
 | `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
 | `secrets` | 6 | High to Info | Secret exposure and reference hygiene |
 
 See [docs/reference/scanners.md](docs/reference/scanners.md) for every check ID, severity, confidence, data-access level, standards mapping, and remediation category.
+
+The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers; aligning the catalog with the current benchmark release is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
 
 Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check.
 

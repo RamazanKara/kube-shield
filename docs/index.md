@@ -2,7 +2,7 @@
 
 **Kubernetes Security Posture Manager — k9s for security.**
 
-kube-shield is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark v1.12, RBAC, network policy, and secret patterns, then turns them into actionable findings.
+kube-shield is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark, RBAC, network policy, and secret patterns, then turns them into actionable findings.
 
 Use it when you want a lightweight security pass that is easy to run, easy to read, and still friendly to automation.
 

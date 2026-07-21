@@ -4,6 +4,8 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+- Removes the stale "CIS Kubernetes Benchmark v1.12" claim from the README, docs site, scanner description, and TUI demo fixture. The `cis` scanner is now described version-free as the API-checkable subset of the benchmark's Policies section; aligning the check catalog with the current benchmark release (2.0.x) is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
+
 ## v1.1.0 - 2026-06-29
 
 - Restructures the repository to the conventional Go CLI layout: the entrypoint moves to `cmd/kube-shield/`, application packages move from `pkg/` to `internal/`, and the docs generator moves to `internal/tools/`. **Install with `go install github.com/RamazanKara/kube-shield/cmd/kube-shield@latest`.** The former `pkg/` packages are now internal and are no longer importable as a library. The CLI, flags, output, and container/Helm usage are unchanged.

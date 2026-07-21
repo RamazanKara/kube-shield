@@ -29,7 +29,7 @@ kube-shield/
 │   │   ├── registry.go           # Default scanner registry
 │   │   ├── engine/               # Scanner interface, engine, report types
 │   │   ├── workload/             # Pod/container security checks
-│   │   ├── cis/                  # CIS Kubernetes Benchmark v1.12 checks
+│   │   ├── cis/                  # CIS Kubernetes Benchmark checks
 │   │   ├── rbac/                 # RBAC checks
 │   │   ├── netpol/               # NetworkPolicy checks
 │   │   └── secrets/              # Secret exposure/reference checks

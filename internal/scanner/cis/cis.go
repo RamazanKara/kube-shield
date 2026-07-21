@@ -19,13 +19,13 @@ func New() *Scanner { return &Scanner{} }
 func (s *Scanner) Name() string              { return "cis" }
 func (s *Scanner) Category() engine.Category { return engine.CategoryCIS }
 func (s *Scanner) Description() string {
-	return "Runs CIS Kubernetes Benchmark v1.12 checks accessible via the Kubernetes API"
+	return "Runs CIS Kubernetes Benchmark checks accessible via the Kubernetes API"
 }
 
 func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*engine.ScanResult, error) {
 	var findings []engine.Finding
 
-	// Section 4: Policies — these are the checks we can perform via API access
+	// Benchmark Policies section — these are the checks we can perform via API access
 
 	// 4.1 RBAC and Service Accounts
 	f, err := checkRBACPolicies(ctx, client)

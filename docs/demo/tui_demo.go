@@ -21,7 +21,7 @@ func main() {
 			Category:    engine.CategoryWorkload,
 			Resource:    engine.Resource{Namespace: "payments", Kind: "Deployment", Name: "api-gateway"},
 			Remediation: "Disable privileged mode, drop Linux capabilities, and enforce a restricted Pod Security profile.",
-			CISRef:      "CIS Kubernetes Benchmark v1.12 5.2.1",
+			CISRef:      "CIS Kubernetes Benchmark 5.2.2",
 		},
 		{
 			ID:          "demo-rbac-cluster-admin",
@@ -32,7 +32,7 @@ func main() {
 			Category:    engine.CategoryRBAC,
 			Resource:    engine.Resource{Namespace: "payments", Kind: "ServiceAccount", Name: "reconciler"},
 			Remediation: "Replace cluster-admin with narrowly scoped Roles and bind only the verbs and resources required.",
-			CISRef:      "CIS Kubernetes Benchmark v1.12 5.1.1",
+			CISRef:      "CIS Kubernetes Benchmark 5.1.1",
 		},
 		{
 			ID:          "demo-secret-env",
@@ -53,7 +53,7 @@ func main() {
 			Category:    engine.CategoryNetpol,
 			Resource:    engine.Resource{Namespace: "payments", Kind: "Namespace", Name: "payments"},
 			Remediation: "Create default-deny ingress and egress policies, then allow required application flows.",
-			CISRef:      "CIS Kubernetes Benchmark v1.12 5.3.2",
+			CISRef:      "CIS Kubernetes Benchmark 5.3.2",
 		},
 		{
 			ID:          "demo-cis-automount",
@@ -64,7 +64,7 @@ func main() {
 			Category:    engine.CategoryCIS,
 			Resource:    engine.Resource{Namespace: "payments", Kind: "ServiceAccount", Name: "default"},
 			Remediation: "Set automountServiceAccountToken: false and create dedicated service accounts for workloads.",
-			CISRef:      "CIS Kubernetes Benchmark v1.12 4.1.6",
+			CISRef:      "CIS Kubernetes Benchmark 5.1.6",
 		},
 		{
 			ID:          "demo-workload-root",
