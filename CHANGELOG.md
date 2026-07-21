@@ -4,6 +4,7 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+- Moves the Go toolchain, CI workflows, and the digest-pinned builder image to Go 1.25.12 so the govulncheck gate passes again: GO-2026-5856 (Encrypted Client Hello privacy leak in `crypto/tls`) is reachable through the AI providers and fixed in 1.25.12.
 - Removes the stale "CIS Kubernetes Benchmark v1.12" claim from the README, docs site, scanner description, and TUI demo fixture. The `cis` scanner is now described version-free as the API-checkable subset of the benchmark's Policies section; aligning the check catalog with the current benchmark release (2.0.x) is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
 
 ## v1.1.0 - 2026-06-29
