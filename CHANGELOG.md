@@ -4,6 +4,7 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+- Corrects all CIS Kubernetes Benchmark references to the benchmark's real Section 5 recommendation numbers: finding descriptions and the `cisRef` output field now cite e.g. `5.2.2` for privileged containers instead of the EKS-style `4.2.1`, and rule standards metadata is renumbered accordingly (verified against the v1.12 structure, which the 2.0.x releases retain). Adds missing benchmark mappings for RBAC-002/003 (5.1.3), RBAC-020 (5.1.8), RBAC-022 (5.1.10), RBAC-023 (5.1.9), WL-011 (5.6.3), WL-013 (5.2.6), and WL-021 (5.2.8). `CIS-4.5.1`, `CIS-4.5.2`, and WL-031 no longer claim CIS recommendations that do not exist; they are attributed to the NSA/CISA Kubernetes Hardening Guidance and their findings no longer carry a `cisRef`. Check IDs and suppression keys are unchanged. ([#19](https://github.com/RamazanKara/kube-shield/issues/19))
 - Moves the Go toolchain, CI workflows, and the digest-pinned builder image to Go 1.25.12 so the govulncheck gate passes again: GO-2026-5856 (Encrypted Client Hello privacy leak in `crypto/tls`) is reachable through the AI providers and fixed in 1.25.12.
 - Removes the stale "CIS Kubernetes Benchmark v1.12" claim from the README, docs site, scanner description, and TUI demo fixture. The `cis` scanner is now described version-free as the API-checkable subset of the benchmark's Policies section; aligning the check catalog with the current benchmark release (2.0.x) is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
 

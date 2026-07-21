@@ -27,35 +27,35 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 
 	// Benchmark Policies section — these are the checks we can perform via API access
 
-	// 4.1 RBAC and Service Accounts
+	// Benchmark 5.1 RBAC and Service Accounts
 	f, err := checkRBACPolicies(ctx, client)
 	if err != nil {
 		return nil, err
 	}
 	findings = append(findings, f...)
 
-	// 4.2 Pod Security
+	// Benchmark 5.2 Pod Security Standards
 	f, err = checkPodSecurity(ctx, client, namespace)
 	if err != nil {
 		return nil, err
 	}
 	findings = append(findings, f...)
 
-	// 4.3 Network Policies
+	// Benchmark 5.3 Network Policies and CNI
 	f, err = checkNetworkPolicies(ctx, client, namespace)
 	if err != nil {
 		return nil, err
 	}
 	findings = append(findings, f...)
 
-	// 4.4 Secrets Management
+	// Benchmark 5.4 Secrets Management
 	f, err = checkSecretsManagement(ctx, client, namespace)
 	if err != nil {
 		return nil, err
 	}
 	findings = append(findings, f...)
 
-	// 4.5 General Policies
+	// Resource policy checks (NSA/CISA Kubernetes Hardening Guidance)
 	f, err = checkGeneralPolicies(ctx, client, namespace)
 	if err != nil {
 		return nil, err
@@ -68,11 +68,11 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 	}, nil
 }
 
-// 4.1 RBAC and Service Accounts
+// Benchmark 5.1 RBAC and Service Accounts
 func checkRBACPolicies(ctx context.Context, client kubernetes.Interface) ([]engine.Finding, error) {
 	var findings []engine.Finding
 
-	// CIS 4.1.1 - Ensure cluster-admin role is only used where required
+	// CIS 5.1.1 - Ensure cluster-admin role is only used where required
 	crbs, err := client.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -89,19 +89,19 @@ func checkRBACPolicies(ctx context.Context, client kubernetes.Interface) ([]engi
 						ID:          fmt.Sprintf("CIS-4.1.1-%s-%s", crb.Name, subj.Name),
 						CheckID:     "CIS-4.1.1",
 						Title:       fmt.Sprintf("cluster-admin role bound to SA: %s/%s", subj.Namespace, subj.Name),
-						Description: "CIS 4.1.1: Ensure that the cluster-admin role is only used where required. ServiceAccounts should not be bound to cluster-admin.",
+						Description: "CIS 5.1.1: Ensure that the cluster-admin role is only used where required. ServiceAccounts should not be bound to cluster-admin.",
 						Severity:    engine.SeverityCritical,
 						Category:    engine.CategoryCIS,
 						Resource:    engine.Resource{Kind: "ClusterRoleBinding", Name: crb.Name},
 						Remediation: "Create a specific ClusterRole/Role with minimum permissions and bind it instead of cluster-admin.",
-						CISRef:      "4.1.1",
+						CISRef:      "5.1.1",
 					})
 				}
 			}
 		}
 	}
 
-	// CIS 4.1.2 - Minimize access to secrets
+	// CIS 5.1.2 - Minimize access to secrets
 	clusterRoles, err := client.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -118,19 +118,19 @@ func checkRBACPolicies(ctx context.Context, client kubernetes.Interface) ([]engi
 					ID:          fmt.Sprintf("CIS-4.1.2-%s", cr.Name),
 					CheckID:     "CIS-4.1.2",
 					Title:       fmt.Sprintf("ClusterRole with secret access: %s", cr.Name),
-					Description: "CIS 4.1.2: Minimize access to secrets. ClusterRole grants access to read secrets cluster-wide.",
+					Description: "CIS 5.1.2: Minimize access to secrets. ClusterRole grants access to read secrets cluster-wide.",
 					Severity:    engine.SeverityHigh,
 					Category:    engine.CategoryCIS,
 					Resource:    engine.Resource{Kind: "ClusterRole", Name: cr.Name},
 					Remediation: "Restrict secret access to namespace-scoped Roles instead of ClusterRoles where possible.",
-					CISRef:      "4.1.2",
+					CISRef:      "5.1.2",
 				})
 				break
 			}
 		}
 	}
 
-	// CIS 4.1.5 - Ensure default service accounts are not actively used
+	// CIS 5.1.5 - Ensure default service accounts are not actively used
 	serviceAccounts, err := client.CoreV1().ServiceAccounts("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -154,29 +154,29 @@ func checkRBACPolicies(ctx context.Context, client kubernetes.Interface) ([]engi
 						ID:          fmt.Sprintf("CIS-4.1.5-%s-%s", sa.Namespace, rb.Name),
 						CheckID:     "CIS-4.1.5",
 						Title:       fmt.Sprintf("Default SA has role binding in %s", sa.Namespace),
-						Description: "CIS 4.1.5: Ensure that default service accounts are not actively used. The default SA should not have additional roles bound to it.",
+						Description: "CIS 5.1.5: Ensure that default service accounts are not actively used. The default SA should not have additional roles bound to it.",
 						Severity:    engine.SeverityMedium,
 						Category:    engine.CategoryCIS,
 						Resource:    engine.Resource{Kind: "ServiceAccount", Name: "default", Namespace: sa.Namespace},
 						Remediation: "Create dedicated ServiceAccounts for workloads. Remove role bindings from the default SA.",
-						CISRef:      "4.1.5",
+						CISRef:      "5.1.5",
 					})
 				}
 			}
 		}
 
-		// CIS 4.1.6 - Ensure SA tokens are not mounted automatically
+		// CIS 5.1.6 - Ensure SA tokens are not mounted automatically
 		if sa.AutomountServiceAccountToken == nil || *sa.AutomountServiceAccountToken {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("CIS-4.1.6-%s", sa.Namespace),
 				CheckID:     "CIS-4.1.6",
 				Title:       fmt.Sprintf("Default SA automounts token in %s", sa.Namespace),
-				Description: "CIS 4.1.6: Ensure that Service Account Tokens are not automatically mounted. The default SA automounts tokens, giving pods API access.",
+				Description: "CIS 5.1.6: Ensure that Service Account Tokens are only mounted where necessary. The default SA automounts tokens, giving pods API access.",
 				Severity:    engine.SeverityMedium,
 				Category:    engine.CategoryCIS,
 				Resource:    engine.Resource{Kind: "ServiceAccount", Name: "default", Namespace: sa.Namespace},
 				Remediation: "Set automountServiceAccountToken: false on the default ServiceAccount.",
-				CISRef:      "4.1.6",
+				CISRef:      "5.1.6",
 			})
 		}
 	}
@@ -184,7 +184,7 @@ func checkRBACPolicies(ctx context.Context, client kubernetes.Interface) ([]engi
 	return findings, nil
 }
 
-// 4.2 Pod Security
+// Benchmark 5.2 Pod Security Standards
 func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespace string) ([]engine.Finding, error) {
 	var findings []engine.Finding
 
@@ -211,96 +211,96 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 		res := engine.Resource{Kind: "Pod", Name: pod.Name, Namespace: pod.Namespace}
 
 		for _, c := range pod.Spec.Containers {
-			// CIS 4.2.1 - Minimize admission of privileged containers
+			// CIS 5.2.2 - Minimize admission of privileged containers
 			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
 				findings = append(findings, engine.Finding{
 					ID:          fmt.Sprintf("CIS-4.2.1-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
 					CheckID:     "CIS-4.2.1",
 					Title:       fmt.Sprintf("Privileged container: %s/%s", pod.Name, c.Name),
-					Description: "CIS 4.2.1: Minimize the admission of privileged containers.",
+					Description: "CIS 5.2.2: Minimize the admission of privileged containers.",
 					Severity:    engine.SeverityCritical,
 					Category:    engine.CategoryCIS,
 					Resource:    res,
 					Remediation: "Do not run containers in privileged mode. Use specific capabilities instead.",
-					CISRef:      "4.2.1",
+					CISRef:      "5.2.2",
 				})
 			}
 
-			// CIS 4.2.6 - Minimize admission of root containers
+			// CIS 5.2.7 - Minimize admission of root containers
 			if c.SecurityContext == nil || c.SecurityContext.RunAsNonRoot == nil || !*c.SecurityContext.RunAsNonRoot {
 				if c.SecurityContext == nil || c.SecurityContext.RunAsUser == nil || *c.SecurityContext.RunAsUser == 0 {
 					findings = append(findings, engine.Finding{
 						ID:          fmt.Sprintf("CIS-4.2.6-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
 						CheckID:     "CIS-4.2.6",
 						Title:       fmt.Sprintf("Container may run as root: %s/%s", pod.Name, c.Name),
-						Description: "CIS 4.2.6: Minimize the admission of root containers.",
+						Description: "CIS 5.2.7: Minimize the admission of root containers.",
 						Severity:    engine.SeverityHigh,
 						Category:    engine.CategoryCIS,
 						Resource:    res,
 						Remediation: "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero value.",
-						CISRef:      "4.2.6",
+						CISRef:      "5.2.7",
 					})
 				}
 			}
 
-			// CIS 4.2.9 - Minimize admission of containers with added capabilities
+			// CIS 5.2.9 - Minimize admission of containers with added capabilities
 			if c.SecurityContext != nil && c.SecurityContext.Capabilities != nil && len(c.SecurityContext.Capabilities.Add) > 0 {
 				findings = append(findings, engine.Finding{
 					ID:          fmt.Sprintf("CIS-4.2.9-%s/%s/%s", pod.Namespace, pod.Name, c.Name),
 					CheckID:     "CIS-4.2.9",
 					Title:       fmt.Sprintf("Container has added capabilities: %s/%s", pod.Name, c.Name),
-					Description: "CIS 4.2.9: Minimize the admission of containers with added capabilities.",
+					Description: "CIS 5.2.9: Minimize the admission of containers with capabilities assigned.",
 					Severity:    engine.SeverityMedium,
 					Category:    engine.CategoryCIS,
 					Resource:    res,
 					Remediation: "Remove added capabilities. Drop ALL capabilities and add only those strictly required.",
-					CISRef:      "4.2.9",
+					CISRef:      "5.2.9",
 				})
 			}
 		}
 
-		// CIS 4.2.2 - Minimize admission of containers with hostPID
+		// CIS 5.2.3 - Minimize admission of containers with hostPID
 		if pod.Spec.HostPID {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("CIS-4.2.2-%s/%s", pod.Namespace, pod.Name),
 				CheckID:     "CIS-4.2.2",
 				Title:       fmt.Sprintf("Pod uses hostPID: %s", pod.Name),
-				Description: "CIS 4.2.2: Minimize the admission of containers wishing to share the host process ID namespace.",
+				Description: "CIS 5.2.3: Minimize the admission of containers wishing to share the host process ID namespace.",
 				Severity:    engine.SeverityHigh,
 				Category:    engine.CategoryCIS,
 				Resource:    res,
 				Remediation: "Set spec.hostPID to false.",
-				CISRef:      "4.2.2",
+				CISRef:      "5.2.3",
 			})
 		}
 
-		// CIS 4.2.3 - Minimize admission of containers with hostIPC
+		// CIS 5.2.4 - Minimize admission of containers with hostIPC
 		if pod.Spec.HostIPC {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("CIS-4.2.3-%s/%s", pod.Namespace, pod.Name),
 				CheckID:     "CIS-4.2.3",
 				Title:       fmt.Sprintf("Pod uses hostIPC: %s", pod.Name),
-				Description: "CIS 4.2.3: Minimize the admission of containers wishing to share the host IPC namespace.",
+				Description: "CIS 5.2.4: Minimize the admission of containers wishing to share the host IPC namespace.",
 				Severity:    engine.SeverityHigh,
 				Category:    engine.CategoryCIS,
 				Resource:    res,
 				Remediation: "Set spec.hostIPC to false.",
-				CISRef:      "4.2.3",
+				CISRef:      "5.2.4",
 			})
 		}
 
-		// CIS 4.2.4 - Minimize admission of containers with hostNetwork
+		// CIS 5.2.5 - Minimize admission of containers with hostNetwork
 		if pod.Spec.HostNetwork {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("CIS-4.2.4-%s/%s", pod.Namespace, pod.Name),
 				CheckID:     "CIS-4.2.4",
 				Title:       fmt.Sprintf("Pod uses hostNetwork: %s", pod.Name),
-				Description: "CIS 4.2.4: Minimize the admission of containers wishing to share the host network namespace.",
+				Description: "CIS 5.2.5: Minimize the admission of containers wishing to share the host network namespace.",
 				Severity:    engine.SeverityHigh,
 				Category:    engine.CategoryCIS,
 				Resource:    res,
 				Remediation: "Set spec.hostNetwork to false.",
-				CISRef:      "4.2.4",
+				CISRef:      "5.2.5",
 			})
 		}
 	}
@@ -308,7 +308,7 @@ func checkPodSecurity(ctx context.Context, client kubernetes.Interface, namespac
 	return findings, nil
 }
 
-// 4.3 Network Policies
+// Benchmark 5.3 Network Policies and CNI
 func checkNetworkPolicies(ctx context.Context, client kubernetes.Interface, namespace string) ([]engine.Finding, error) {
 	var findings []engine.Finding
 
@@ -331,18 +331,18 @@ func checkNetworkPolicies(ctx context.Context, client kubernetes.Interface, name
 			continue
 		}
 
-		// CIS 4.3.1 - Ensure network policies are in place for every namespace
+		// CIS 5.3.2 - Ensure network policies are in place for every namespace
 		if len(policies.Items) == 0 {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("CIS-4.3.1-%s", ns.Name),
 				CheckID:     "CIS-4.3.1",
 				Title:       fmt.Sprintf("No network policy: %s", ns.Name),
-				Description: "CIS 4.3.1: Ensure that a NetworkPolicy is configured for every namespace.",
+				Description: "CIS 5.3.2: Ensure that all Namespaces have NetworkPolicies defined.",
 				Severity:    engine.SeverityHigh,
 				Category:    engine.CategoryCIS,
 				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a default-deny NetworkPolicy for this namespace.",
-				CISRef:      "4.3.1",
+				CISRef:      "5.3.2",
 			})
 		}
 	}
@@ -350,7 +350,7 @@ func checkNetworkPolicies(ctx context.Context, client kubernetes.Interface, name
 	return findings, nil
 }
 
-// 4.4 Secrets Management
+// Benchmark 5.4 Secrets Management
 func checkSecretsManagement(ctx context.Context, client kubernetes.Interface, namespace string) ([]engine.Finding, error) {
 	var findings []engine.Finding
 
@@ -376,7 +376,7 @@ func checkSecretsManagement(ctx context.Context, client kubernetes.Interface, na
 
 		res := engine.Resource{Kind: "Pod", Name: pod.Name, Namespace: pod.Namespace}
 
-		// CIS 4.4.1 - Prefer using secrets as files over environment variables
+		// CIS 5.4.1 - Prefer using secrets as files over environment variables
 		for _, c := range pod.Spec.Containers {
 			for _, env := range c.Env {
 				if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
@@ -384,12 +384,12 @@ func checkSecretsManagement(ctx context.Context, client kubernetes.Interface, na
 						ID:          fmt.Sprintf("CIS-4.4.1-%s/%s/%s/%s", pod.Namespace, pod.Name, c.Name, env.Name),
 						CheckID:     "CIS-4.4.1",
 						Title:       fmt.Sprintf("Secret as env var: %s in %s/%s", env.Name, pod.Name, c.Name),
-						Description: "CIS 4.4.1: Prefer using Secrets as files over Secrets as environment variables.",
+						Description: "CIS 5.4.1: Prefer using Secrets as files over Secrets as environment variables.",
 						Severity:    engine.SeverityMedium,
 						Category:    engine.CategoryCIS,
 						Resource:    res,
 						Remediation: "Mount the secret as a volume instead of using valueFrom.secretKeyRef in env.",
-						CISRef:      "4.4.1",
+						CISRef:      "5.4.1",
 					})
 				}
 			}
@@ -399,7 +399,7 @@ func checkSecretsManagement(ctx context.Context, client kubernetes.Interface, na
 	return findings, nil
 }
 
-// 4.5 General Policies
+// Resource policy checks (NSA/CISA Kubernetes Hardening Guidance)
 func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, namespace string) ([]engine.Finding, error) {
 	var findings []engine.Finding
 
@@ -417,7 +417,7 @@ func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, name
 			continue
 		}
 
-		// CIS 4.5.1 - Ensure namespaces have resource quotas
+		// Resource quotas (NSA/CISA Kubernetes Hardening Guidance; not a CIS recommendation)
 		quotas, err := client.CoreV1().ResourceQuotas(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			continue
@@ -428,16 +428,15 @@ func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, name
 				ID:          fmt.Sprintf("CIS-4.5.1-%s", ns.Name),
 				CheckID:     "CIS-4.5.1",
 				Title:       fmt.Sprintf("No resource quotas: %s", ns.Name),
-				Description: "CIS 4.5.1: Create administrative boundaries between resources using namespaces with resource quotas.",
+				Description: "Namespaces without ResourceQuota do not bound aggregate resource usage. Recommended by the NSA/CISA Kubernetes Hardening Guidance.",
 				Severity:    engine.SeverityLow,
 				Category:    engine.CategoryCIS,
 				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a ResourceQuota for this namespace to limit resource consumption.",
-				CISRef:      "4.5.1",
 			})
 		}
 
-		// CIS 4.5.2 - Ensure LimitRange exists
+		// LimitRange (NSA/CISA Kubernetes Hardening Guidance; not a CIS recommendation)
 		limitRanges, err := client.CoreV1().LimitRanges(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			continue
@@ -448,12 +447,11 @@ func checkGeneralPolicies(ctx context.Context, client kubernetes.Interface, name
 				ID:          fmt.Sprintf("CIS-4.5.2-%s", ns.Name),
 				CheckID:     "CIS-4.5.2",
 				Title:       fmt.Sprintf("No LimitRange: %s", ns.Name),
-				Description: "CIS 4.5.2: Ensure LimitRange policies are set to constrain resource allocations.",
+				Description: "Namespaces without LimitRange do not define default per-container resource constraints. Recommended by the NSA/CISA Kubernetes Hardening Guidance.",
 				Severity:    engine.SeverityLow,
 				Category:    engine.CategoryCIS,
 				Resource:    engine.Resource{Kind: "Namespace", Name: ns.Name},
 				Remediation: "Create a LimitRange to set default resource limits for containers.",
-				CISRef:      "4.5.2",
 			})
 		}
 	}

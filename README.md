@@ -219,7 +219,7 @@ Environment variables use the `KUBE_SHIELD_` prefix:
 
 See [docs/reference/scanners.md](docs/reference/scanners.md) for every check ID, severity, confidence, data-access level, standards mapping, and remediation category.
 
-The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers; aligning the catalog with the current benchmark release is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
+The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers — the actual benchmark recommendation (Section 5, e.g. `5.2.2` for privileged containers) is carried in each rule's standards metadata and in finding output. Closing the remaining coverage gaps is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
 
 Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check.
 

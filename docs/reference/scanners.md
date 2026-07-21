@@ -75,7 +75,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Baseline host namespaces
-- CIS Kubernetes Benchmark: 4.2.2
+- CIS Kubernetes Benchmark: 5.2.3
 
 **References:**
 
@@ -107,7 +107,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Baseline host namespaces
-- CIS Kubernetes Benchmark: 4.2.3
+- CIS Kubernetes Benchmark: 5.2.4
 
 **References:**
 
@@ -138,7 +138,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Baseline host namespaces
-- CIS Kubernetes Benchmark: 4.2.4
+- CIS Kubernetes Benchmark: 5.2.5
 
 **References:**
 
@@ -169,7 +169,7 @@ Completed and failed pods are skipped.
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.6
+- CIS Kubernetes Benchmark: 5.1.6
 
 **References:**
 
@@ -200,7 +200,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Baseline privileged containers
-- CIS Kubernetes Benchmark: 4.2.1
+- CIS Kubernetes Benchmark: 5.2.2
 
 **References:**
 
@@ -227,6 +227,10 @@ Completed and failed pods are skipped.
 **Remediation:** Add a securityContext with runAsNonRoot: true, readOnlyRootFilesystem: true, and allowPrivilegeEscalation: false.
 
 **False-positive notes:** Pod-level securityContext or admission controls may enforce equivalent defaults.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.6.3
 
 **References:**
 
@@ -257,7 +261,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Restricted running as non-root
-- CIS Kubernetes Benchmark: 4.2.6
+- CIS Kubernetes Benchmark: 5.2.7
 
 **References:**
 
@@ -288,6 +292,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Restricted privilege escalation
+- CIS Kubernetes Benchmark: 5.2.6
 
 **References:**
 
@@ -377,6 +382,7 @@ Completed and failed pods are skipped.
 **Standards:**
 
 - Pod Security Standards: Restricted capabilities
+- CIS Kubernetes Benchmark: 5.2.8
 
 **References:**
 
@@ -491,7 +497,7 @@ Completed and failed pods are skipped.
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.5.2
+- NSA/CISA Kubernetes Hardening Guidance: Resource policies (LimitRange, ResourceQuota)
 
 **References:**
 
@@ -592,7 +598,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.1
+- CIS Kubernetes Benchmark: 5.1.1
 
 **References:**
 
@@ -621,7 +627,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.2
+- CIS Kubernetes Benchmark: 5.1.2
 
 **References:**
 
@@ -650,7 +656,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.5
+- CIS Kubernetes Benchmark: 5.1.5
 
 **References:**
 
@@ -679,7 +685,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.6
+- CIS Kubernetes Benchmark: 5.1.6
 
 **References:**
 
@@ -708,7 +714,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.1
+- CIS Kubernetes Benchmark: 5.2.2
 
 **References:**
 
@@ -737,7 +743,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.2
+- CIS Kubernetes Benchmark: 5.2.3
 
 **References:**
 
@@ -766,7 +772,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.3
+- CIS Kubernetes Benchmark: 5.2.4
 
 **References:**
 
@@ -795,7 +801,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.4
+- CIS Kubernetes Benchmark: 5.2.5
 
 **References:**
 
@@ -824,7 +830,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.6
+- CIS Kubernetes Benchmark: 5.2.7
 
 **References:**
 
@@ -853,7 +859,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.2.9
+- CIS Kubernetes Benchmark: 5.2.9
 
 **References:**
 
@@ -882,7 +888,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.3.1
+- CIS Kubernetes Benchmark: 5.3.2
 
 **References:**
 
@@ -911,7 +917,7 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.4.1
+- CIS Kubernetes Benchmark: 5.4.1
 
 **References:**
 
@@ -940,12 +946,12 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.5.1
+- NSA/CISA Kubernetes Hardening Guidance: Resource policies (LimitRange, ResourceQuota)
 
 **References:**
 
-- <https://www.cisecurity.org/benchmark/kubernetes>
-- <https://kubernetes.io/docs/concepts/security/>
+- <https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF>
+- <https://kubernetes.io/docs/concepts/policy/resource-quotas/>
 
 <a id="cis-4.5.2"></a>
 
@@ -969,12 +975,12 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.5.2
+- NSA/CISA Kubernetes Hardening Guidance: Resource policies (LimitRange, ResourceQuota)
 
 **References:**
 
-- <https://www.cisecurity.org/benchmark/kubernetes>
-- <https://kubernetes.io/docs/concepts/security/>
+- <https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF>
+- <https://kubernetes.io/docs/concepts/policy/limit-range/>
 
 ## RBAC Scanner (`rbac`)
 
@@ -1017,7 +1023,7 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1 RBAC
+- CIS Kubernetes Benchmark: 5.1.3
 
 **References:**
 
@@ -1043,6 +1049,10 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Remediation:** Replace verb wildcard with specific verbs needed by the workload.
 
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.3
+
 **References:**
 
 - <https://kubernetes.io/docs/reference/access-authn-authz/rbac/>
@@ -1066,6 +1076,10 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 **Impact:** The role may unintentionally include sensitive resources.
 
 **Remediation:** Replace resource wildcard with specific resources needed by the workload.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.3
 
 **References:**
 
@@ -1095,7 +1109,7 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.2
+- CIS Kubernetes Benchmark: 5.1.2
 
 **References:**
 
@@ -1147,6 +1161,10 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Remediation:** Remove bind, escalate, and impersonate verbs except for trusted cluster operators.
 
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.8
+
 **References:**
 
 - <https://kubernetes.io/docs/reference/access-authn-authz/rbac/#restrictions-on-role-creation-or-update>
@@ -1195,6 +1213,10 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Remediation:** Remove nodes/proxy access unless absolutely required.
 
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.10
+
 **References:**
 
 - <https://kubernetes.io/docs/reference/access-authn-authz/rbac/>
@@ -1220,6 +1242,10 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 **Remediation:** Restrict PersistentVolume management to cluster administrators only.
 
 **False-positive notes:** Storage controllers may legitimately manage PersistentVolumes.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.9
 
 **References:**
 
@@ -1247,7 +1273,7 @@ Kubernetes system roles and common CNI system roles are skipped to reduce noise.
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.1.1
+- CIS Kubernetes Benchmark: 5.1.1
 
 **References:**
 
@@ -1340,7 +1366,7 @@ The scanner evaluates declared NetworkPolicy objects. It does not prove runtime 
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.3.1
+- CIS Kubernetes Benchmark: 5.3.2
 
 **References:**
 
@@ -1503,7 +1529,7 @@ Default secret checks use pod specs and metadata-only secret inventory. kube-shi
 
 **Standards:**
 
-- CIS Kubernetes Benchmark: 4.4.1
+- CIS Kubernetes Benchmark: 5.4.1
 
 **References:**
 

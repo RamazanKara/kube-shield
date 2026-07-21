@@ -48,8 +48,8 @@ func TestScan_ClusterAdminBinding(t *testing.T) {
 			if f.Severity != engine.SeverityCritical {
 				t.Errorf("expected CRITICAL severity, got %s", f.Severity)
 			}
-			if f.CISRef != "4.1.1" {
-				t.Errorf("expected CISRef 4.1.1, got %s", f.CISRef)
+			if f.CISRef != "5.1.1" {
+				t.Errorf("expected CISRef 5.1.1, got %s", f.CISRef)
 			}
 		}
 	}
