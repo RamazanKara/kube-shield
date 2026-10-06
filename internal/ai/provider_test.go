@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
@@ -90,8 +91,10 @@ func TestBuildPromptExplain(t *testing.T) {
 	if prompt == "" {
 		t.Fatal("expected non-empty prompt")
 	}
-	if !containsAll(prompt, "Kubernetes security expert", "Privileged Container", "critical", "Pod") {
-		t.Errorf("prompt missing expected content: %s", prompt)
+	for _, content := range []string{"Kubernetes security expert", "Privileged Container", "critical", "Pod"} {
+		if !strings.Contains(strings.ToLower(prompt), strings.ToLower(content)) {
+			t.Errorf("prompt missing %q: %s", content, prompt)
+		}
 	}
 }
 
@@ -176,40 +179,4 @@ func TestOllamaExplain(t *testing.T) {
 	if result != "Ollama test explanation" {
 		t.Errorf("unexpected result: %s", result)
 	}
-}
-
-func containsAll(s string, subs ...string) bool {
-	for _, sub := range subs {
-		found := false
-		lower := toLower(s)
-		lowerSub := toLower(sub)
-		if idx := indexOf(lower, lowerSub); idx >= 0 {
-			found = true
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
-func toLower(s string) string {
-	b := make([]byte, len(s))
-	for i := range s {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 32
-		}
-		b[i] = c
-	}
-	return string(b)
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
 }

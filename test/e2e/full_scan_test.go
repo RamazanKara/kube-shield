@@ -34,11 +34,11 @@ func TestFullScan(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	report, err := eng.RunAllWithContext(ctx, engine.ScanContext{
+	report, err := eng.RunWithContext(ctx, engine.ScanContext{
 		Client:         client.Clientset,
 		MetadataClient: client.MetadataClient,
 		Namespace:      namespace,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("full scan failed: %v", err)
 	}
@@ -100,11 +100,11 @@ func TestFullScan_SeverityFiltering(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	report, err := eng.RunAllWithContext(ctx, engine.ScanContext{
+	report, err := eng.RunWithContext(ctx, engine.ScanContext{
 		Client:         client.Clientset,
 		MetadataClient: client.MetadataClient,
 		Namespace:      namespace,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("full scan failed: %v", err)
 	}
@@ -149,11 +149,11 @@ func TestFullScan_CategoryFiltering(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	report, err := eng.RunAllWithContext(ctx, engine.ScanContext{
+	report, err := eng.RunWithContext(ctx, engine.ScanContext{
 		Client:         client.Clientset,
 		MetadataClient: client.MetadataClient,
 		Namespace:      namespace,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("full scan failed: %v", err)
 	}

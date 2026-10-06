@@ -501,7 +501,7 @@ func TestUpdateAsyncAndNavigationBranches(t *testing.T) {
 	m.showDetail = true
 	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
 	m = updated.(Model)
-	if !m.aiLoading || cmd == nil {
+	if m.aiResult != "⏳ Asking AI..." || cmd == nil {
 		t.Fatal("expected explain command")
 	}
 	updated, _ = m.Update(cmd())
@@ -512,7 +512,7 @@ func TestUpdateAsyncAndNavigationBranches(t *testing.T) {
 
 	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	m = updated.(Model)
-	if !m.aiLoading || cmd == nil {
+	if m.aiResult != "⏳ Refreshing scan..." || cmd == nil {
 		t.Fatal("expected refresh command")
 	}
 	updated, _ = m.Update(cmd())

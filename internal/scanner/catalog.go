@@ -1,8 +1,6 @@
 package scanner
 
 import (
-	"sort"
-
 	"github.com/RamazanKara/kube-shield/internal/scanner/cis"
 	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
 	"github.com/RamazanKara/kube-shield/internal/scanner/netpol"
@@ -69,11 +67,4 @@ func CategorySet() map[string]struct{} {
 		set[string(category)] = struct{}{}
 	}
 	return set
-}
-
-// SortedNames returns all built-in scanner names in deterministic display order.
-func SortedNames() []string {
-	names := Names()
-	sort.Strings(names)
-	return names
 }

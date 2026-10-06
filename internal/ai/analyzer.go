@@ -9,27 +9,11 @@ import (
 	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
 )
 
-// AnalyzeOptions configures the AI analysis behavior.
-type AnalyzeOptions struct {
-	MaxFindings    int
-	MinSeverity    engine.Severity
-	RequestTimeout time.Duration
-}
-
-// DefaultAnalyzeOptions returns sensible defaults for AI analysis.
-func DefaultAnalyzeOptions() AnalyzeOptions {
-	return AnalyzeOptions{
-		MaxFindings:    5,
-		MinSeverity:    engine.SeverityHigh,
-		RequestTimeout: 30 * time.Second,
-	}
-}
-
 // AnalyzeFindings runs AI explanation on high-severity findings and writes results to w.
-func AnalyzeFindings(ctx context.Context, w io.Writer, provider Provider, findings []engine.Finding, opts AnalyzeOptions) {
+func AnalyzeFindings(ctx context.Context, w io.Writer, provider Provider, findings []engine.Finding) {
 	var filtered []engine.Finding
 	for _, f := range findings {
-		if f.Severity >= opts.MinSeverity {
+		if f.Severity >= engine.SeverityHigh {
 			filtered = append(filtered, f)
 		}
 	}
@@ -39,13 +23,8 @@ func AnalyzeFindings(ctx context.Context, w io.Writer, provider Provider, findin
 
 	_, _ = fmt.Fprintf(w, "\n🤖 AI Analysis (%s):\n", provider.Name())
 
-	limit := len(filtered)
-	if limit > opts.MaxFindings {
-		limit = opts.MaxFindings
-	}
-
-	for _, f := range filtered[:limit] {
-		aiCtx, cancel := context.WithTimeout(ctx, opts.RequestTimeout)
+	for _, f := range filtered[:min(len(filtered), 5)] {
+		aiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		explanation, err := provider.Explain(aiCtx, f)
 		cancel()
 		if err != nil {

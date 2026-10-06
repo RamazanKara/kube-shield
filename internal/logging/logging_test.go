@@ -21,11 +21,3 @@ func TestNewWithWriterTextAndJSON(t *testing.T) {
 		t.Fatalf("unexpected json log output: %s", output)
 	}
 }
-
-func TestDiscard(t *testing.T) {
-	logger := Discard()
-	if logger == nil {
-		t.Fatal("expected discard logger")
-	}
-	logger.Info("discarded")
-}

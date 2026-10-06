@@ -302,16 +302,6 @@ func (e *Engine) RunWithContext(ctx context.Context, scanCtx ScanContext, scanne
 	return report, nil
 }
 
-// RunAll executes all registered scanners.
-func (e *Engine) RunAll(ctx context.Context, client kubernetes.Interface, namespace string) (*Report, error) {
-	return e.Run(ctx, client, namespace, nil)
-}
-
-// RunAllWithContext executes all registered scanners with full scan context.
-func (e *Engine) RunAllWithContext(ctx context.Context, scanCtx ScanContext) (*Report, error) {
-	return e.RunWithContext(ctx, scanCtx, nil)
-}
-
 // Report aggregates results from all scanners.
 type Report struct {
 	Findings           []Finding     `json:"findings"`

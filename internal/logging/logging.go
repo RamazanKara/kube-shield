@@ -33,8 +33,3 @@ func NewWithWriter(verbose bool, format string, w io.Writer) *slog.Logger {
 
 	return slog.New(handler)
 }
-
-// Discard returns a logger that discards all output (for tests).
-func Discard() *slog.Logger {
-	return NewWithWriter(false, "text", io.Discard)
-}

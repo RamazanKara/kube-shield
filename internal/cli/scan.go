@@ -156,7 +156,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if aiErr != nil {
 			fmt.Fprintf(os.Stderr, "\n⚠️  AI provider error: %v\n", aiErr)
 		} else {
-			ai.AnalyzeFindings(ctx, os.Stderr, provider, result.Findings, ai.DefaultAnalyzeOptions())
+			ai.AnalyzeFindings(ctx, os.Stderr, provider, result.Findings)
 		}
 	}
 
