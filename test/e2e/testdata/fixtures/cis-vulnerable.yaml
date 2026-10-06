@@ -2,8 +2,8 @@
 # Pods violating CIS benchmarks for e2e testing.
 # DO NOT deploy to any real cluster.
 
-# CIS-4.2.6: Container running as root (no runAsNonRoot)
-# CIS-4.2.9: Added capabilities
+# CIS-5.2.7: Container running as root (no runAsNonRoot)
+# CIS-5.2.9: Added capabilities
 # Already covered by workload fixtures, but this adds an explicit CIS-focused pod:
 apiVersion: v1
 kind: Pod
@@ -11,10 +11,22 @@ metadata:
   name: cis-root-pod
   namespace: kube-shield-e2e
 spec:
+  volumes:
+    - name: host-logs
+      hostPath:
+        path: /var/log
+        type: Directory
   containers:
     - name: root-container
       image: busybox:1.36
       command: ["sleep", "infinity"]
+      ports:
+        - containerPort: 8080
+          hostPort: 18080
+      volumeMounts:
+        - name: host-logs
+          mountPath: /host-logs
+          readOnly: true
       securityContext:
         runAsUser: 0
         readOnlyRootFilesystem: false

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -32,6 +33,33 @@ func TestRulesHaveRequiredCredibilityMetadata(t *testing.T) {
 		}
 		if rule.CheckID == "SEC-010" && rule.DefaultEnabled {
 			t.Fatal("SEC-010 reads secret data and must not be enabled by default")
+		}
+	}
+}
+
+func TestCISPolicyCatalog(t *testing.T) {
+	controls := []string{
+		"5.1.1", "5.1.2", "5.1.4", "5.1.5", "5.1.6", "5.1.7", "5.1.11", "5.1.12", "5.1.13",
+		"5.2.1", "5.2.2", "5.2.3", "5.2.4", "5.2.5", "5.2.7", "5.2.9", "5.2.10", "5.2.11", "5.2.12",
+		"5.3.2", "5.4.1", "5.6.2", "5.6.4",
+	}
+	rules := RulesByScanner("cis")
+	if len(rules) != len(controls) {
+		t.Fatalf("CIS catalog has %d rules, want %d", len(rules), len(controls))
+	}
+	for _, control := range controls {
+		rule, ok := RuleByID("CIS-" + control)
+		if !ok {
+			t.Errorf("missing CIS control %s", control)
+			continue
+		}
+		if len(rule.Standards) != 1 || rule.Standards[0] != (StandardMapping{Name: "CIS Kubernetes Benchmark", Control: control}) {
+			t.Errorf("incorrect standard mapping for %s: %v", rule.CheckID, rule.Standards)
+		}
+	}
+	for _, rule := range Rules() {
+		if strings.HasPrefix(rule.CheckID, "CIS-4.") {
+			t.Errorf("legacy CIS ID remains in catalog: %s", rule.CheckID)
 		}
 	}
 }

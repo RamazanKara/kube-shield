@@ -54,15 +54,15 @@ func sampleReport() *engine.Report {
 				Remediation: "Mount secrets as files.",
 			},
 			{
-				ID:          "CIS-4.5.1-staging",
-				CheckID:     "CIS-4.5.1",
-				Title:       "No resource quotas: staging",
-				Description: "Namespace has no resource quotas.",
+				ID:          "CIS-5.6.4-default/app",
+				CheckID:     "CIS-5.6.4",
+				Title:       "Pod uses the default namespace: app",
+				Description: "The default namespace should not be used for workloads.",
 				Severity:    engine.SeverityLow,
 				Category:    engine.CategoryCIS,
-				Resource:    engine.Resource{Kind: "Namespace", Name: "staging"},
-				Remediation: "Create a ResourceQuota.",
-				CISRef:      "4.5.1",
+				Resource:    engine.Resource{Kind: "Pod", Name: "app", Namespace: "default"},
+				Remediation: "Move the workload to a dedicated namespace.",
+				CISRef:      "5.6.4",
 			},
 		},
 		Summary: engine.Summary{
@@ -197,6 +197,10 @@ func TestJSONWriter(t *testing.T) {
 	if len(findings) != 5 {
 		t.Errorf("expected 5 findings, got %d", len(findings))
 	}
+	cis := findings[4].(map[string]interface{})
+	if cis["checkId"] != "CIS-5.6.4" || cis["cisRef"] != "5.6.4" || cis["id"] != "CIS-5.6.4-default/app" {
+		t.Errorf("incorrect CIS JSON identifiers: %v", cis)
+	}
 
 	summary, ok := parsed["summary"].(map[string]interface{})
 	if !ok {
@@ -255,6 +259,14 @@ func TestSARIFWriter(t *testing.T) {
 	results, ok := run["results"].([]interface{})
 	if !ok || len(results) != 5 {
 		t.Errorf("expected 5 results, got %d", len(results))
+	}
+	cisRule := rules[4].(map[string]interface{})
+	if cisRule["id"] != "CIS-5.6.4" || !strings.HasSuffix(cisRule["helpUri"].(string), "#cis-5.6.4") {
+		t.Errorf("incorrect CIS SARIF rule: %v", cisRule)
+	}
+	cisResult := results[4].(map[string]interface{})
+	if cisResult["ruleId"] != "CIS-5.6.4" || cisResult["level"] != "note" {
+		t.Errorf("incorrect CIS SARIF result: %v", cisResult)
 	}
 
 	// Verify first result has expected fields

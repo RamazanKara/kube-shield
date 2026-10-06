@@ -212,7 +212,7 @@ Environment variables use the `KUBE_SHIELD_` prefix:
 | Scanner | Checks | Severity Range | Focus |
 |---------|--------|----------------|-------|
 | `workload` | 17 | Critical to Info | Pod and container security posture |
-| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
+| `cis` | 23 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
 | `rbac` | 12 | Critical to Medium | Over-permissive roles and risky bindings |
 | `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
 | `secrets` | 6 | High to Info | Secret exposure and reference hygiene |

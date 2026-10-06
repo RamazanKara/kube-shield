@@ -462,19 +462,19 @@ func deduplicationKey(f Finding) string {
 
 func canonicalCheckID(checkID string) string {
 	switch checkID {
-	case "CIS-4.2.1":
+	case "CIS-5.2.2":
 		return "WL-010"
-	case "CIS-4.2.2":
+	case "CIS-5.2.3":
 		return "WL-001"
-	case "CIS-4.2.3":
+	case "CIS-5.2.4":
 		return "WL-002"
-	case "CIS-4.2.4":
+	case "CIS-5.2.5":
 		return "WL-003"
-	case "CIS-4.2.6":
+	case "CIS-5.2.7":
 		return "WL-012"
-	case "CIS-4.3.1":
+	case "CIS-5.3.2":
 		return "NET-001"
-	case "CIS-4.4.1":
+	case "CIS-5.4.1":
 		return "SEC-001"
 	default:
 		return checkID

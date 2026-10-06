@@ -42,7 +42,7 @@ metadata:
   name: e2e-overprivileged-sa
   namespace: kube-shield-e2e
 ---
-# Bind cluster-admin to a SA (CIS-4.1.1)
+# Bind cluster-admin to a SA (CIS-5.1.1)
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -70,7 +70,7 @@ subjects:
     name: default
     namespace: kube-shield-e2e
 ---
-# Bind default SA with additional role (CIS-4.1.5)
+# Bind default SA with additional role (CIS-5.1.5)
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
