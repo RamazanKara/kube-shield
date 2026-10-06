@@ -3,7 +3,7 @@
 # DO NOT deploy to any real cluster.
 
 # The kube-shield-e2e namespace is already created by workload-vulnerable.yaml
-# and will have NO network policies -> triggers NET-001, CIS-4.3.1
+# and will have NO network policies -> triggers NET-001, CIS-5.3.2
 
 # A second namespace with an overly permissive policy (NET-010, NET-011)
 apiVersion: v1

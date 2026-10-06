@@ -76,14 +76,14 @@ func testReport() *engine.Report {
 				Resource: engine.Resource{Kind: "Pod", Name: "app-pod", Namespace: "staging"},
 			},
 			{
-				CheckID:  "CIS-4.1.6",
+				CheckID:  "CIS-5.1.6",
 				Title:    "CIS RBAC check",
 				Severity: engine.SeverityHigh,
 				Category: engine.CategoryCIS,
 				Resource: engine.Resource{Kind: "ClusterRole", Name: "wide-role"},
 			},
 			{
-				CheckID:  "CIS-4.3.2",
+				CheckID:  "CIS-5.3.2",
 				Title:    "CIS network check",
 				Severity: engine.SeverityMedium,
 				Category: engine.CategoryCIS,
@@ -153,10 +153,10 @@ func TestFilteredFindings(t *testing.T) {
 	}
 
 	// Filter by check ID
-	m.filterText = "CIS-4.1"
+	m.filterText = "CIS-5.1"
 	filtered = m.filteredFindings()
 	if len(filtered) != 1 {
-		t.Errorf("expected 1 CIS-4.1 finding, got %d", len(filtered))
+		t.Errorf("expected 1 CIS-5.1 finding, got %d", len(filtered))
 	}
 
 	// No match
@@ -184,13 +184,13 @@ func TestMaxCursorItems(t *testing.T) {
 	}
 	m.filterText = ""
 
-	// RBAC tab — CategoryRBAC (1) + CIS-4.1 prefix (1) = 2
+	// RBAC tab — CategoryRBAC (1) + CIS-5.1 prefix (1) = 2
 	m.activeTab = TabRBAC
 	if got := m.maxCursorItems(); got != 2 {
 		t.Errorf("TabRBAC: expected 2, got %d", got)
 	}
 
-	// Network tab — CategoryNetpol (1) + CIS-4.3 prefix (1) = 2
+	// Network tab — CategoryNetpol (1) + CIS-5.3 prefix (1) = 2
 	m.activeTab = TabNetwork
 	if got := m.maxCursorItems(); got != 2 {
 		t.Errorf("TabNetwork: expected 2, got %d", got)

@@ -53,7 +53,7 @@ func FuzzEnvVarTarget(f *testing.F) {
 func FuzzFindingFingerprint(f *testing.F) {
 	f.Add("WL-010", "Pod", "default", "app", "Privileged container: web")
 	f.Add("", "", "", "", "")
-	f.Add("CIS-4.2.1", "Namespace", "", "kube-system", "\x00 weird \n title")
+	f.Add("CIS-5.2.2", "Namespace", "", "kube-system", "\x00 weird \n title")
 	f.Fuzz(func(t *testing.T, checkID, kind, namespace, name, title string) {
 		finding := Finding{
 			CheckID:  checkID,

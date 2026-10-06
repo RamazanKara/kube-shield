@@ -572,7 +572,7 @@ func (m Model) renderRBACPanel() string {
 	// Filter RBAC findings
 	var rbacFindings []engine.Finding
 	for _, f := range m.report.Findings {
-		if f.Category == engine.CategoryRBAC || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.1")) {
+		if f.Category == engine.CategoryRBAC || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-5.1")) {
 			rbacFindings = append(rbacFindings, f)
 		}
 	}
@@ -603,7 +603,7 @@ func (m Model) renderNetworkPanel() string {
 
 	var netFindings []engine.Finding
 	for _, f := range m.report.Findings {
-		if f.Category == engine.CategoryNetpol || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.3")) {
+		if f.Category == engine.CategoryNetpol || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-5.3")) {
 			netFindings = append(netFindings, f)
 		}
 	}
@@ -751,7 +751,7 @@ func (m Model) maxCursorItems() int {
 	case TabRBAC:
 		count := 0
 		for _, f := range m.report.Findings {
-			if f.Category == engine.CategoryRBAC || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.1")) {
+			if f.Category == engine.CategoryRBAC || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-5.1")) {
 				count++
 			}
 		}
@@ -759,7 +759,7 @@ func (m Model) maxCursorItems() int {
 	case TabNetwork:
 		count := 0
 		for _, f := range m.report.Findings {
-			if f.Category == engine.CategoryNetpol || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-4.3")) {
+			if f.Category == engine.CategoryNetpol || (f.Category == engine.CategoryCIS && strings.HasPrefix(f.CheckID, "CIS-5.3")) {
 				count++
 			}
 		}

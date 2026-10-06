@@ -106,7 +106,7 @@ func TestScannerGoldenFindingsAndFingerprints(t *testing.T) {
 				}
 				return result.Findings
 			},
-			expected: []string{"CIS-4.1.1|ClusterRoleBinding/golden-admin|ks-e241fbea9c9332b2f3c6"},
+			expected: []string{"CIS-5.1.1|ClusterRoleBinding/golden-admin|ks-d1db510f656bfbe2495e"},
 		},
 		{
 			name: "cis negative fixture",

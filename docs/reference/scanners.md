@@ -9,7 +9,7 @@ Scanner results are posture signals, not a full Kubernetes audit. kube-shield fo
 | Scanner | Checks | Category | Severity Range |
 |---------|--------|----------|----------------|
 | `workload` | 17 | `workload` | Critical to Info |
-| `cis` | 14 | `cis` | Critical to Low |
+| `cis` | 23 | `cis` | Critical to Low |
 | `rbac` | 12 | `rbac` | Critical to Medium |
 | `netpol` | 6 | `netpol` | High to Medium |
 | `secrets` | 6 | `secrets` | High to Info |
@@ -559,26 +559,35 @@ Completed and failed pods are skipped.
 
 | Check ID | Severity | Confidence | Data Access | Default | Title |
 |----------|----------|------------|-------------|---------|-------|
-| CIS-4.1.1 | CRITICAL | high | `object-spec` | true | cluster-admin role bound to ServiceAccount |
-| CIS-4.1.2 | HIGH | high | `object-spec` | true | ClusterRole with secret access |
-| CIS-4.1.5 | MEDIUM | medium | `object-spec` | true | Default SA has role binding |
-| CIS-4.1.6 | MEDIUM | medium | `object-spec` | true | Default SA automounts token |
-| CIS-4.2.1 | CRITICAL | high | `object-spec` | true | Privileged container |
-| CIS-4.2.2 | HIGH | high | `object-spec` | true | Pod uses hostPID |
-| CIS-4.2.3 | HIGH | high | `object-spec` | true | Pod uses hostIPC |
-| CIS-4.2.4 | HIGH | high | `object-spec` | true | Pod uses hostNetwork |
-| CIS-4.2.6 | HIGH | medium | `object-spec` | true | Container may run as root |
-| CIS-4.2.9 | MEDIUM | high | `object-spec` | true | Container has added capabilities |
-| CIS-4.3.1 | HIGH | high | `object-spec` | true | No network policy in namespace |
-| CIS-4.4.1 | MEDIUM | high | `object-spec` | true | Secret exposed as env var |
-| CIS-4.5.1 | LOW | high | `object-spec` | true | No resource quotas in namespace |
-| CIS-4.5.2 | LOW | high | `object-spec` | true | No LimitRange in namespace |
+| CIS-5.1.1 | CRITICAL | high | `object-spec` | true | cluster-admin role bound to ServiceAccount |
+| CIS-5.1.11 | HIGH | medium | `object-spec` | true | Role can approve certificate requests |
+| CIS-5.1.12 | HIGH | medium | `object-spec` | true | Role has webhook configuration access |
+| CIS-5.1.13 | HIGH | medium | `object-spec` | true | Role can create ServiceAccount tokens |
+| CIS-5.1.2 | HIGH | high | `object-spec` | true | ClusterRole with secret access |
+| CIS-5.1.4 | HIGH | medium | `object-spec` | true | Role can create pods |
+| CIS-5.1.5 | MEDIUM | medium | `object-spec` | true | Default SA has role binding |
+| CIS-5.1.6 | MEDIUM | medium | `object-spec` | true | ServiceAccount or pod automounts token |
+| CIS-5.1.7 | HIGH | low | `object-spec` | true | Binding references system:masters |
+| CIS-5.2.1 | MEDIUM | low | `object-spec` | true | Namespace lacks Pod Security enforcement label |
+| CIS-5.2.10 | CRITICAL | high | `object-spec` | true | Windows HostProcess container |
+| CIS-5.2.11 | HIGH | high | `object-spec` | true | Pod uses HostPath volume |
+| CIS-5.2.12 | HIGH | high | `object-spec` | true | Container uses host ports |
+| CIS-5.2.2 | CRITICAL | high | `object-spec` | true | Privileged container |
+| CIS-5.2.3 | HIGH | high | `object-spec` | true | Pod uses hostPID |
+| CIS-5.2.4 | HIGH | high | `object-spec` | true | Pod uses hostIPC |
+| CIS-5.2.5 | HIGH | high | `object-spec` | true | Pod uses hostNetwork |
+| CIS-5.2.7 | HIGH | medium | `object-spec` | true | Container may run as root |
+| CIS-5.2.9 | MEDIUM | high | `object-spec` | true | Container has capabilities assigned |
+| CIS-5.3.2 | HIGH | high | `object-spec` | true | No network policy in namespace |
+| CIS-5.4.1 | MEDIUM | high | `object-spec` | true | Secret exposed as env var |
+| CIS-5.6.2 | MEDIUM | medium | `object-spec` | true | Container lacks a seccomp profile |
+| CIS-5.6.4 | LOW | high | `object-spec` | true | Pod uses the default namespace |
 
 Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesystem, control-plane host, and managed-provider settings are outside this scanner's scope. System namespaces are skipped for namespace-scoped CIS checks.
 
-<a id="cis-4.1.1"></a>
+<a id="cis-5.1.1"></a>
 
-### CIS-4.1.1
+### CIS-5.1.1
 
 **Title:** cluster-admin role bound to ServiceAccount
 
@@ -605,9 +614,96 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.1.2"></a>
+<a id="cis-5.1.11"></a>
 
-### CIS-4.1.2
+### CIS-5.1.11
+
+**Title:** Role can approve certificate requests
+
+**Severity:** HIGH
+
+**Confidence:** medium
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Approval permissions can support issuing credentials to unintended identities.
+
+**Impact:** Misused certificate approval may enable privilege escalation.
+
+**Remediation:** Remove unnecessary update and patch access to certificatesigningrequests/approval.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.11
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.1.12"></a>
+
+### CIS-5.1.12
+
+**Title:** Role has webhook configuration access
+
+**Severity:** HIGH
+
+**Confidence:** medium
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Admission webhook configuration controls how API requests are validated or mutated.
+
+**Impact:** Unnecessary access may expose or allow changes to cluster admission controls.
+
+**Remediation:** Restrict access to validatingwebhookconfigurations and mutatingwebhookconfigurations to required administrators.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.12
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.1.13"></a>
+
+### CIS-5.1.13
+
+**Title:** Role can create ServiceAccount tokens
+
+**Severity:** HIGH
+
+**Confidence:** medium
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Token creation grants credentials for other workload identities.
+
+**Impact:** A principal may obtain the permissions of another ServiceAccount.
+
+**Remediation:** Remove unnecessary create access to serviceaccounts/token.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.13
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.1.2"></a>
+
+### CIS-5.1.2
 
 **Title:** ClusterRole with secret access
 
@@ -634,9 +730,38 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.1.5"></a>
+<a id="cis-5.1.4"></a>
 
-### CIS-4.1.5
+### CIS-5.1.4
+
+**Title:** Role can create pods
+
+**Severity:** HIGH
+
+**Confidence:** medium
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Pod creation can expose other workload identities and resources in the namespace.
+
+**Impact:** A principal may create a pod using a more privileged ServiceAccount.
+
+**Remediation:** Remove create access to pods where it is not required.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.4
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.1.5"></a>
+
+### CIS-5.1.5
 
 **Title:** Default SA has role binding
 
@@ -663,11 +788,11 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.1.6"></a>
+<a id="cis-5.1.6"></a>
 
-### CIS-4.1.6
+### CIS-5.1.6
 
-**Title:** Default SA automounts token
+**Title:** ServiceAccount or pod automounts token
 
 **Severity:** MEDIUM
 
@@ -677,11 +802,11 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Default enabled:** true
 
-**Rationale:** Ambient default service account tokens increase API credential exposure.
+**Rationale:** ServiceAccount defaults and explicit pod overrides can expose API tokens to workloads.
 
 **Impact:** Compromised pods may gain Kubernetes API access.
 
-**Remediation:** Disable automounting or use dedicated least-privilege ServiceAccounts.
+**Remediation:** Disable automounting on ServiceAccounts and pods that do not need API access.
 
 **Standards:**
 
@@ -692,9 +817,154 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.1"></a>
+<a id="cis-5.1.7"></a>
 
-### CIS-4.2.1
+### CIS-5.1.7
+
+**Title:** Binding references system:masters
+
+**Severity:** HIGH
+
+**Confidence:** low
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** A binding references the system:masters group, which bypasses authorization. RBAC objects cannot establish actual group membership.
+
+**Impact:** Credentials in this group retain unrestricted access regardless of RBAC bindings.
+
+**Remediation:** Review identities and client certificates using system:masters and migrate them to least-privilege groups; removing a binding alone is insufficient.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.1.7
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.2.1"></a>
+
+### CIS-5.2.1
+
+**Title:** Namespace lacks Pod Security enforcement label
+
+**Severity:** MEDIUM
+
+**Confidence:** low
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Without baseline or restricted PSA enforcement labels, namespaces may admit unsafe workloads. Cluster-wide defaults and external policy enforcement require separate verification.
+
+**Impact:** Unsafe pod configurations may be admitted without an active policy mechanism.
+
+**Remediation:** Set pod-security.kubernetes.io/enforce to baseline or restricted, or verify an equivalent active policy mechanism.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.2.1
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.2.10"></a>
+
+### CIS-5.2.10
+
+**Title:** Windows HostProcess container
+
+**Severity:** CRITICAL
+
+**Confidence:** high
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** HostProcess containers run with privileged access to the Windows host.
+
+**Impact:** Compromise can lead to node compromise.
+
+**Remediation:** Set securityContext.windowsOptions.hostProcess to false at pod and container level.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.2.10
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.2.11"></a>
+
+### CIS-5.2.11
+
+**Title:** Pod uses HostPath volume
+
+**Severity:** HIGH
+
+**Confidence:** high
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** HostPath volumes expose the node filesystem to workloads.
+
+**Impact:** A compromised workload may read or modify host files.
+
+**Remediation:** Replace hostPath volumes with storage that does not expose the node filesystem.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.2.11
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.2.12"></a>
+
+### CIS-5.2.12
+
+**Title:** Container uses host ports
+
+**Severity:** HIGH
+
+**Confidence:** high
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Host ports expose workloads directly on node network interfaces.
+
+**Impact:** Direct node exposure may bypass intended service access boundaries.
+
+**Remediation:** Remove hostPort mappings and use a Service.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.2.12
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.2.2"></a>
+
+### CIS-5.2.2
 
 **Title:** Privileged container
 
@@ -721,9 +991,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.2"></a>
+<a id="cis-5.2.3"></a>
 
-### CIS-4.2.2
+### CIS-5.2.3
 
 **Title:** Pod uses hostPID
 
@@ -750,9 +1020,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.3"></a>
+<a id="cis-5.2.4"></a>
 
-### CIS-4.2.3
+### CIS-5.2.4
 
 **Title:** Pod uses hostIPC
 
@@ -779,9 +1049,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.4"></a>
+<a id="cis-5.2.5"></a>
 
-### CIS-4.2.4
+### CIS-5.2.5
 
 **Title:** Pod uses hostNetwork
 
@@ -808,9 +1078,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.6"></a>
+<a id="cis-5.2.7"></a>
 
-### CIS-4.2.6
+### CIS-5.2.7
 
 **Title:** Container may run as root
 
@@ -837,11 +1107,11 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.2.9"></a>
+<a id="cis-5.2.9"></a>
 
-### CIS-4.2.9
+### CIS-5.2.9
 
-**Title:** Container has added capabilities
+**Title:** Container has capabilities assigned
 
 **Severity:** MEDIUM
 
@@ -851,11 +1121,11 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Default enabled:** true
 
-**Rationale:** Added capabilities expand Linux privileges beyond defaults.
+**Rationale:** Containers retain Linux capabilities unless all are dropped; added capabilities restore privileges.
 
 **Impact:** Compromise can gain capabilities unnecessary for the workload.
 
-**Remediation:** Drop unnecessary capabilities and add only the minimum required.
+**Remediation:** Drop ALL capabilities and add back only those strictly required.
 
 **Standards:**
 
@@ -866,9 +1136,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.3.1"></a>
+<a id="cis-5.3.2"></a>
 
-### CIS-4.3.1
+### CIS-5.3.2
 
 **Title:** No network policy in namespace
 
@@ -895,9 +1165,9 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.4.1"></a>
+<a id="cis-5.4.1"></a>
 
-### CIS-4.4.1
+### CIS-5.4.1
 
 **Title:** Secret exposed as env var
 
@@ -924,11 +1194,40 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 - <https://www.cisecurity.org/benchmark/kubernetes>
 - <https://kubernetes.io/docs/concepts/security/>
 
-<a id="cis-4.5.1"></a>
+<a id="cis-5.6.2"></a>
 
-### CIS-4.5.1
+### CIS-5.6.2
 
-**Title:** No resource quotas in namespace
+**Title:** Container lacks a seccomp profile
+
+**Severity:** MEDIUM
+
+**Confidence:** medium
+
+**Data access:** `object-spec`
+
+**Default enabled:** true
+
+**Rationale:** Missing or Unconfined seccomp profiles leave system calls unrestricted unless node-level defaults apply.
+
+**Impact:** A compromised container can access a broader kernel attack surface.
+
+**Remediation:** Set securityContext.seccompProfile.type to RuntimeDefault or a reviewed Localhost profile. Node-level defaults require separate verification.
+
+**Standards:**
+
+- CIS Kubernetes Benchmark: 5.6.2
+
+**References:**
+
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
+
+<a id="cis-5.6.4"></a>
+
+### CIS-5.6.4
+
+**Title:** Pod uses the default namespace
 
 **Severity:** LOW
 
@@ -938,49 +1237,20 @@ Only API-accessible CIS Kubernetes Benchmark controls are evaluated. Node filesy
 
 **Default enabled:** true
 
-**Rationale:** Namespaces without quotas do not bound aggregate resource usage.
+**Rationale:** The default namespace mixes workloads without explicit administrative boundaries.
 
-**Impact:** Workloads can consume excessive namespace resources.
+**Impact:** Workloads may inherit unintended access and network policies.
 
-**Remediation:** Create ResourceQuota objects for shared namespaces.
-
-**Standards:**
-
-- NSA/CISA Kubernetes Hardening Guidance: Resource policies (LimitRange, ResourceQuota)
-
-**References:**
-
-- <https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF>
-- <https://kubernetes.io/docs/concepts/policy/resource-quotas/>
-
-<a id="cis-4.5.2"></a>
-
-### CIS-4.5.2
-
-**Title:** No LimitRange in namespace
-
-**Severity:** LOW
-
-**Confidence:** high
-
-**Data access:** `object-spec`
-
-**Default enabled:** true
-
-**Rationale:** Namespaces without LimitRange do not define default or bounded per-container resources.
-
-**Impact:** Workloads may run without expected resource constraints.
-
-**Remediation:** Create LimitRange objects with appropriate defaults and limits.
+**Remediation:** Move workloads to dedicated namespaces with appropriate policies.
 
 **Standards:**
 
-- NSA/CISA Kubernetes Hardening Guidance: Resource policies (LimitRange, ResourceQuota)
+- CIS Kubernetes Benchmark: 5.6.4
 
 **References:**
 
-- <https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF>
-- <https://kubernetes.io/docs/concepts/policy/limit-range/>
+- <https://www.cisecurity.org/benchmark/kubernetes>
+- <https://kubernetes.io/docs/concepts/security/>
 
 ## RBAC Scanner (`rbac`)
 

@@ -57,7 +57,7 @@ func main() {
 		},
 		{
 			ID:          "demo-cis-automount",
-			CheckID:     "CIS-4.1.6",
+			CheckID:     "CIS-5.1.6",
 			Title:       "Service account token automount is enabled",
 			Description: "The default service account can mount API credentials into pods.",
 			Severity:    engine.SeverityMedium,

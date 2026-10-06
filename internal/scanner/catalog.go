@@ -22,7 +22,7 @@ type Definition struct {
 
 var builtIns = []Definition{
 	{Name: "workload", Category: engine.CategoryWorkload, CheckCount: 17, SeverityRange: "Critical to Info", New: func() engine.Scanner { return workload.New() }},
-	{Name: "cis", Category: engine.CategoryCIS, CheckCount: 14, SeverityRange: "Critical to Low", New: func() engine.Scanner { return cis.New() }},
+	{Name: "cis", Category: engine.CategoryCIS, CheckCount: 23, SeverityRange: "Critical to Low", New: func() engine.Scanner { return cis.New() }},
 	{Name: "rbac", Category: engine.CategoryRBAC, CheckCount: 12, SeverityRange: "Critical to Medium", New: func() engine.Scanner { return rbac.New() }},
 	{Name: "netpol", Category: engine.CategoryNetpol, CheckCount: 6, SeverityRange: "High to Medium", New: func() engine.Scanner { return netpol.New() }},
 	{Name: "secrets", Category: engine.CategorySecrets, CheckCount: 6, SeverityRange: "High to Info", New: func() engine.Scanner { return secrets.New() }},
