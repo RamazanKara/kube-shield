@@ -93,7 +93,7 @@ func TestEngine_RunAll(t *testing.T) {
 	eng := NewEngine(r, 2)
 	client := fake.NewSimpleClientset()
 
-	report, err := eng.RunAll(context.Background(), client, "")
+	report, err := eng.Run(context.Background(), client, "", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestEngine_NoScanners(t *testing.T) {
 	eng := NewEngine(r, 2)
 	client := fake.NewSimpleClientset()
 
-	_, err := eng.RunAll(context.Background(), client, "")
+	_, err := eng.Run(context.Background(), client, "", nil)
 	if !errors.Is(err, ErrNoScanners) {
 		t.Fatalf("expected ErrNoScanners, got %v", err)
 	}
@@ -176,7 +176,7 @@ func TestEngine_PartialResultsError(t *testing.T) {
 	eng := NewEngine(r, 2)
 	client := fake.NewSimpleClientset()
 
-	report, err := eng.RunAll(context.Background(), client, "")
+	report, err := eng.Run(context.Background(), client, "", nil)
 	if !errors.Is(err, ErrPartialResults) {
 		t.Fatalf("expected ErrPartialResults, got %v", err)
 	}
@@ -206,7 +206,7 @@ func TestEngine_RecoversFromScannerPanic(t *testing.T) {
 	eng := NewEngine(r, 2)
 	client := fake.NewSimpleClientset()
 
-	report, err := eng.RunAll(context.Background(), client, "")
+	report, err := eng.Run(context.Background(), client, "", nil)
 	if !errors.Is(err, ErrPartialResults) {
 		t.Fatalf("expected ErrPartialResults after panic, got %v", err)
 	}
@@ -238,7 +238,7 @@ func TestEngine_HandlesNilResult(t *testing.T) {
 	eng := NewEngine(r, 1)
 	client := fake.NewSimpleClientset()
 
-	report, err := eng.RunAll(context.Background(), client, "")
+	report, err := eng.Run(context.Background(), client, "", nil)
 	if !errors.Is(err, ErrPartialResults) {
 		t.Fatalf("expected ErrPartialResults for nil result, got %v", err)
 	}

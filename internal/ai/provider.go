@@ -120,14 +120,10 @@ func NewOpenAIProvider(cfg Config) (*OpenAIProvider, error) {
 func (p *OpenAIProvider) Name() string { return "openai" }
 
 func (p *OpenAIProvider) Explain(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.chat(ctx, buildExplainPrompt(finding))
-}
-
-func (p *OpenAIProvider) chat(ctx context.Context, prompt string) (string, error) {
 	reqBody := openAIRequest{
 		Model: p.model,
 		Messages: []openAIMessage{
-			{Role: "user", Content: prompt},
+			{Role: "user", Content: buildExplainPrompt(finding)},
 		},
 		Temperature: 0.3,
 		MaxTokens:   1024,
@@ -194,13 +190,9 @@ func NewOllamaProvider(cfg Config) (*OllamaProvider, error) {
 func (p *OllamaProvider) Name() string { return "ollama" }
 
 func (p *OllamaProvider) Explain(ctx context.Context, finding engine.Finding) (string, error) {
-	return p.generate(ctx, buildExplainPrompt(finding))
-}
-
-func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, error) {
 	reqBody := ollamaRequest{
 		Model:  p.model,
-		Prompt: prompt,
+		Prompt: buildExplainPrompt(finding),
 		Stream: false,
 	}
 

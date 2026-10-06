@@ -82,7 +82,6 @@ type Model struct {
 	clusterInfo string
 	activeTab   Tab
 	width       int
-	height      int
 	cursor      int
 	viewport    viewport.Model
 	showDetail  bool
@@ -94,7 +93,6 @@ type Model struct {
 	// AI provider for explaining findings
 	aiProvider ai.Provider
 	aiResult   string
-	aiLoading  bool
 	// For refresh support
 	k8sClient      kubernetes.Interface
 	metadataClient metadata.Interface
@@ -147,7 +145,6 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case aiExplainMsg:
-		m.aiLoading = false
 		if msg.err != nil {
 			m.aiResult = fmt.Sprintf("AI error: %v", msg.err)
 		} else {
@@ -157,7 +154,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case refreshMsg:
-		m.aiLoading = false
 		if msg.err != nil {
 			m.aiResult = fmt.Sprintf("Refresh error: %v", msg.err)
 		} else {
@@ -170,7 +166,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		m.height = msg.Height
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, msg.Height-6)
 			m.ready = true
@@ -270,7 +265,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.aiProvider != nil && m.activeTab == TabFindings && m.showDetail {
 				findings := m.filteredFindings()
 				if m.cursor < len(findings) {
-					m.aiLoading = true
 					m.aiResult = "⏳ Asking AI..."
 					m.viewport.SetContent(m.renderContent())
 					f := findings[m.cursor]
@@ -286,27 +280,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, keys.Refresh):
 			if m.eng != nil && m.k8sClient != nil {
-				m.aiLoading = true
 				m.aiResult = "⏳ Refreshing scan..."
 				m.viewport.SetContent(m.renderContent())
 				return m, func() tea.Msg {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 					defer cancel()
-					var (
-						report *engine.Report
-						err    error
-					)
 					scanCtx := engine.ScanContext{
 						Client:         m.k8sClient,
 						MetadataClient: m.metadataClient,
 						Namespace:      m.namespace,
 						Options:        m.scanOptions,
 					}
-					if len(m.scanners) > 0 {
-						report, err = m.eng.RunWithContext(ctx, scanCtx, m.scanners)
-					} else {
-						report, err = m.eng.RunAllWithContext(ctx, scanCtx)
-					}
+					report, err := m.eng.RunWithContext(ctx, scanCtx, m.scanners)
 					return refreshMsg{report: report, err: err}
 				}
 			}

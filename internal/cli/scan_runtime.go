@@ -47,8 +47,5 @@ func (r *scanRuntime) run(ctx context.Context) (*engine.Report, error) {
 			ReadSecretData: r.cfg.ReadSecretData,
 		},
 	}
-	if len(r.cfg.Scanners) > 0 {
-		return r.engine.RunWithContext(ctx, scanCtx, r.cfg.Scanners)
-	}
-	return r.engine.RunAllWithContext(ctx, scanCtx)
+	return r.engine.RunWithContext(ctx, scanCtx, r.cfg.Scanners)
 }

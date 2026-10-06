@@ -67,9 +67,6 @@ func Load() *Config {
 	cfg.AI.Provider = viper.GetString("ai.provider")
 	cfg.AI.Model = viper.GetString("ai.model")
 	cfg.AI.APIKey = viper.GetString("ai.apikey")
-	if cfg.AI.APIKey == "" {
-		cfg.AI.APIKey = viper.GetString("ai.apiKey")
-	}
 	cfg.AI.Endpoint = viper.GetString("ai.endpoint")
 	if s := normalizeStringSlice(viper.GetStringSlice("scanners")); len(s) > 0 {
 		cfg.Scanners = s

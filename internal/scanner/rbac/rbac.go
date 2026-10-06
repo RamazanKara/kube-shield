@@ -3,6 +3,7 @@ package rbac
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
@@ -36,23 +37,12 @@ func (s *Scanner) Scan(ctx context.Context, client kubernetes.Interface, namespa
 		return nil, fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
 	}
 
-	var roles *rbacv1.RoleList
-	var roleBindings *rbacv1.RoleBindingList
-
-	if namespace != "" {
-		roles, err = client.RbacV1().Roles(namespace).List(ctx, metav1.ListOptions{})
-	} else {
-		roles, err = client.RbacV1().Roles("").List(ctx, metav1.ListOptions{})
-	}
+	roles, err := client.RbacV1().Roles(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Roles: %w", err)
 	}
 
-	if namespace != "" {
-		roleBindings, err = client.RbacV1().RoleBindings(namespace).List(ctx, metav1.ListOptions{})
-	} else {
-		roleBindings, err = client.RbacV1().RoleBindings("").List(ctx, metav1.ListOptions{})
-	}
+	roleBindings, err := client.RbacV1().RoleBindings(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list RoleBindings: %w", err)
 	}
@@ -106,7 +96,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 
 	for _, rule := range rules {
 		// Wildcard resources
-		if containsStr(rule.Resources, "*") && containsStr(rule.Verbs, "*") {
+		if slices.Contains(rule.Resources, "*") && slices.Contains(rule.Verbs, "*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-001-%s", res.String()),
 				CheckID:     "RBAC-001",
@@ -117,7 +107,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 				Resource:    res,
 				Remediation: "Replace wildcards with specific resources and verbs needed by the workload.",
 			})
-		} else if containsStr(rule.Verbs, "*") {
+		} else if slices.Contains(rule.Verbs, "*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-002-%s-%s", res.String(), strings.Join(rule.Resources, ",")),
 				CheckID:     "RBAC-002",
@@ -128,7 +118,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 				Resource:    res,
 				Remediation: "Replace verb wildcard with specific verbs (get, list, watch, etc.) needed by the workload.",
 			})
-		} else if containsStr(rule.Resources, "*") {
+		} else if slices.Contains(rule.Resources, "*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-003-%s-%s", res.String(), strings.Join(rule.Verbs, ",")),
 				CheckID:     "RBAC-003",
@@ -142,7 +132,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 		}
 
 		// Secret access
-		if containsStr(rule.Resources, "secrets") {
+		if slices.Contains(rule.Resources, "secrets") {
 			if containsAny(rule.Verbs, "get", "list", "watch", "*") {
 				findings = append(findings, engine.Finding{
 					ID:          fmt.Sprintf("RBAC-010-%s", res.String()),
@@ -184,7 +174,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 		}
 
 		// Pod exec/attach (including pods/* wildcard)
-		if containsStr(rule.Resources, "pods/exec") || containsStr(rule.Resources, "pods/attach") || containsStr(rule.Resources, "pods/*") {
+		if containsAny(rule.Resources, "pods/exec", "pods/attach", "pods/*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-021-%s", res.String()),
 				CheckID:     "RBAC-021",
@@ -198,7 +188,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 		}
 
 		// Node/proxy access
-		if containsStr(rule.Resources, "nodes/proxy") {
+		if slices.Contains(rule.Resources, "nodes/proxy") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-022-%s", res.String()),
 				CheckID:     "RBAC-022",
@@ -212,7 +202,7 @@ func checkRules(rules []rbacv1.PolicyRule, res engine.Resource, roleName string)
 		}
 
 		// PersistentVolume access
-		if containsStr(rule.Resources, "persistentvolumes") && containsAny(rule.Verbs, "create", "delete", "*") {
+		if slices.Contains(rule.Resources, "persistentvolumes") && containsAny(rule.Verbs, "create", "delete", "*") {
 			findings = append(findings, engine.Finding{
 				ID:          fmt.Sprintf("RBAC-023-%s", res.String()),
 				CheckID:     "RBAC-023",
@@ -291,21 +281,10 @@ func isSystemRole(name string) bool {
 		strings.HasPrefix(name, "calico") || strings.HasPrefix(name, "cilium")
 }
 
-func containsStr(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 func containsAny(slice []string, vals ...string) bool {
 	for _, v := range slice {
-		for _, val := range vals {
-			if v == val {
-				return true
-			}
+		if slices.Contains(vals, v) {
+			return true
 		}
 	}
 	return false

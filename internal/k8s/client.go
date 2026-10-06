@@ -15,7 +15,6 @@ import (
 type Client struct {
 	Clientset      kubernetes.Interface
 	MetadataClient metadata.Interface
-	Config         *rest.Config
 	Context        string
 	ServerURL      string
 }
@@ -40,7 +39,6 @@ func NewClient(kubeconfigPath, contextName string) (*Client, error) {
 	return &Client{
 		Clientset:      clientset,
 		MetadataClient: metadataClient,
-		Config:         config,
 		Context:        resolvedContext,
 		ServerURL:      config.Host,
 	}, nil

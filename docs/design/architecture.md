@@ -127,9 +127,7 @@ Sentinel errors live in `internal/scanner/engine/errors.go`:
 
 | Error | Meaning |
 |-------|---------|
-| `ErrScanTimeout` | Scan exceeded its deadline |
 | `ErrPartialResults` | One or more scanners failed while others returned results |
-| `ErrNoClusterAccess` | Cluster access failed |
 | `ErrNoScanners` | Registry has no scanners |
 
 Command validation errors are returned before Kubernetes connection attempts.
