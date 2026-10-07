@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	"gopkg.in/yaml.v3"
 )
 

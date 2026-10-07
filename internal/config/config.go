@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner"
 	"github.com/spf13/viper"
 )
 

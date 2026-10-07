@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/RamazanKara/kube-shield/internal/config"
-	"github.com/RamazanKara/kube-shield/internal/scanner"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/config"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 )
 
 var (

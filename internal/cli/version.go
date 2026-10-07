@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/RamazanKara/kube-shield/internal/version"
+	"github.com/RamazanKara/kube-shield/v2/internal/version"
 	"github.com/spf13/cobra"
 )
 

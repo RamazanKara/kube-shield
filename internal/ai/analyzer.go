@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 )
 
 // AnalyzeFindings runs AI explanation on high-severity findings and writes results to w.

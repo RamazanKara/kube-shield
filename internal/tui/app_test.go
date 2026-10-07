@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	tea "github.com/charmbracelet/bubbletea"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"

@@ -15,6 +15,8 @@ kube-shield scan --suppressions suppressions.yaml --exit-code
 
 This keeps an auditable trail: a suppressed finding is hidden from gating but never erased from the report.
 
+When upgrading from v1.x to v2.0.0, migrate CIS `checkId` values and regenerate CIS fingerprints from a new scan. See the [ID migration table](https://github.com/RamazanKara/kube-shield/blob/main/CHANGELOG.md#migrating-from-v1x); old CIS IDs no longer match findings.
+
 ## File format
 
 Match a finding by `checkId` and/or `fingerprint`, optionally narrowed to a specific resource. Every entry requires a unique `id`, a `reason`, and an `expires` date.

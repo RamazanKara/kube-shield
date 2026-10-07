@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/ai"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/ai"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"

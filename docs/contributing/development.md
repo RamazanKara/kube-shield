@@ -4,7 +4,7 @@ This guide is for contributors changing code, scanner behavior, packaging, or do
 
 ## Prerequisites
 
-- Go 1.25.11 or newer 1.25.x
+- Go 1.26.8 (the toolchain pinned in `go.mod` and CI)
 - Docker
 - kubectl
 - kind, for E2E tests
@@ -58,7 +58,7 @@ go tool cover -func=coverage.out | tail -n 1
 go tool cover -html=coverage.out
 ```
 
-The v1 release line keeps the total coverage gate at 80%.
+The total coverage gate is 80%.
 
 Run these for any change that touches scanner logic, config precedence, report output, CLI validation, or TUI rendering.
 

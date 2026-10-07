@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/k8s"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
-	"github.com/RamazanKara/kube-shield/internal/scanner/workload"
+	"github.com/RamazanKara/kube-shield/v2/internal/k8s"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/workload"
 )
 
 func TestWorkloadScanner(t *testing.T) {

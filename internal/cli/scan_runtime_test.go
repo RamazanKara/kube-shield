@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/RamazanKara/kube-shield/internal/config"
-	"github.com/RamazanKara/kube-shield/internal/k8s"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/config"
+	"github.com/RamazanKara/kube-shield/v2/internal/k8s"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )

@@ -12,7 +12,7 @@ COPY . .
 ARG VERSION=dev
 ARG COMMIT=none
 ARG DATE=unknown
-RUN CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/RamazanKara/kube-shield/internal/version.Version=${VERSION} -X github.com/RamazanKara/kube-shield/internal/version.Commit=${COMMIT} -X github.com/RamazanKara/kube-shield/internal/version.Date=${DATE}" -o /kube-shield ./cmd/kube-shield
+RUN CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/RamazanKara/kube-shield/v2/internal/version.Version=${VERSION} -X github.com/RamazanKara/kube-shield/v2/internal/version.Commit=${COMMIT} -X github.com/RamazanKara/kube-shield/v2/internal/version.Date=${DATE}" -o /kube-shield ./cmd/kube-shield
 
 FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
 

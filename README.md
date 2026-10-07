@@ -38,6 +38,8 @@ kube-shield checks Kubernetes API-visible configuration. It does not replace run
 
 Pick the install path that matches how you want to run scans.
 
+Upgrading from v1.x? Review the [v2 migration notes](CHANGELOG.md#migrating-from-v1x) for renamed CIS IDs and suppression updates.
+
 ### Homebrew
 
 ```bash
@@ -47,7 +49,7 @@ brew install --cask ramazankara/tap/kube-shield
 ### Go
 
 ```bash
-go install github.com/RamazanKara/kube-shield/cmd/kube-shield@latest
+go install github.com/RamazanKara/kube-shield/v2/cmd/kube-shield@latest
 ```
 
 ### Docker
@@ -55,7 +57,7 @@ go install github.com/RamazanKara/kube-shield/cmd/kube-shield@latest
 ```bash
 docker run --rm \
   -v ~/.kube:/home/kubeshield/.kube:ro \
-  ghcr.io/ramazankara/kube-shield:v1.1.0 scan
+  ghcr.io/ramazankara/kube-shield:v2.0.0 scan
 ```
 
 ### Binary Archives
@@ -219,7 +221,7 @@ Environment variables use the `KUBE_SHIELD_` prefix:
 
 See [docs/reference/scanners.md](docs/reference/scanners.md) for every check ID, severity, confidence, data-access level, standards mapping, and remediation category.
 
-The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers — the actual benchmark recommendation (Section 5, e.g. `5.2.2` for privileged containers) is carried in each rule's standards metadata and in finding output. Closing the remaining coverage gaps is tracked in [#19](https://github.com/RamazanKara/kube-shield/issues/19).
+The `cis` scanner covers the API-checkable subset of CIS Kubernetes Benchmark 2.0.x Policies recommendations. Its `CIS-5.*` check IDs align with Section 5 recommendation numbers, also carried in each rule's standards metadata and finding `cisRef` field. See the [scanner reference](docs/reference/scanners.md) for coverage and limitations.
 
 Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check.
 
@@ -245,7 +247,7 @@ Install from the published OCI chart:
 
 ```bash
 helm install kube-shield oci://ghcr.io/ramazankara/charts/kube-shield \
-  --version 1.1.0 \
+  --version 2.0.0 \
   --namespace kube-shield \
   --create-namespace
 ```
@@ -281,12 +283,12 @@ The chart grants `list` on core `secrets` so kube-shield can validate references
 Install `gh` with attestation support and `cosign` before running verification commands.
 
 ```bash
-gh release download v1.1.0 --repo RamazanKara/kube-shield \
+gh release download v2.0.0 --repo RamazanKara/kube-shield \
   --pattern checksums.txt \
   --pattern checksums.txt.sigstore \
-  --pattern kube-shield_1.1.0_linux_amd64.tar.gz
+  --pattern kube-shield_2.0.0_linux_amd64.tar.gz
 
-gh attestation verify kube-shield_1.1.0_linux_amd64.tar.gz \
+gh attestation verify kube-shield_2.0.0_linux_amd64.tar.gz \
   --repo RamazanKara/kube-shield
 
 cosign verify-blob --bundle checksums.txt.sigstore \
@@ -294,7 +296,7 @@ cosign verify-blob --bundle checksums.txt.sigstore \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
 
-cosign verify ghcr.io/ramazankara/kube-shield:v1.1.0 \
+cosign verify ghcr.io/ramazankara/kube-shield:v2.0.0 \
   --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -302,8 +304,8 @@ cosign verify ghcr.io/ramazankara/kube-shield:v1.1.0 \
 Install-channel smoke checks:
 
 ```bash
-docker pull ghcr.io/ramazankara/kube-shield:v1.1.0
-helm show chart oci://ghcr.io/ramazankara/charts/kube-shield --version 1.1.0
+docker pull ghcr.io/ramazankara/kube-shield:v2.0.0
+helm show chart oci://ghcr.io/ramazankara/charts/kube-shield --version 2.0.0
 brew install --cask ramazankara/tap/kube-shield
 ```
 

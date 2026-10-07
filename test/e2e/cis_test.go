@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/k8s"
-	"github.com/RamazanKara/kube-shield/internal/scanner/cis"
+	"github.com/RamazanKara/kube-shield/v2/internal/k8s"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/cis"
 )
 
 func TestCISScanner(t *testing.T) {

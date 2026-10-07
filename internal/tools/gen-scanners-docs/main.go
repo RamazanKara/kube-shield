@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 )
 
 // repoRoot walks up from the current working directory to the module root

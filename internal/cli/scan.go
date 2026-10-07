@@ -8,11 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/ai"
-	"github.com/RamazanKara/kube-shield/internal/logging"
-	"github.com/RamazanKara/kube-shield/internal/report"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
-	"github.com/RamazanKara/kube-shield/internal/suppressions"
+	"github.com/RamazanKara/kube-shield/v2/internal/ai"
+	"github.com/RamazanKara/kube-shield/v2/internal/logging"
+	"github.com/RamazanKara/kube-shield/v2/internal/report"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/suppressions"
 	"github.com/spf13/cobra"
 )
 

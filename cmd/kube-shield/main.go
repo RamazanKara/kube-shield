@@ -5,7 +5,7 @@ package main
 import (
 	"os"
 
-	"github.com/RamazanKara/kube-shield/internal/cli"
+	"github.com/RamazanKara/kube-shield/v2/internal/cli"
 )
 
 func main() {

@@ -1,6 +1,6 @@
 package scanner
 
-import "github.com/RamazanKara/kube-shield/internal/scanner/engine"
+import "github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 
 // DefaultRegistry returns a registry with all built-in scanners registered.
 func DefaultRegistry() *engine.Registry {

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/k8s"
-	"github.com/RamazanKara/kube-shield/internal/scanner/netpol"
+	"github.com/RamazanKara/kube-shield/v2/internal/k8s"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/netpol"
 )
 
 func TestNetpolScanner(t *testing.T) {

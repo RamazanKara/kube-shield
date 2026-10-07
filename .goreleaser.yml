@@ -25,9 +25,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/RamazanKara/kube-shield/internal/version.Version={{ .Version }}
-      - -X github.com/RamazanKara/kube-shield/internal/version.Commit={{ .Commit }}
-      - -X github.com/RamazanKara/kube-shield/internal/version.Date={{ .Date }}
+      - -X github.com/RamazanKara/kube-shield/v2/internal/version.Version={{ .Version }}
+      - -X github.com/RamazanKara/kube-shield/v2/internal/version.Commit={{ .Commit }}
+      - -X github.com/RamazanKara/kube-shield/v2/internal/version.Date={{ .Date }}
 
 archives:
   - id: default

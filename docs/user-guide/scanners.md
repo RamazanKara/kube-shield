@@ -12,7 +12,7 @@ kube-shield groups its checks into five scanners. Run a subset with `--scanners`
 
 For every check ID — with severity, confidence, data-access level, standards mapping (Pod Security Standards, CIS Kubernetes Benchmark), and remediation — see the generated [scanner reference](../reference/scanners.md).
 
-The `cis` scanner covers the API-checkable subset of the benchmark's Policies recommendations. `CIS-*` check IDs are kube-shield's stable rule IDs, not CIS recommendation numbers — the actual benchmark recommendation (Section 5, e.g. `5.2.2` for privileged containers) is carried in each rule's standards metadata and in finding output. Closing the remaining coverage gaps is tracked in [issue #19](https://github.com/RamazanKara/kube-shield/issues/19).
+The `cis` scanner covers the API-checkable subset of CIS Kubernetes Benchmark 2.0.x Policies recommendations. Its `CIS-5.*` check IDs align with Section 5 recommendation numbers, also carried in each rule's standards metadata and finding `cisRef` field. See the [scanner reference](../reference/scanners.md) for coverage and limitations, and the [v2 migration notes](https://github.com/RamazanKara/kube-shield/blob/main/CHANGELOG.md#migrating-from-v1x) when upgrading from v1.x.
 
 ## Scoring
 

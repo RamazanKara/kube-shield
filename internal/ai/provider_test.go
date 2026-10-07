@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 )
 
 func TestNewProviderOpenAI(t *testing.T) {

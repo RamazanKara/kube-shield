@@ -21,7 +21,7 @@ env:
 
 jobs:
   release:
-    name: Publish v1 release artifacts
+    name: Publish release artifacts
     runs-on: ubuntu-latest
     permissions:
       contents: write

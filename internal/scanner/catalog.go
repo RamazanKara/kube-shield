@@ -1,12 +1,12 @@
 package scanner
 
 import (
-	"github.com/RamazanKara/kube-shield/internal/scanner/cis"
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
-	"github.com/RamazanKara/kube-shield/internal/scanner/netpol"
-	"github.com/RamazanKara/kube-shield/internal/scanner/rbac"
-	"github.com/RamazanKara/kube-shield/internal/scanner/secrets"
-	"github.com/RamazanKara/kube-shield/internal/scanner/workload"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/cis"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/netpol"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/rbac"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/secrets"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/workload"
 )
 
 // Definition describes one built-in scanner and its public metadata.

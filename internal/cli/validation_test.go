@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/config"
+	"github.com/RamazanKara/kube-shield/v2/internal/config"
 )
 
 func TestValidateScanConfigNormalizesValidValues(t *testing.T) {

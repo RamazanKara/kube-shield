@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 )
 
 // Provider is the interface for AI explanation providers.

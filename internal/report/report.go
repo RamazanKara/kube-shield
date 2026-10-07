@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/RamazanKara/kube-shield/internal/scanner/engine"
-	"github.com/RamazanKara/kube-shield/internal/version"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
+	"github.com/RamazanKara/kube-shield/v2/internal/version"
 )
 
 // TableWriter writes findings in a colored table format.

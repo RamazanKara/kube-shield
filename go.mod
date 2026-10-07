@@ -1,4 +1,4 @@
-module github.com/RamazanKara/kube-shield
+module github.com/RamazanKara/kube-shield/v2
 
 go 1.25.0
 

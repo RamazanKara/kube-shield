@@ -162,9 +162,9 @@ The local `Dockerfile` remains a multi-stage developer build. `Dockerfile.releas
 Build-time metadata is injected with ldflags:
 
 ```shell
--X github.com/RamazanKara/kube-shield/internal/version.Version=${VERSION}
--X github.com/RamazanKara/kube-shield/internal/version.Commit=${COMMIT}
--X github.com/RamazanKara/kube-shield/internal/version.Date=${DATE}
+-X github.com/RamazanKara/kube-shield/v2/internal/version.Version=${VERSION}
+-X github.com/RamazanKara/kube-shield/v2/internal/version.Commit=${COMMIT}
+-X github.com/RamazanKara/kube-shield/v2/internal/version.Date=${DATE}
 ```
 
 The same metadata is used by `kube-shield version`, SARIF output, release archives, and container images.
