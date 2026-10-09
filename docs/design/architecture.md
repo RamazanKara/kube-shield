@@ -23,7 +23,7 @@ kube-shield/
 │   ├── config/                   # Config loading and normalization
 │   ├── k8s/                      # Kubernetes client construction
 │   ├── logging/                  # slog wrapper
-│   ├── report/                   # Table, JSON, and SARIF writers
+│   ├── report/                   # Table, JSON, SARIF, and Markdown writers
 │   ├── suppressions/             # Expiring finding suppressions
 │   ├── scanner/
 │   │   ├── registry.go           # Default scanner registry
@@ -40,7 +40,7 @@ kube-shield/
 ├── examples/                     # Sample config, suppressions, CI snippets
 ├── test/e2e/                     # kind-based E2E suite
 ├── docs/                         # Documentation site sources (MkDocs)
-└── .github/workflows/            # CI, E2E, CodeQL, dry-run, release workflows
+└── .github/workflows/            # One check-only CI workflow
 ```
 
 Application packages live under `internal/` because kube-shield is a CLI, not a library; this keeps the public surface to the `kube-shield` binary itself.
@@ -78,7 +78,7 @@ graph TD
 8. The engine enriches findings with rule catalog metadata, stable fingerprints, and an `engine.Report`; it returns partial-result errors if any scanner fails.
 9. The command filters findings by severity/category and recomputes the summary.
 10. Optional suppressions remove approved findings from exit-code decisions while preserving them in JSON/SARIF audit output.
-11. `internal/report` writes table, JSON, or SARIF output.
+11. `internal/report` writes table, JSON, SARIF, or Markdown output.
 12. Optional AI analysis explains high-severity findings after report output.
 
 ## Scanner Contract
@@ -137,22 +137,19 @@ Command validation errors are returned before Kubernetes connection attempts.
 - Table output is optimized for humans.
 - JSON output serializes `engine.Report`.
 - SARIF output is for GitHub Code Scanning and uses build-time version metadata.
+- Markdown output includes remediation, suppression audit details, and incomplete-scan warnings for reviews and CI summaries.
 
 Writers should not re-scan, mutate Kubernetes objects, or change finding severity. They format the report they are given.
 
 ## Release Architecture
 
-The release path is tag-triggered:
+Local release preparation is explicit and does not publish:
 
 ```mermaid
 graph LR
-    Tag["vX.Y.Z tag"] --> Release["Release workflow"]
-    Release --> GoReleaser["GoReleaser binaries/images"]
-    Release --> GHRelease["GitHub release assets"]
-    Release --> GHCR["GHCR image"]
-    Release --> Helm["Helm OCI chart"]
-    Release --> Brew["Homebrew tap"]
-    Release --> Trust["SBOMs, signatures, attestations"]
+    Checks["Local Make checks"] --> Build["make release-local"]
+    Build --> Binary["Platform binary in dist/local"]
+    Binary --> Sums["SHA256SUMS"]
 ```
 
 The local `Dockerfile` remains a multi-stage developer build. `Dockerfile.release` is used by GoReleaser and copies already-built binaries into image layers.

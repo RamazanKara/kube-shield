@@ -1,6 +1,6 @@
 # CLI reference
 
-`kube-shield` provides `scan`, `dashboard`, `rules`, `version`, and `completion` commands. Run `kube-shield <command> --help` for inline help.
+`kube-shield` provides `scan`, `dashboard`, `rules`, `config`, `version`, and `completion` commands. Run `kube-shield <command> --help` for inline help.
 
 ## Global flags
 
@@ -12,7 +12,7 @@ These flags are inherited by subcommands; connection settings are used by `scan`
 | `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Kubeconfig path |
 | `--context` | | current context | Kubernetes context |
 | `--namespace` | `-n` | all namespaces | Namespace filter |
-| `--output` | `-o` | `table` | `table`, `json`, or `sarif` |
+| `--output` | `-o` | `table` | `table`, `json`, `sarif`, or `markdown` |
 | `--verbose` | `-v` | `false` | Verbose logs |
 | `--ai-provider` | | disabled | `openai` or `ollama` |
 | `--ai-model` | | provider default | Model name |
@@ -56,6 +56,16 @@ Inspect the built-in rule catalog.
 
 Prints the build version, commit, and build date (injected at build time).
 
+## `kube-shield config validate FILE`
+
+Validates the named YAML file offline and exits non-zero on errors. Diagnostics include the file path and line numbers. This command does not load default configuration, environment variables, `--config`, or other overrides and does not check cluster connectivity, credentials, or referenced files. See [configuration validation](configuration.md#validate-a-file).
+
+```bash
+kube-shield config validate examples/.kube-shield.yaml
+```
+
 ## `kube-shield completion`
 
 Generates a shell completion script for `bash`, `zsh`, `fish`, or `powershell`. See [Output & display](../user-guide/output-and-display.md#shell-completion).
+
+Flag values and `rules show` IDs are completed from local metadata. `rules --output` offers only its supported `table` and `json` formats.

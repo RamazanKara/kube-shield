@@ -96,6 +96,31 @@ func TestRunScanWritesSARIF(t *testing.T) {
 	}
 }
 
+func TestRunScanMarkdown(t *testing.T) {
+	for _, exit := range []bool{false, true} {
+		t.Run(fmt.Sprint(exit), func(t *testing.T) {
+			cfg := scanCommandConfig("markdown")
+			cfg.ExitCode = exit
+			restore := installRunScanRuntime(t, cfg, []engine.Finding{scanCommandFinding()})
+			defer restore()
+			stdout, _, err := captureStdoutStderr(t, func() error {
+				return runScan(&cobra.Command{}, nil)
+			})
+			if exit && (err == nil || !strings.Contains(err.Error(), "findings detected")) {
+				t.Fatalf("expected findings exit error, got %v", err)
+			}
+			if !exit && err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range []string{"Cluster: test-context (https://127.0.0.1:6443)", "| CRITICAL | WL-010 |", "Remove privileged mode."} {
+				if !strings.Contains(stdout, want) {
+					t.Fatalf("missing %q in %s", want, stdout)
+				}
+			}
+		})
+	}
+}
+
 func scanCommandFinding() engine.Finding {
 	return engine.Finding{
 		ID:          "WL-010-default/Pod/app/container/web",
@@ -176,7 +201,7 @@ func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) 
 }
 
 func TestRunScanPartialResults(t *testing.T) {
-	for _, output := range []string{"table", "json", "sarif"} {
+	for _, output := range []string{"table", "json", "sarif", "markdown"} {
 		for _, filtered := range []bool{false, true} {
 			t.Run(output+"/filtered="+fmt.Sprint(filtered), func(t *testing.T) {
 				cfg := scanCommandConfig(output)
@@ -197,7 +222,7 @@ func TestRunScanPartialResults(t *testing.T) {
 				if !filtered && !strings.Contains(stdout, "WL-010") {
 					t.Fatalf("completed scanner findings missing: %s", stdout)
 				}
-				if output == "table" && (!strings.Contains(stdout, "Scan incomplete") || strings.Contains(stdout, "looks good")) {
+				if (output == "table" || output == "markdown") && (!strings.Contains(stdout, "Scan incomplete") || strings.Contains(stdout, "looks good")) {
 					t.Fatalf("misleading partial report: %s", stdout)
 				}
 			})

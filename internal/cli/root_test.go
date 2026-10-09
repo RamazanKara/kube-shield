@@ -7,8 +7,19 @@ import (
 	"testing"
 
 	"github.com/RamazanKara/kube-shield/v2/internal/config"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func TestCompletionSkipsConfiguration(t *testing.T) {
+	oldCfgFile := cfgFile
+	t.Cleanup(func() { cfgFile = oldCfgFile })
+	cfgFile = filepath.Join(t.TempDir(), "missing.yaml")
+	cmd := &cobra.Command{Use: cobra.ShellCompRequestCmd}
+	if err := rootCmd.PersistentPreRunE(cmd, nil); err != nil {
+		t.Fatalf("completion tried to load configuration: %v", err)
+	}
+}
 
 func TestInitConfig(t *testing.T) {
 	for _, tt := range []struct {

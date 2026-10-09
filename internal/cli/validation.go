@@ -12,9 +12,10 @@ import (
 
 var (
 	validOutputs = map[string]struct{}{
-		"table": {},
-		"json":  {},
-		"sarif": {},
+		"table":    {},
+		"json":     {},
+		"sarif":    {},
+		"markdown": {},
 	}
 
 	validAIProviders = map[string]struct{}{
@@ -58,7 +59,7 @@ func validateScanConfig(cfg *config.Config) error {
 	normalizeConfig(cfg)
 
 	if _, ok := validOutputs[cfg.Output]; !ok {
-		return fmt.Errorf("invalid output format %q: supported values are table, json, sarif", cfg.Output)
+		return fmt.Errorf("invalid output format %q: supported values are table, json, sarif, markdown", cfg.Output)
 	}
 	if _, ok := engine.ParseSeverity(cfg.Severity); !ok {
 		return fmt.Errorf("invalid severity %q: supported values are critical, high, medium, low, info", cfg.Severity)

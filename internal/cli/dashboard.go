@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/RamazanKara/kube-shield/v2/internal/ai"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner"
 	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	"github.com/RamazanKara/kube-shield/v2/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,6 +36,7 @@ var dashboardScanners []string
 
 func init() {
 	dashboardCmd.Flags().StringSliceVar(&dashboardScanners, "scanners", nil, "comma-separated list of scanners to run (workload,cis,rbac,netpol,secrets)")
+	_ = dashboardCmd.RegisterFlagCompletionFunc("scanners", completeValues(scanner.Names(), true))
 	rootCmd.AddCommand(dashboardCmd)
 }
 

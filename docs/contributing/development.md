@@ -10,8 +10,10 @@ This guide is for contributors changing code, scanner behavior, packaging, or do
 - kind, for E2E tests
 - Helm, for chart validation
 - GNU make and a POSIX shell (Git Bash or WSL on Windows)
-- A C compiler for Go race tests (GCC on Windows)
+- A C compiler for Go race tests when cgo is enabled (GCC on Windows)
 - golangci-lint v2.12.2, for lint checks
+- govulncheck v1.8.0, for vulnerability checks
+- Python with `pip install -r requirements-docs.txt`, for docs checks
 - GoReleaser and Syft, for release snapshots
 
 ## Quick Start
@@ -39,13 +41,19 @@ VERSION="$(git describe --tags --always --dirty)" make build
 
 ```shell
 make build        # build bin/kube-shield
-make test         # race-enabled tests with coverage
+make test         # coverage; race-enabled when CGO_ENABLED=1
 make lint         # golangci-lint
+make staticcheck  # Staticcheck from the pinned golangci-lint installation
+make fmt-check    # check gofmt without editing files
 make vet          # go vet
+make fuzz         # bounded runs of all fuzz targets
+make vuln         # govulncheck
+make docs         # strict MkDocs build
 make test-e2e     # kind-based E2E suite
 make helm-lint    # helm lint + template
 make release-check
 make release-snapshot
+make release-local # native binary and SHA256SUMS in dist/local
 ```
 
 Use the smallest check set that matches your change while developing, then run the broader set before opening or merging a pull request.
@@ -55,14 +63,13 @@ Use the smallest check set that matches your change while developing, then run t
 ### Unit and Integration Tests
 
 ```shell
-go test ./...
-go test -race ./...
-go test -race -coverprofile=coverage.out ./...
+make test
+make test-coverage
 go tool cover -func=coverage.out | tail -n 1
 go tool cover -html=coverage.out
 ```
 
-Compare package and total coverage before and after changes; CI runs race-enabled tests without a coverage threshold.
+Compare package and total coverage before and after changes. The Make targets enable race tests only when `go env CGO_ENABLED` is `1`; otherwise `make test` reports the skip. CI has no coverage threshold.
 
 Run these for any change that touches scanner logic, config precedence, report output, CLI validation, or TUI rendering.
 
@@ -71,7 +78,8 @@ Run these for any change that touches scanner logic, config precedence, report o
 ```shell
 go vet ./...
 golangci-lint run ./...
-go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+make staticcheck
+make vuln
 go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
 go mod verify
 ```
@@ -152,7 +160,7 @@ helm lint deploy/helm
 helm template kube-shield deploy/helm --namespace kube-shield
 ```
 
-GoReleaser signing and attestations are validated in GitHub Actions because they require GitHub OIDC.
+The local `make release-local` target needs only the build toolchain and a SHA256 utility. See [local release preparation](https://github.com/RamazanKara/kube-shield/blob/main/RELEASE.md). Signing and GitHub OIDC attestations are not verified by the local checks.
 
 ## Documentation Media
 
@@ -167,11 +175,10 @@ The tape runs [docs/demo/tui_demo.go](../demo/tui_demo.go) and writes [docs/asse
 
 ## CI/CD
 
-- `ci.yml`: one lint/test/build job on pushes to main and `workflow_dispatch`.
-- `release.yml`: existing tag-triggered publishing.
-- `docs.yml`: existing docs build and Pages deployment.
+- `ci.yml`: one job on pushes/PRs to main and manual dispatch, using the same Make targets as local checks. It checks formatting, vet, Staticcheck, lint, tests, fuzzing, vulnerabilities, build, and docs.
+- Release and Pages publishing are manual; no workflow writes to releases, registries, or Pages.
 
-GitHub Actions is currently unavailable due to billing. Run `make lint`, `make test`, and `make build` locally as the gate. E2E and release snapshot checks remain local make targets.
+GitHub Actions is currently unavailable due to billing. Run `make fmt-check vet staticcheck lint test fuzz vuln build docs` locally as the gate. E2E and release snapshot checks remain local make targets with their additional prerequisites.
 
 ## Code Style
 

@@ -12,6 +12,7 @@ import (
 	"github.com/RamazanKara/kube-shield/v2/internal/ai"
 	"github.com/RamazanKara/kube-shield/v2/internal/logging"
 	"github.com/RamazanKara/kube-shield/v2/internal/report"
+	"github.com/RamazanKara/kube-shield/v2/internal/scanner"
 	"github.com/RamazanKara/kube-shield/v2/internal/scanner/engine"
 	"github.com/RamazanKara/kube-shield/v2/internal/suppressions"
 	"github.com/spf13/cobra"
@@ -67,6 +68,9 @@ func init() {
 	scanCmd.Flags().BoolVar(&readSecretData, "read-secret-data", false, "allow checks that read Kubernetes Secret data")
 	scanCmd.Flags().StringVar(&suppressionsPath, "suppressions", "", "path to finding suppressions YAML file")
 	scanCmd.Flags().StringSliceVar(&categories, "category", nil, "filter by category (workload,cis,rbac,netpol,secrets)")
+	_ = scanCmd.RegisterFlagCompletionFunc("scanners", completeValues(scanner.Names(), true))
+	_ = scanCmd.RegisterFlagCompletionFunc("category", completeValues(sortedKeys(scanner.CategorySet()), true))
+	_ = scanCmd.RegisterFlagCompletionFunc("severity", completeValues([]string{"critical", "high", "medium", "low", "info"}, false))
 
 	rootCmd.AddCommand(scanCmd)
 }
@@ -142,6 +146,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	case "table":
 		if err := report.TableWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write table report: %w", err)
+		}
+	case "markdown":
+		result.ClusterInfo = fmt.Sprintf("%s (%s)", k8sClient.Context, k8sClient.ServerURL)
+		if err := report.MarkdownWriter(os.Stdout, result); err != nil {
+			return fmt.Errorf("failed to write Markdown report: %w", err)
 		}
 	}
 

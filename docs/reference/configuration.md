@@ -39,6 +39,24 @@ ai:
 
 A ready-to-copy version lives in [`examples/.kube-shield.yaml`](https://github.com/RamazanKara/kube-shield/blob/main/examples/.kube-shield.yaml).
 
+## Validate a file
+
+Check a file before a scan or in CI, without a kubeconfig or cluster:
+
+```bash
+kube-shield config validate examples/.kube-shield.yaml
+```
+
+Success prints `Configuration valid: FILE`. Failure exits non-zero with a file path, line number, and field diagnostic, for example:
+
+```text
+settings.yaml: line 2, column 10: severty: unknown configuration key
+```
+
+Validation checks unknown and duplicate keys (case-insensitively), YAML types, scanner/category names, output formats, severity, AI provider, and a positive duration such as `5m`. Use YAML booleans `true`/`false` and quote strings. Lists may use YAML sequences or comma-separated strings. Both `category` and `categories`, and `ai.apikey`/`ai.apiKey`, are recognized. YAML aliases and merge mappings are checked too, including their source values; multiple documents are rejected. Empty files use defaults.
+
+Only the named file is checked: environment variables, `--config`, and flag overrides cannot hide mistakes. Diagnostics for type errors do not print values such as API keys. Validation does not contact Kubernetes or AI providers and does not open referenced kubeconfig or suppression files. The existing scan/dashboard loading behavior and precedence remain unchanged.
+
 ## Environment variables
 
 Environment variables use the `KUBE_SHIELD_` prefix. Nested keys use `_` (for example `ai.provider` becomes `KUBE_SHIELD_AI_PROVIDER`).
@@ -65,10 +83,13 @@ Prefer `KUBE_SHIELD_AI_APIKEY` over putting an API key in the config file or she
 
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
+| `kubeconfig` | string | environment or home config | Kubernetes client configuration path |
 | `context` | string | current context | Kubernetes context to scan |
 | `namespace` | string | all namespaces | Restrict the scan to one namespace |
-| `output` | string | `table` | `table`, `json`, or `sarif` |
+| `output` | string | `table` | `table`, `json`, `sarif`, or `markdown` |
+| `verbose` | bool | `false` | Enable debug logs |
 | `scanners` | list | all five | `workload`, `cis`, `rbac`, `netpol`, `secrets` |
+| `categories` | list | all categories | Same names as scanners; `category` is also accepted and takes precedence when nonempty |
 | `severity` | string | `low` | Minimum severity to report |
 | `timeout` | duration | `5m` | Scan deadline |
 | `exit-code` | bool | `false` | Exit non-zero on matching findings |

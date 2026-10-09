@@ -13,7 +13,7 @@ Use it when you want a lightweight security pass that is easy to run, easy to re
 - Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, or an interactive TUI.
 - Supports severity thresholds and `--exit-code` so CI fails only on the risks you care about.
 - Includes structured remediation and optional AI explanations through OpenAI or local Ollama.
-- Includes source builds and a local Helm chart; release publishing is configured in the tag-triggered workflow.
+- Includes source builds, a local Helm chart, and local release binaries with SHA256 checksums; publishing is manual.
 
 ## Scope
 

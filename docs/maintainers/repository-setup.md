@@ -34,7 +34,7 @@ Protect `main` with:
 - Pull request required before merge.
 - At least one approving review.
 - Review local `make lint`, `make test`, and `make build` results while GitHub Actions is unavailable due to billing.
-- Do not require removed workflows or a PR check: CI runs on main pushes and manual dispatch.
+- Do not require unavailable Actions checks; the single workflow supports main pushes, pull requests, and manual dispatch when Actions returns.
 - Branches must be up to date before merge.
 - Block force pushes and branch deletion.
 - Restrict bypass permissions to maintainers.
@@ -51,7 +51,7 @@ Private vulnerability reporting should be enabled before announcing new releases
 
 - `HOMEBREW_TAP_TOKEN`, with content write access to `RamazanKara/homebrew-tap`.
 
-The release workflow uses `GITHUB_TOKEN` for GitHub releases, GHCR packages, OIDC signing, and attestations.
+The check-only CI workflow uses a read-only token. Release and documentation publishing are manual; local preparation is documented in [RELEASE.md](https://github.com/RamazanKara/kube-shield/blob/main/RELEASE.md).
 
 ## Packages
 

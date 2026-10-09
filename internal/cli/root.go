@@ -23,6 +23,9 @@ var rootCmd = &cobra.Command{
 	Use:   "kube-shield",
 	Short: "Kubernetes Security Posture Manager",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if cmd.Name() == cobra.ShellCompRequestCmd {
+			return nil
+		}
 		return initConfig()
 	},
 	Long: `kube-shield is a Kubernetes security posture scanner for local reviews,
@@ -34,7 +37,7 @@ network policy, and secret configuration risks.
 Features:
   • Interactive terminal dashboard for findings review
   • Workload, CIS, RBAC, network policy, and secrets scanners
-  • Table, JSON, and SARIF output
+  • Table, JSON, SARIF, and Markdown output
   • Severity thresholds and CI-friendly exit codes
   • Optional AI explanations for high-risk findings`,
 }
@@ -48,7 +51,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&kubeconfig, "kubeconfig", "", "path to kubeconfig file (default is $KUBECONFIG or $HOME/.kube/config)")
 	rootCmd.PersistentFlags().StringVar(&kubeContext, "context", "", "kubernetes context to use")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "namespace to scan (default: all namespaces)")
-	rootCmd.PersistentFlags().StringVarP(&outputFmt, "output", "o", "table", "output format: table, json, sarif")
+	rootCmd.PersistentFlags().StringVarP(&outputFmt, "output", "o", "table", "output format: table, json, sarif, markdown")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
 
 	_ = viper.BindPFlag("kubeconfig", rootCmd.PersistentFlags().Lookup("kubeconfig"))
@@ -67,6 +70,8 @@ func init() {
 	_ = viper.BindPFlag("ai.model", rootCmd.PersistentFlags().Lookup("ai-model"))
 	_ = viper.BindPFlag("ai.apikey", rootCmd.PersistentFlags().Lookup("ai-api-key"))
 	_ = viper.BindPFlag("ai.endpoint", rootCmd.PersistentFlags().Lookup("ai-endpoint"))
+	_ = rootCmd.RegisterFlagCompletionFunc("output", completeValues(sortedKeys(validOutputs), false))
+	_ = rootCmd.RegisterFlagCompletionFunc("ai-provider", completeValues([]string{"openai", "ollama"}, false))
 }
 
 func initConfig() error {

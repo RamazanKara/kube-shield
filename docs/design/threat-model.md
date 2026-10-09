@@ -38,7 +38,7 @@ Suppressed findings are removed from exit-code decisions but remain present in J
 
 ## Release Integrity
 
-The tag-triggered workflow is configured to build release artifacts with signatures and attestations. Publication and verification must be checked for each release. Verification instructions are documented in the README and release runbook.
+The single CI workflow checks code and documentation without publishing. Local release builds produce unsigned binaries and SHA256 checksums. Any publishing, signing, or attestation step requires a separate maintainer action and verification; checksums alone do not establish publisher identity. Local preparation and verification instructions are documented in the README and release runbook.
 
 The CI workflow runs lint, race-enabled tests, and a build on main pushes or manual dispatch. Dependency updates, vulnerability checks, E2E tests, and release checks run locally. GitHub Actions is currently unavailable due to billing; local make targets are the gate.
 

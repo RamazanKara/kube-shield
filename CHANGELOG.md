@@ -4,6 +4,11 @@ All notable changes to kube-shield are tracked here.
 
 ## Unreleased
 
+- Adds `scan --output markdown` for reviewable reports, including remediation, severity summaries, incomplete-scan warnings, and suppression reasons and expiry dates. Escapes Markdown/HTML in report text and preserves existing filtering and exit behavior.
+- Adds offline `config validate FILE` with YAML line/column diagnostics for unknown or duplicate keys, types, supported values, and positive timeouts. Existing scan configuration loading and precedence are unchanged.
+- Completes output formats, severity, AI providers, comma-separated scanners/categories, and rule IDs in bash, zsh, fish, and PowerShell using local metadata.
+- Consolidates automation into one check-only CI workflow and adds local formatting, Staticcheck, fuzzing, vulnerability, documentation, and release targets. Race tests run when cgo is enabled; local release binaries include `SHA256SUMS`. Publishing is now manual while GitHub Actions is unavailable.
+
 ## v2.0.0 - 2026-10-07
 
 - **Breaking:** aligns the API-checkable CIS Policies checks with CIS Kubernetes Benchmark 2.0.x, renaming `CIS-4.*` IDs to Section 5 IDs and correcting `cisRef` and standards metadata. The output ID changes require a major release after v1.1.0.

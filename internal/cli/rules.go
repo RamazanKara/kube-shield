@@ -45,9 +45,10 @@ var rulesListCmd = &cobra.Command{
 }
 
 var rulesShowCmd = &cobra.Command{
-	Use:   "show CHECK_ID",
-	Short: "Show one built-in rule",
-	Args:  cobra.ExactArgs(1),
+	Use:               "show CHECK_ID",
+	Short:             "Show one built-in rule",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeRules,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateRulesOutput(); err != nil {
 			return err
@@ -91,6 +92,7 @@ var rulesShowCmd = &cobra.Command{
 
 func init() {
 	rulesCmd.PersistentFlags().StringVar(&rulesOutput, "output", "table", "output format: table or json")
+	_ = rulesCmd.RegisterFlagCompletionFunc("output", completeValues([]string{"table", "json"}, false))
 	rulesCmd.AddCommand(rulesListCmd)
 	rulesCmd.AddCommand(rulesShowCmd)
 	rootCmd.AddCommand(rulesCmd)

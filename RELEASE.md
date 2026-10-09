@@ -1,143 +1,107 @@
-# Release Process
+# Local Release Preparation
 
-This runbook is for maintainers publishing a new kube-shield version. It covers the human checks around the automated release workflow.
-
-The tag-triggered workflow is configured to publish the following; verify each output after a successful release:
-
-- GitHub release archives for Linux, macOS, and Windows.
-- `checksums.txt`, SBOMs, and Sigstore signature bundles.
-- GitHub artifact attestations.
-- GHCR container images tagged as `vX.Y.Z`, `X.Y.Z`, and `latest`.
-- Helm OCI chart at `oci://ghcr.io/ramazankara/charts/kube-shield`.
-- Homebrew cask in `RamazanKara/homebrew-tap`.
-
-Public release tags are immutable. If a release is already public, ship follow-up fixes as the next patch version.
-
-## Release Principles
-
-- Keep scanner behavior, check IDs, output schemas, and exit-code behavior stable within a release line.
-- Prefer a patch release over rewriting any tag that already has a public GitHub release.
-- Run local packaging checks before pushing a tag; let GitHub Actions handle keyless signing and attestations.
-- Verify every install channel after the workflow succeeds.
+GitHub Actions is unavailable. The repository has one check-only workflow; it does not publish releases, containers, charts, or the documentation site. Run the local gates and prepare binaries before a maintainer decides what to publish. No commands in this runbook commit, tag, push, or publish.
 
 ## Prerequisites
 
-- `HOMEBREW_TAP_TOKEN` repository secret with write access to `RamazanKara/homebrew-tap`.
-- GitHub Actions permissions for `contents`, `packages`, `id-token`, and `attestations`.
-- Public GHCR packages for the image and chart after first publication.
-- Local `make lint`, `make test`, and `make build` results reviewed before tagging. GitHub Actions is currently unavailable due to billing.
-- Local tools for dry-runs: Go, Docker, Helm, GoReleaser, Syft, and golangci-lint.
+- Go 1.26.9, Git, GNU make, and a POSIX shell. On Windows, use Git Bash or w64devkit with `make`, `sh`, and `sha256sum` on `PATH`.
+- golangci-lint v2.12.2 (includes Staticcheck) and govulncheck v1.8.0.
+- Python with `pip install -r requirements-docs.txt` for documentation checks.
+- A C compiler if `go env CGO_ENABLED` is `1`; race tests require cgo. With cgo disabled, `make test` prints the race skip and runs normal tests.
 
-## Version Prep
-
-Choose the next version (replace `X.Y.Z` with the actual release version):
+Install the pinned Go check tools if needed:
 
 ```shell
-VERSION=X.Y.Z
-TAG="v${VERSION}"
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
 ```
 
-Update versioned files before tagging:
-
-- `deploy/helm/Chart.yaml`: `version` and `appVersion`.
-- `CHANGELOG.md`: move user-facing changes from `Unreleased` under the new version and date.
-- Generated scanner docs: run `go generate ./...` after any rule catalog changes.
-- README install, Docker, Helm, and verification examples when the latest published version changes.
-- Any scanner counts or check severities if scanner behavior changed.
-
-Before tagging, confirm `main` contains only changes intended for the release:
+## Required Local Checks
 
 ```shell
-git fetch origin main --tags
-git switch main
-git pull --ff-only
-git status --short
-git log --oneline -5
+make fmt-check vet staticcheck lint
+make test fuzz vuln
+make build docs
+git diff --check
 ```
 
-## Required Checks
+Review the real output and any skipped checks. `make fuzz` exercises each parser target for ten seconds with two workers. `make vuln` needs access to the Go vulnerability database. Cluster E2E tests (`make test-e2e`) additionally need Docker, kubectl, and kind; they are required when scanner or Kubernetes client behavior changes.
 
-Run these before pushing a tag:
+Before a release, review `CHANGELOG.md` under `Unreleased`, CLI/config compatibility, and version metadata. Move changelog entries to the chosen release version/date only when publishing is approved. Keep public tags immutable.
+
+## Build Binaries and Checksums
+
+From a POSIX shell, including Git Bash on Windows:
 
 ```shell
-go test ./...
-go test -race ./...
-go vet ./...
-golangci-lint run ./...
-go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
-go generate ./...
-go test -race -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out | tail -n 1
-goreleaser check
-goreleaser release --snapshot --clean --skip=publish,sign
-docker build -f Dockerfile -t kube-shield:release-check .
-docker run --rm kube-shield:release-check version
-helm lint deploy/helm
-helm template kube-shield deploy/helm
-make test-e2e
+make release-local VERSION=2.0.1-dev
 ```
 
-Run `make release-check` and `make release-snapshot` locally; there is no release dry-run workflow. Local GoReleaser checks skip signing because keyless signing and attestations require GitHub OIDC.
+This builds the host platform with cgo disabled and `-trimpath`, embeds version/commit/UTC build date, and writes a platform-named binary plus `dist/local/SHA256SUMS`. Windows amd64 produces `dist/local/kube-shield_windows_amd64.exe`. The version defaults to `git describe --tags --always --dirty`; a dirty checkout remains identifiable when using that default. These are unsigned local binaries, not attestations or published archives.
 
-## Publish The Tag
+Go can cross-build without a C compiler. To prepare the same six platforms as the archive configuration:
 
 ```shell
-git fetch origin main --tags
-git switch main
-git pull --ff-only
-git status --short
-git tag "${TAG}"
-git push origin "refs/tags/${TAG}"
+for os in linux darwin windows; do
+  for arch in amd64 arm64; do
+    GOOS="$os" GOARCH="$arch" make release-local VERSION=2.0.1-dev
+  done
+done
 ```
 
-Watch the workflow:
+Each invocation updates `SHA256SUMS` for all `kube-shield_*` files currently in `dist/local/`. Review that directory for older binaries before sharing it. Cross-building verifies compilation; it does not test execution on the target OS.
+
+From PowerShell with the prerequisite tools on `PATH`:
+
+```powershell
+make release-local VERSION=2.0.1-dev
+.\dist\local\kube-shield_windows_amd64.exe version
+```
+
+Override `COMMIT` and `DATE` in the make invocation when a fixed build identity is needed, for example `DATE=2026-10-09T00:00:00Z`. Keep those values consistent across platforms.
+
+## Verify SHA256SUMS
+
+Linux or Git Bash/w64devkit:
 
 ```shell
-gh run list --repo RamazanKara/kube-shield --workflow Release --limit 5
-gh run watch <run-id> --repo RamazanKara/kube-shield --exit-status
+cd dist/local
+sha256sum -c SHA256SUMS
 ```
 
-## Post-release Verification
-
-These mirror the user-facing commands in the README's "Release Verification" section, parameterized for maintainers. Replace `X.Y.Z` with the published version:
+macOS:
 
 ```shell
-VERSION=X.Y.Z
-TAG="v${VERSION}"
-
-gh release view "${TAG}" --repo RamazanKara/kube-shield
-gh release download "${TAG}" --repo RamazanKara/kube-shield \
-  --pattern checksums.txt \
-  --pattern checksums.txt.sigstore \
-  --pattern "kube-shield_${VERSION}_linux_amd64.tar.gz"
-
-gh attestation verify "kube-shield_${VERSION}_linux_amd64.tar.gz" \
-  --repo RamazanKara/kube-shield
-
-cosign verify-blob --bundle checksums.txt.sigstore \
-  --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  checksums.txt
-
-docker pull "ghcr.io/ramazankara/kube-shield:${TAG}"
-docker pull "ghcr.io/ramazankara/kube-shield:${VERSION}"
-docker pull ghcr.io/ramazankara/kube-shield:latest
-docker run --rm "ghcr.io/ramazankara/kube-shield:${TAG}" version
-
-cosign verify "ghcr.io/ramazankara/kube-shield:${TAG}" \
-  --certificate-identity-regexp 'https://github.com/RamazanKara/kube-shield/.github/workflows/release.yml@refs/tags/v.*' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
-
-helm show chart "oci://ghcr.io/ramazankara/charts/kube-shield" --version "${VERSION}"
-brew install --cask ramazankara/tap/kube-shield
+cd dist/local
+shasum -a 256 -c SHA256SUMS
 ```
 
-Confirm the GitHub release contains archives, checksums, `.sbom.json` files, `.sigstore` files, and attestations for the release artifacts.
+PowerShell:
 
-## If Something Fails
+```powershell
+Push-Location dist/local
+try {
+  Get-Content SHA256SUMS | ForEach-Object {
+    $expected, $file = $_ -split '  ', 2
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash -ne $expected) {
+      throw "Checksum mismatch: $file"
+    }
+  }
+} finally {
+  Pop-Location
+}
+```
 
-- If the tag exists but no public GitHub release was created, fix `main`, move the tag to the fixed commit, and push the tag again.
-- If a public GitHub release exists, do not rewrite the tag. Ship a new patch version.
-- If Homebrew publishing fails after the GitHub release succeeds, fix the tap publishing issue and rerun the release workflow only after confirming artifact digests remain unchanged.
-- If signing or attestation fails, treat the release as incomplete until verification commands pass.
+Run `version`, `--help`, and `config validate` with the native binary before sharing. Keep the checksums next to the exact binaries that were checked.
+
+## Optional Packaging Checks
+
+The existing `.goreleaser.yml`, Dockerfiles, and Helm chart remain available for maintainers who need archives, images, or chart packages. These need additional tools and are separate from the Go-only local binary build:
+
+```shell
+make release-check
+make release-snapshot
+make helm-lint
+```
+
+GoReleaser snapshots require GoReleaser, Syft, and Docker. Signing and GitHub OIDC attestations are not part of this local preparation. Verify any existing published release using its supplied checksums and, where available, the signature/attestation instructions in the README. Publishing and site deployment require a separate, explicit maintainer action.

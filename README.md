@@ -15,10 +15,11 @@ Use it when you want a lightweight security pass that is easy to run, easy to re
 
 - Finds common Kubernetes posture issues without installing a controller first.
 - Groups checks into workload, CIS, RBAC, network policy, and secrets scanners.
-- Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, or an interactive TUI.
+- Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, Markdown for reviews, or an interactive TUI.
 - Supports severity thresholds and `--exit-code` so CI can fail only on the risks you care about.
 - Includes structured remediation and optional AI explanations through OpenAI or local Ollama.
-- Includes source builds and a local Helm chart; release publishing is configured in the tag-triggered workflow.
+- Validates configuration offline with line-numbered diagnostics and completes flag values and rule IDs in your shell.
+- Includes source builds, a local Helm chart, and local release binaries with SHA256 checksums.
 
 ## Scope
 
@@ -79,6 +80,12 @@ kube-shield scan --severity high
 # Emit SARIF for GitHub Code Scanning
 kube-shield scan --output sarif > results.sarif
 
+# Save a report for an issue or review
+kube-shield scan --output markdown > report.md
+
+# Check a configuration file without cluster access
+kube-shield config validate examples/.kube-shield.yaml
+
 # Fail CI when critical findings exist
 kube-shield scan --exit-code --severity critical
 
@@ -112,7 +119,7 @@ In the TUI, press `e` on a finding detail view to request an AI explanation.
 | `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Kubeconfig path |
 | `--context` | | current context | Kubernetes context |
 | `--namespace` | `-n` | all namespaces | Namespace filter |
-| `--output` | `-o` | `table` | `table`, `json`, or `sarif` |
+| `--output` | `-o` | `table` | `table`, `json`, `sarif`, or `markdown` |
 | `--verbose` | `-v` | `false` | Verbose logs |
 | `--ai-provider` | | disabled | `openai` or `ollama` |
 | `--ai-model` | | provider default | Model name |
@@ -147,6 +154,10 @@ In the TUI, press `e` on a finding detail view to request an AI explanation.
 ### `kube-shield version`
 
 Print build version, commit, and build date.
+
+### `kube-shield config validate FILE`
+
+Validate one YAML file without cluster access or configuration overrides. Unknown keys, duplicate keys, wrong types, invalid enum values, and non-positive timeouts produce errors with line numbers. Normal scan configuration loading is unchanged. See [configuration validation](docs/reference/configuration.md#validate-a-file).
 
 ## Configuration
 
@@ -272,6 +283,10 @@ The chart grants `list` on core `secrets` so kube-shield can validate references
 
 ## Release Verification
 
+For local release preparation, run `make release-local`. It writes a platform-named binary and `SHA256SUMS` to `dist/local/` without publishing. See [RELEASE.md](RELEASE.md) for Windows, macOS, and Linux build and verification commands. The single CI workflow runs checks only; release and documentation publishing are manual.
+
+The commands below apply to existing published releases that include signatures and attestations from the former release workflow.
+
 Install `gh` with attestation support and `cosign` before running verification commands.
 
 ```bash
@@ -335,6 +350,8 @@ kube-shield completion powershell | Out-String | Add-Content $PROFILE
 ```
 
 Run `kube-shield completion <shell> --help` for shell-specific setup notes.
+
+Completions include output formats, severity, AI providers, scanner/category lists (including values after a comma), and `rules show` check IDs with descriptions. Completion uses local metadata and does not contact Kubernetes.
 
 ## Documentation
 
