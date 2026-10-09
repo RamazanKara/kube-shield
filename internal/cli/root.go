@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -21,6 +22,9 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "kube-shield",
 	Short: "Kubernetes Security Posture Manager",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return initConfig()
+	},
 	Long: `kube-shield is a Kubernetes security posture scanner for local reviews,
 CI gates, and scheduled cluster checks.
 
@@ -40,9 +44,7 @@ func Execute() error {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.kube-shield.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: $HOME/.kube-shield.yaml, then ./.kube-shield.yaml)")
 	rootCmd.PersistentFlags().StringVar(&kubeconfig, "kubeconfig", "", "path to kubeconfig file (default is $KUBECONFIG or $HOME/.kube/config)")
 	rootCmd.PersistentFlags().StringVar(&kubeContext, "context", "", "kubernetes context to use")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "namespace to scan (default: all namespaces)")
@@ -67,14 +69,13 @@ func init() {
 	_ = viper.BindPFlag("ai.endpoint", rootCmd.PersistentFlags().Lookup("ai-endpoint"))
 }
 
-func initConfig() {
+func initConfig() error {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Warning: could not determine home directory:", err)
-			return
+			return fmt.Errorf("could not determine home directory: %w", err)
 		}
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(".")
@@ -86,5 +87,11 @@ func initConfig() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
-	_ = viper.ReadInConfig()
+	if err := viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if cfgFile != "" || !errors.As(err, &notFound) {
+			return fmt.Errorf("failed to read config: %w", err)
+		}
+	}
+	return nil
 }

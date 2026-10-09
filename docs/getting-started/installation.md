@@ -1,14 +1,14 @@
 # Installation
 
-Pick the install path that matches how you want to run scans. All release artifacts are signed and accompanied by SBOMs and attestations — see [Release verification](#release-verification).
+Build this checkout with `make build`, then run `./bin/kube-shield version`. Go 1.26.9 is the pinned toolchain. On Windows, the binary is `bin/kube-shield.exe`; run `.\bin\kube-shield.exe version` from PowerShell.
+
+The release-channel commands below require published artifacts. Homebrew, container execution, signatures, and attestations were not verified in this maintenance pass; check the selected release before installing.
 
 ## Homebrew
 
 ```bash
 brew install --cask ramazankara/tap/kube-shield
 ```
-
-Homebrew also installs shell completions automatically.
 
 ## Go
 
@@ -20,15 +20,15 @@ go install github.com/RamazanKara/kube-shield/v2/cmd/kube-shield@latest
 
 ```bash
 docker run --rm \
-  -v ~/.kube:/home/kubeshield/.kube:ro \
-  ghcr.io/ramazankara/kube-shield:latest scan
+  -v "$HOME/.kube:/kube:ro" \
+  ghcr.io/ramazankara/kube-shield:latest scan --kubeconfig /kube/config
 ```
 
-Images are published to `ghcr.io/ramazankara/kube-shield` for `linux/amd64` and `linux/arm64`.
+The release workflow is configured to publish images to `ghcr.io/ramazankara/kube-shield` for `linux/amd64` and `linux/arm64`.
 
 ## Binary archives
 
-Download Linux, macOS, and Windows archives from the [GitHub releases page](https://github.com/RamazanKara/kube-shield/releases). Each release includes checksums, SBOMs, and Sigstore signature bundles.
+Download Linux, macOS, and Windows archives from the [GitHub releases page](https://github.com/RamazanKara/kube-shield/releases). Check the selected release for checksums, SBOMs, and Sigstore signature bundles.
 
 ## Helm (in-cluster scheduled scans)
 

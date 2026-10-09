@@ -13,7 +13,7 @@ Use it when you want a lightweight security pass that is easy to run, easy to re
 - Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, or an interactive TUI.
 - Supports severity thresholds and `--exit-code` so CI fails only on the risks you care about.
 - Includes structured remediation and optional AI explanations through OpenAI or local Ollama.
-- Ships signed release archives, SBOMs, attestations, GHCR images, an OCI Helm chart, and a Homebrew cask.
+- Includes source builds and a local Helm chart; release publishing is configured in the tag-triggered workflow.
 
 ## Scope
 
@@ -22,7 +22,7 @@ kube-shield checks Kubernetes API-visible configuration. It does not replace run
 ## Get started
 
 - [Installation](getting-started/installation.md) — Homebrew, Go, Docker, or signed archives.
-- [Quick start](getting-started/quickstart.md) — your first scan in under a minute.
+- [Quick start](getting-started/quickstart.md) — your first scan.
 - [Recipes](guides/recipes.md) — CI gates, namespace audits, RBAC drift, secret hygiene.
 - [CI/CD integration](guides/ci-cd.md) — GitHub Actions, GitLab CI, Jenkins.
 

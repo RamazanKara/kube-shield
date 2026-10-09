@@ -19,7 +19,7 @@ When upgrading from v1.x to v2.0.0, migrate CIS `checkId` values and regenerate 
 
 ## File format
 
-Match a finding by `checkId` and/or `fingerprint`, optionally narrowed to a specific resource. Every entry requires a unique `id`, a `reason`, and an `expires` date.
+Match a finding by `checkId` and/or `fingerprint`, optionally narrowed to a specific resource. Every entry requires a unique `id`, a `reason`, and an `expires` date. Unknown fields, duplicate IDs, and multiple YAML documents are rejected. An empty `suppressions: []` list is valid.
 
 ```yaml
 suppressions:

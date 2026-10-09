@@ -12,6 +12,7 @@ import (
 )
 
 type runtimeScanner struct {
+	err      error
 	name     string
 	category engine.Category
 }
@@ -20,6 +21,9 @@ func (s runtimeScanner) Name() string              { return s.name }
 func (s runtimeScanner) Category() engine.Category { return s.category }
 func (s runtimeScanner) Description() string       { return "runtime test scanner" }
 func (s runtimeScanner) Scan(ctx context.Context, client kubernetes.Interface, namespace string) (*engine.ScanResult, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
 	return &engine.ScanResult{
 		Scanner: s.name,
 		Findings: []engine.Finding{{

@@ -6,7 +6,8 @@ Security fixes are provided for the latest released version of kube-shield.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.x | Yes |
+| 2.x | Yes |
+| 1.x | No |
 | 0.x | No |
 
 ## Reporting Vulnerabilities

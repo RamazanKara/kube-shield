@@ -34,7 +34,9 @@ Before changing code, skim the relevant reference:
 
 ## Development Checks
 
-Run these before opening a pull request:
+GitHub Actions is currently unavailable due to billing. Use `make lint`, `make test`, and `make build` locally as the gate. The test target includes `-race`; it needs a C compiler.
+
+Additional development commands:
 
 ```shell
 gofmt -s -w .

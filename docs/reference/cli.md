@@ -4,11 +4,11 @@
 
 ## Global flags
 
-These apply to all commands.
+These flags are inherited by subcommands; connection settings are used by `scan` and `dashboard`. `rules` supports only table and JSON output.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--config` | | `$HOME/.kube-shield.yaml` | Config file path |
+| `--config` | | `$HOME/.kube-shield.yaml`, then `./.kube-shield.yaml` | Config file path |
 | `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Kubeconfig path |
 | `--context` | | current context | Kubernetes context |
 | `--namespace` | `-n` | all namespaces | Namespace filter |
@@ -41,7 +41,7 @@ Launches the interactive terminal UI.
 |------|---------|-------------|
 | `--scanners` | all scanners | Comma-separated scanners to run |
 
-See [Output & display](../user-guide/output-and-display.md) for keybindings.
+Dashboard currently displays all severities and does not apply scan suppressions or category filters. The configured timeout applies to the initial scan; refresh uses a five-minute timeout. See [Output & display](../user-guide/output-and-display.md) for keybindings.
 
 ## `kube-shield rules`
 

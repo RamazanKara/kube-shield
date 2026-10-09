@@ -228,7 +228,7 @@ func checkBinding(roleRef rbacv1.RoleRef, subjects []rbacv1.Subject, bindingName
 	}
 
 	// Check for cluster-admin binding
-	if roleRef.Name == "cluster-admin" {
+	if roleRef.Kind == "ClusterRole" && roleRef.Name == "cluster-admin" {
 		for _, subj := range subjects {
 			if subj.Kind == "ServiceAccount" {
 				findings = append(findings, engine.Finding{

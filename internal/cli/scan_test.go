@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -116,10 +118,13 @@ func scanCommandConfig(output string) *config.Config {
 	}
 }
 
-func installRunScanRuntime(t *testing.T, cfg *config.Config, findings []engine.Finding) func() {
+func installRunScanRuntime(t *testing.T, cfg *config.Config, findings []engine.Finding, extra ...engine.Scanner) func() {
 	t.Helper()
 	registry := engine.NewRegistry()
 	registry.Register(scanCommandScanner{findings: findings})
+	for _, scanner := range extra {
+		registry.Register(scanner)
+	}
 	old := prepareScanRuntimeFunc
 	prepareScanRuntimeFunc = func(cmd *cobra.Command, applyOverrides func(changedFlags, *config.Config), validate func(*config.Config) error) (*scanRuntime, error) {
 		return &scanRuntime{
@@ -168,4 +173,34 @@ func captureStdoutStderr(t *testing.T, fn func() error) (string, string, error) 
 		t.Fatalf("read stderr: %v", err)
 	}
 	return string(stdout), string(stderr), runErr
+}
+
+func TestRunScanPartialResults(t *testing.T) {
+	for _, output := range []string{"table", "json", "sarif"} {
+		for _, filtered := range []bool{false, true} {
+			t.Run(output+"/filtered="+fmt.Sprint(filtered), func(t *testing.T) {
+				cfg := scanCommandConfig(output)
+				cfg.Scanners = nil
+				cfg.ExitCode = true
+				if filtered {
+					cfg.Categories = []string{"secrets"}
+				}
+				restore := installRunScanRuntime(t, cfg, []engine.Finding{scanCommandFinding()}, runtimeScanner{name: "rbac", err: errors.New("forbidden")})
+				defer restore()
+				stdout, _, err := captureStdoutStderr(t, func() error { return runScan(&cobra.Command{}, nil) })
+				if !errors.Is(err, engine.ErrPartialResults) || !strings.Contains(err.Error(), "forbidden") {
+					t.Fatalf("expected scanner failure even with filtering, got %v", err)
+				}
+				if stdout == "" {
+					t.Fatal("partial report was discarded")
+				}
+				if !filtered && !strings.Contains(stdout, "WL-010") {
+					t.Fatalf("completed scanner findings missing: %s", stdout)
+				}
+				if output == "table" && (!strings.Contains(stdout, "Scan incomplete") || strings.Contains(stdout, "looks good")) {
+					t.Fatalf("misleading partial report: %s", stdout)
+				}
+			})
+		}
+	}
 }

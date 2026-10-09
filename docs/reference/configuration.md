@@ -10,7 +10,7 @@ A value set by a higher-precedence source overrides lower ones. For example, `--
 
 ## Config file
 
-kube-shield looks for `.kube-shield.yaml` in the current directory and then your home directory. Override the path with `--config`.
+kube-shield looks for `.kube-shield.yaml` in your home directory and then the current directory. Override the path with `--config`. Missing explicit files and unreadable or malformed files cause an error.
 
 ```yaml
 context: ""

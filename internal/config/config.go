@@ -71,8 +71,8 @@ func Load() *Config {
 	if s := normalizeStringSlice(viper.GetStringSlice("scanners")); len(s) > 0 {
 		cfg.Scanners = s
 	}
-	if d := viper.GetDuration("timeout"); d > 0 {
-		cfg.Timeout = d
+	if viper.IsSet("timeout") {
+		cfg.Timeout = viper.GetDuration("timeout")
 	}
 	if viper.IsSet("exit-code") {
 		cfg.ExitCode = viper.GetBool("exit-code")

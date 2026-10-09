@@ -17,6 +17,8 @@ kube-shield scan -o json | jq '.summary'
 kube-shield scan -o sarif > results.sarif
 ```
 
+JSON severities are numeric: Info=0, Low=1, Medium=2, High=3, Critical=4. The `summary.bySeverity` keys use the same numbers as strings.
+
 ## Interactive dashboard (TUI)
 
 ```bash
@@ -38,7 +40,7 @@ kube-shield dashboard
 
 ## Shell completion
 
-kube-shield ships completion scripts for bash, zsh, fish, and PowerShell. Homebrew installs them automatically. For other install methods:
+kube-shield ships completion scripts for bash, zsh, fish, and PowerShell. For other install methods:
 
 ```bash
 # bash (current shell)

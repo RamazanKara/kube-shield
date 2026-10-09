@@ -1,6 +1,7 @@
 package report
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,8 +16,19 @@ import (
 // TableWriter writes findings in a colored table format.
 func TableWriter(w io.Writer, report *engine.Report) error {
 	decorated := useDecorations(w)
+	buffer := bufio.NewWriter(w)
+	w = buffer
+	incomplete := false
+	for _, result := range report.Results {
+		if result.Error != nil {
+			incomplete = true
+			_, _ = fmt.Fprintf(w, "Scan incomplete: %s scanner failed: %v\n", result.Scanner, result.Error)
+		}
+	}
 	if len(report.Findings) == 0 {
-		if decorated {
+		if incomplete {
+			_, _ = fmt.Fprintln(w, "No findings reported by completed scanners.")
+		} else if decorated {
 			_, _ = fmt.Fprintln(w, "\n✅ No security findings detected! Your cluster looks good.")
 		} else {
 			_, _ = fmt.Fprintln(w, "\nNo security findings detected. Your cluster looks good.")
@@ -24,7 +36,7 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 		if report.Summary.SuppressedTotal > 0 {
 			_, _ = fmt.Fprintf(w, "Suppressed Findings: %d\n", report.Summary.SuppressedTotal)
 		}
-		return nil
+		return buffer.Flush()
 	}
 
 	// Sort findings by severity (critical first)
@@ -74,7 +86,7 @@ func TableWriter(w io.Writer, report *engine.Report) error {
 	writeSeveritySummary(w, report, decorated)
 	_, _ = fmt.Fprintln(w)
 
-	return nil
+	return buffer.Flush()
 }
 
 // JSONWriter writes findings as JSON.
@@ -113,7 +125,7 @@ func SARIFWriter(w io.Writer, report *engine.Report) error {
 
 func buildSARIFRules(findings []engine.Finding) []map[string]interface{} {
 	seen := make(map[string]bool)
-	var rules []map[string]interface{}
+	rules := make([]map[string]interface{}, 0)
 
 	for _, f := range findings {
 		if seen[f.CheckID] {
@@ -153,7 +165,7 @@ func buildSARIFRules(findings []engine.Finding) []map[string]interface{} {
 }
 
 func buildSARIFResults(findings []engine.Finding) []map[string]interface{} {
-	var results []map[string]interface{}
+	results := make([]map[string]interface{}, 0)
 
 	for _, f := range findings {
 		result := map[string]interface{}{
@@ -171,14 +183,8 @@ func buildSARIFResults(findings []engine.Finding) []map[string]interface{} {
 					},
 				},
 			},
-			"fixes": []map[string]interface{}{
-				{
-					"description": map[string]string{
-						"text": f.Remediation,
-					},
-				},
-			},
 			"properties": map[string]interface{}{
+				"remediation": f.Remediation,
 				"fingerprint": f.Fingerprint,
 				"confidence":  f.Confidence,
 				"category":    f.Category,

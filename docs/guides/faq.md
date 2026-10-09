@@ -10,7 +10,7 @@ Not by default. Secret checks use pod specs and metadata-only Secret inventory. 
 
 ## Does the AI feature send my data anywhere?
 
-Only if you enable it. AI is off by default. When enabled, finding metadata (not Secret values) is sent to the configured provider; with the `ollama` provider it stays on your own infrastructure. See [AI explanations](../user-guide/ai-explanations.md).
+Only if you enable it. AI is off by default. When enabled, finding metadata (not Secret values) is sent to the configured provider; with the `ollama` provider data is sent to the configured endpoint. See [AI explanations](../user-guide/ai-explanations.md).
 
 ## What does kube-shield *not* do?
 
@@ -26,7 +26,7 @@ Add an entry to a [suppressions file](../user-guide/suppressions.md) with a reas
 
 ## What permissions does it need?
 
-Read access to pods, RBAC objects, network policies, namespaces, and Secret metadata. The [Helm chart](https://github.com/RamazanKara/kube-shield/blob/main/deploy/helm/README.md) ships a least-privilege `ClusterRole`.
+Read access to pods, RBAC objects, network policies, namespaces, and Secret metadata. The [Helm chart](https://github.com/RamazanKara/kube-shield/blob/main/deploy/helm/README.md) ships a read-only `ClusterRole`.
 
 ## How does kube-shield compare to kube-bench, Polaris, or kubesec?
 

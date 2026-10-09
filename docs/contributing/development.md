@@ -4,12 +4,14 @@ This guide is for contributors changing code, scanner behavior, packaging, or do
 
 ## Prerequisites
 
-- Go 1.26.8 (the toolchain pinned in `go.mod` and CI)
+- Go 1.26.9 (the toolchain pinned in `go.mod` and CI)
 - Docker
 - kubectl
 - kind, for E2E tests
 - Helm, for chart validation
-- golangci-lint, for lint checks
+- GNU make and a POSIX shell (Git Bash or WSL on Windows)
+- A C compiler for Go race tests (GCC on Windows)
+- golangci-lint v2.12.2, for lint checks
 - GoReleaser and Syft, for release snapshots
 
 ## Quick Start
@@ -21,6 +23,8 @@ go mod download
 make build
 ./bin/kube-shield scan
 ```
+
+Windows builds produce `bin/kube-shield.exe`. Use Git Bash or WSL for the shell examples and make targets.
 
 If you do not have a cluster available, you can still run unit tests, linting, docs checks, and release snapshot validation. E2E tests create their own kind cluster.
 
@@ -58,7 +62,7 @@ go tool cover -func=coverage.out | tail -n 1
 go tool cover -html=coverage.out
 ```
 
-The total coverage gate is 80%.
+Compare package and total coverage before and after changes; CI runs race-enabled tests without a coverage threshold.
 
 Run these for any change that touches scanner logic, config precedence, report output, CLI validation, or TUI rendering.
 
@@ -163,11 +167,11 @@ The tape runs [docs/demo/tui_demo.go](../demo/tui_demo.go) and writes [docs/asse
 
 ## CI/CD
 
-- `ci.yml`: unit/race tests, coverage gate, lint, security checks, and build matrix.
-- `e2e.yml`: kind-based E2E tests.
-- `scorecard.yml`: OpenSSF Scorecard with SARIF upload.
-- `release-dry-run.yml`: GoReleaser, Docker, SBOM, and Helm snapshot validation.
-- `release.yml`: tag-triggered publishing for GitHub releases, GHCR images, Helm OCI chart, signatures, attestations, and Homebrew cask.
+- `ci.yml`: one lint/test/build job on pushes to main and `workflow_dispatch`.
+- `release.yml`: existing tag-triggered publishing.
+- `docs.yml`: existing docs build and Pages deployment.
+
+GitHub Actions is currently unavailable due to billing. Run `make lint`, `make test`, and `make build` locally as the gate. E2E and release snapshot checks remain local make targets.
 
 ## Code Style
 

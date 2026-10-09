@@ -26,9 +26,9 @@ jobs:
       - name: Run kube-shield
         id: scan
         run: |
-          docker run --rm -v "$HOME/.kube:/home/kubeshield/.kube:ro" \
+          docker run --rm -v "$HOME/.kube:/kube:ro" \
             ghcr.io/ramazankara/kube-shield:latest \
-            scan --output sarif --exit-code --severity critical \
+            scan --kubeconfig /kube/config --output sarif --exit-code --severity critical \
             > kube-shield.sarif || echo "gate_failed=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload SARIF

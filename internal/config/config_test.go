@@ -154,3 +154,21 @@ func TestLoadDefaults(t *testing.T) {
 		t.Errorf("expected default timeout 5m, got %v", cfg.Timeout)
 	}
 }
+
+func TestLoadTimeoutValidation(t *testing.T) {
+	for _, tt := range []struct {
+		value string
+		want  time.Duration
+	}{
+		{"5s", 5 * time.Second}, {"0s", 0}, {"-1s", -time.Second}, {"invalid", 0},
+	} {
+		t.Run(tt.value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.Set("timeout", tt.value)
+			if got := Load().Timeout; got != tt.want {
+				t.Errorf("timeout = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}

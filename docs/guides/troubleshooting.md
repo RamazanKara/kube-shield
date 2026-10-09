@@ -12,12 +12,13 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 
 ## "The connection to the server ... was refused" / "no configuration has been provided"
 
-kube-shield uses the same kubeconfig resolution as `kubectl`:
+kube-shield resolves cluster credentials as follows:
 
-1. `--kubeconfig` flag, then `$KUBECONFIG`, then `~/.kube/config`.
-2. `--context` selects the context; otherwise the current context is used.
+1. `--kubeconfig` selects one file. Otherwise `$KUBECONFIG` is a path list (colon-separated on Unix, semicolon-separated on Windows), then `~/.kube/config`.
+2. In-cluster credentials are used when no kubeconfig or context override is supplied.
+3. `--context` selects the context; otherwise the current context is used.
 
-Confirm `kubectl get nodes` works first. In containers, mount your kubeconfig read-only (`-v ~/.kube:/home/kubeshield/.kube:ro`).
+Confirm `kubectl get nodes` works first. In containers, mount your kubeconfig read-only (`-v "$HOME/.kube:/kube:ro"`) and pass `--kubeconfig /kube/config`.
 
 ## "forbidden" or partial results
 
@@ -43,7 +44,7 @@ Suppressions are **fail-closed**. A scan aborts if a suppression entry is malfor
 `SEC-010` reads Secret data and is opt-in. Enable it explicitly:
 
 ```bash
-kube-shield scan --read-secret-data
+kube-shield scan --read-secret-data --severity info
 ```
 
 All other secret checks run without it, using metadata only.

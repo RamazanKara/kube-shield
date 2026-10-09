@@ -29,9 +29,9 @@ jobs:
       - name: Run kube-shield
         id: scan
         run: |
-          docker run --rm -v "$HOME/.kube:/home/kubeshield/.kube:ro" \
+          docker run --rm -v "$HOME/.kube:/kube:ro" \
             ghcr.io/ramazankara/kube-shield:latest \
-            scan --output sarif --exit-code --severity critical \
+            scan --kubeconfig /kube/config --output sarif --exit-code --severity critical \
             > kube-shield.sarif || echo "gate_failed=true" >> "$GITHUB_OUTPUT"
       - name: Upload SARIF
         if: always()
@@ -47,19 +47,16 @@ Full file: [`examples/ci/github-actions.yml`](https://github.com/RamazanKara/kub
 
 ## GitLab CI
 
+Use a shell runner with `kube-shield` installed and a file-type `KUBECONFIG` variable. The release image is distroless and cannot run GitLab shell scripts. This example archives SARIF as a file; [GitLab SAST reports](https://docs.gitlab.com/ci/yaml/artifacts_reports/#artifactsreportssast) use a different JSON format.
+
 ```yaml
 kube-shield:
   stage: test
-  image:
-    name: ghcr.io/ramazankara/kube-shield:latest
-    entrypoint: [""]
   script:
     - kube-shield scan --output sarif > kube-shield.sarif
     - kube-shield scan --exit-code --severity critical
   artifacts:
     when: always
-    reports:
-      sast: kube-shield.sarif
 ```
 
 Full file: [`examples/ci/gitlab-ci.yml`](https://github.com/RamazanKara/kube-shield/blob/main/examples/ci/gitlab-ci.yml).

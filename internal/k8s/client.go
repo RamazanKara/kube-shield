@@ -3,7 +3,6 @@ package k8s
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/metadata"
@@ -46,26 +45,15 @@ func NewClient(kubeconfigPath, contextName string) (*Client, error) {
 
 func buildConfig(kubeconfigPath, contextName string) (*rest.Config, string, error) {
 	// Try in-cluster config first
-	if kubeconfigPath == "" {
+	if kubeconfigPath == "" && contextName == "" && os.Getenv("KUBECONFIG") == "" {
 		config, err := rest.InClusterConfig()
 		if err == nil {
 			return config, "in-cluster", nil
 		}
 	}
 
-	// Resolve kubeconfig path
-	if kubeconfigPath == "" {
-		kubeconfigPath = os.Getenv("KUBECONFIG")
-	}
-	if kubeconfigPath == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, "", fmt.Errorf("could not determine home directory: %w", err)
-		}
-		kubeconfigPath = filepath.Join(home, ".kube", "config")
-	}
-
-	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath}
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.ExplicitPath = kubeconfigPath
 	overrides := &clientcmd.ConfigOverrides{}
 	if contextName != "" {
 		overrides.CurrentContext = contextName
@@ -74,7 +62,7 @@ func buildConfig(kubeconfigPath, contextName string) (*rest.Config, string, erro
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	config, err := clientConfig.ClientConfig()
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load kubeconfig from %s: %w", kubeconfigPath, err)
+		return nil, "", fmt.Errorf("failed to load kubeconfig: %w", err)
 	}
 
 	rawConfig, err := clientConfig.RawConfig()

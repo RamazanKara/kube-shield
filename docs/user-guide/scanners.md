@@ -5,7 +5,7 @@ kube-shield groups its checks into five scanners. Run a subset with `--scanners`
 | Scanner | Checks | Severity range | Focus |
 |---------|--------|----------------|-------|
 | `workload` | 17 | Critical to Info | Pod and container security posture |
-| `cis` | 14 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
+| `cis` | 23 | Critical to Low | CIS Kubernetes Benchmark API-accessible checks |
 | `rbac` | 12 | Critical to Medium | Over-permissive roles and risky bindings |
 | `netpol` | 6 | High to Medium | Missing isolation and permissive policies |
 | `secrets` | 6 | High to Info | Secret exposure and reference hygiene |
@@ -26,4 +26,4 @@ Info findings do not reduce the score, and the score is clamped to zero. Grades:
 
 ## Secret handling
 
-Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check. See the [threat model](../design/threat-model.md) for the full data-handling boundaries.
+Secret checks use pod specs and metadata-only Secret inventory by default. Secret values are never printed. `--read-secret-data` permits fetching Secret data for the opt-in `SEC-010` empty-secret check; use `--severity info` to include that finding. See the [threat model](../design/threat-model.md) for the full data-handling boundaries.

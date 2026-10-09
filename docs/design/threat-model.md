@@ -11,7 +11,7 @@ kube-shield is a client-side Kubernetes posture scanner. It reads Kubernetes API
 
 ## Kubernetes API Access
 
-kube-shield requests read-only API access. The built-in scanners inspect pods, namespaces, services, service accounts, RBAC objects, NetworkPolicies, ResourceQuotas, LimitRanges, and Secret metadata.
+kube-shield requests read-only API access. The built-in scanners inspect pods, namespaces, service accounts, RBAC objects, NetworkPolicies, and Secret metadata.
 
 The Helm chart grants `list` on core `secrets` so missing Secret references can be validated. Kubernetes RBAC does not distinguish metadata-only Secret reads from full Secret reads, so default secret checks use Kubernetes metadata-only requests for Secret inventory and pod specs for references. kube-shield does not request Secret data by default.
 
@@ -38,9 +38,9 @@ Suppressed findings are removed from exit-code decisions but remain present in J
 
 ## Release Integrity
 
-Releases are built by GitHub Actions from tags. Release archives, checksums, SBOMs, container images, and Helm charts are signed or attested through the release workflow. Verification instructions are documented in the README and release runbook.
+The tag-triggered workflow is configured to build release artifacts with signatures and attestations. Publication and verification must be checked for each release. Verification instructions are documented in the README and release runbook.
 
-Repository automation uses pinned GitHub Actions where practical, Dependabot updates, govulncheck, gosec, linting, race-enabled tests, coverage gating, E2E tests, and OpenSSF Scorecard.
+The CI workflow runs lint, race-enabled tests, and a build on main pushes or manual dispatch. Dependency updates, vulnerability checks, E2E tests, and release checks run locally. GitHub Actions is currently unavailable due to billing; local make targets are the gate.
 
 ## Non-Goals
 

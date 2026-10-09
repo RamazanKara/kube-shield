@@ -1,16 +1,6 @@
 <h1 align="center">kube-shield</h1>
 <p align="center"><strong>Kubernetes Security Posture Manager - k9s for security</strong></p>
 
-<p align="center">
-  <a href="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml"><img src="https://github.com/RamazanKara/kube-shield/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/RamazanKara/kube-shield/actions/workflows/e2e.yml"><img src="https://github.com/RamazanKara/kube-shield/actions/workflows/e2e.yml/badge.svg" alt="E2E"></a>
-  <a href="https://goreportcard.com/report/github.com/RamazanKara/kube-shield"><img src="https://goreportcard.com/badge/github.com/RamazanKara/kube-shield" alt="Go Report Card"></a>
-  <a href="https://github.com/RamazanKara/kube-shield/releases"><img src="https://img.shields.io/github/v/release/RamazanKara/kube-shield" alt="Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
-  <a href="https://codecov.io/gh/RamazanKara/kube-shield"><img src="https://codecov.io/gh/RamazanKara/kube-shield/branch/main/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://ramazankara.github.io/kube-shield/"><img src="https://img.shields.io/badge/docs-mkdocs--material-blue" alt="Docs"></a>
-</p>
-
 ---
 
 `kube-shield` is a Kubernetes security posture scanner for quick local reviews, CI gates, and scheduled cluster checks. It reads Kubernetes API objects, highlights risky workload, CIS Kubernetes Benchmark, RBAC, network policy, and secret patterns, then turns them into actionable findings.
@@ -28,7 +18,7 @@ Use it when you want a lightweight security pass that is easy to run, easy to re
 - Shows results as a readable table, JSON for pipelines, SARIF for GitHub Code Scanning, or an interactive TUI.
 - Supports severity thresholds and `--exit-code` so CI can fail only on the risks you care about.
 - Includes structured remediation and optional AI explanations through OpenAI or local Ollama.
-- Ships signed release archives, SBOMs, attestations, GHCR images, an OCI Helm chart, and a Homebrew cask.
+- Includes source builds and a local Helm chart; release publishing is configured in the tag-triggered workflow.
 
 ## Scope
 
@@ -36,7 +26,9 @@ kube-shield checks Kubernetes API-visible configuration. It does not replace run
 
 ## Install
 
-Pick the install path that matches how you want to run scans.
+Build this checkout with `make build`, then run `./bin/kube-shield version`. Go 1.26.9 is the pinned toolchain. On Windows, the binary is `bin/kube-shield.exe`; run `.\bin\kube-shield.exe version` from PowerShell.
+
+The release-channel commands below require published artifacts. Homebrew, container execution, signatures, and attestations were not verified in this maintenance pass; check the selected release before installing.
 
 Upgrading from v1.x? Review the [v2 migration notes](CHANGELOG.md#migrating-from-v1x) for renamed CIS IDs and suppression updates.
 
@@ -56,13 +48,13 @@ go install github.com/RamazanKara/kube-shield/v2/cmd/kube-shield@latest
 
 ```bash
 docker run --rm \
-  -v ~/.kube:/home/kubeshield/.kube:ro \
-  ghcr.io/ramazankara/kube-shield:v2.0.0 scan
+  -v "$HOME/.kube:/kube:ro" \
+  ghcr.io/ramazankara/kube-shield:v2.0.0 scan --kubeconfig /kube/config
 ```
 
 ### Binary Archives
 
-Download Linux, macOS, and Windows archives from the [GitHub releases page](https://github.com/RamazanKara/kube-shield/releases). Each release includes checksums, SBOMs, and Sigstore signature bundles.
+Download Linux, macOS, and Windows archives from the [GitHub releases page](https://github.com/RamazanKara/kube-shield/releases). Check the selected release for checksums, SBOMs, and Sigstore signature bundles.
 
 ## Quick Start
 
@@ -116,7 +108,7 @@ In the TUI, press `e` on a finding detail view to request an AI explanation.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--config` | | `$HOME/.kube-shield.yaml` | Config file path |
+| `--config` | | `$HOME/.kube-shield.yaml`, then `./.kube-shield.yaml` | Config file path |
 | `--kubeconfig` | | `$KUBECONFIG` or `~/.kube/config` | Kubeconfig path |
 | `--context` | | current context | Kubernetes context |
 | `--namespace` | `-n` | all namespaces | Namespace filter |
@@ -164,7 +156,7 @@ Configuration precedence is:
 CLI flags > environment variables > config file > defaults
 ```
 
-Place `.kube-shield.yaml` in the project directory or home directory:
+Configuration is read from `.kube-shield.yaml` in the home directory first, then the current directory. `--config` selects an explicit file. Unreadable or malformed files stop the command:
 
 ```yaml
 context: ""
@@ -223,7 +215,7 @@ See [docs/reference/scanners.md](docs/reference/scanners.md) for every check ID,
 
 The `cis` scanner covers the API-checkable subset of CIS Kubernetes Benchmark 2.0.x Policies recommendations. Its `CIS-5.*` check IDs align with Section 5 recommendation numbers, also carried in each rule's standards metadata and finding `cisRef` field. See the [scanner reference](docs/reference/scanners.md) for coverage and limitations.
 
-Secret checks use pod specs and metadata-only Secret inventory by default. kube-shield does not request or print Secret values unless `--read-secret-data` is set, which enables the opt-in `SEC-010` empty-secret check.
+Secret checks use pod specs and metadata-only Secret inventory by default. Secret values are never printed. `--read-secret-data` permits fetching Secret data for the opt-in `SEC-010` empty-secret check; use `--severity info` to include that finding.
 
 ## Suppressions
 
@@ -326,7 +318,7 @@ brew install --cask ramazankara/tap/kube-shield
 
 ## Shell Completion
 
-kube-shield ships completion scripts for bash, zsh, fish, and PowerShell. Homebrew installs them automatically. For other install methods, generate the script for your shell:
+kube-shield ships completion scripts for bash, zsh, fish, and PowerShell. For other install methods, generate the script for your shell:
 
 ```bash
 # bash (current shell)

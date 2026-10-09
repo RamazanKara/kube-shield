@@ -1,6 +1,6 @@
 # kube-shield Helm chart
 
-Runs kube-shield as a scheduled in-cluster security scan via a Kubernetes `CronJob`. The chart creates a least-privilege `ServiceAccount` and `ClusterRole` so kube-shield can read API objects (and list `secrets` metadata) without elevated access.
+Runs kube-shield as a scheduled in-cluster security scan via a Kubernetes `CronJob`. The chart creates a `ServiceAccount` and read-only `ClusterRole` so kube-shield can read API objects (and list `secrets` metadata) with cluster-wide read permissions.
 
 ## Install
 

@@ -8,6 +8,7 @@
 #
 # Match a finding by checkId and/or fingerprint, optionally narrowed to a
 # specific resource. Every entry requires a unique id, a reason, and an expiry.
+# Set an approved future expiry before using these examples.
 
 suppressions:
   - id: accepted-risk-2026-001
@@ -25,4 +26,4 @@ suppressions:
       kind: Namespace
       name: monitoring
     reason: Monitoring namespace is isolated at the mesh layer; NetworkPolicy rollout tracked in TICKET-123.
-    expires: 2026-09-30
+    expires: 2026-12-31

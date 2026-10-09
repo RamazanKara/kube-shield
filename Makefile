@@ -1,6 +1,6 @@
 .PHONY: build test test-e2e lint clean install run-scan run-dashboard release-check release-snapshot helm-lint
 
-BINARY_NAME=kube-shield
+BINARY_NAME=kube-shield$(shell go env GOEXE)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE    ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")

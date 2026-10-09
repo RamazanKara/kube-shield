@@ -1,13 +1,13 @@
 # AI explanations
 
-kube-shield can optionally explain high-risk findings in plain language using an LLM. AI is **disabled by default** — nothing leaves your machine unless you explicitly enable a provider.
+kube-shield can optionally explain high-risk findings in plain language using an LLM. AI is **disabled by default**. Scans contact the Kubernetes API; finding metadata is sent to an AI provider only when one is configured.
 
 ## Providers
 
 | Provider | Notes |
 |----------|-------|
 | `openai` | Sends finding context to the OpenAI API; requires an API key |
-| `ollama` | Talks to a local or self-hosted [Ollama](https://ollama.com) endpoint; no data leaves your network |
+| `ollama` | Talks to a local or self-hosted [Ollama](https://ollama.com) endpoint; data is sent to the configured endpoint |
 
 ## Enable on a scan
 

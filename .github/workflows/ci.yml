@@ -3,98 +3,25 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: Lint, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
-          go-version: "1.26.8"
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
-        with:
-          version: v2.12.2
-
-  security:
-    name: Security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: "1.26.8"
-      - name: govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
-          govulncheck ./...
-      - name: gosec
-        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 ./...
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: "1.26.8"
-      - name: Check go mod tidy
-        run: |
-          go mod tidy
-          git diff --exit-code go.mod go.sum
-      - name: Check generated docs
-        run: |
-          go generate ./...
-          git diff --exit-code docs/reference/scanners.md
-      - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
-      - name: Check coverage threshold
-        run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Total coverage: ${COVERAGE}%"
-          if ! awk -v coverage="$COVERAGE" 'BEGIN { exit !(coverage >= 80) }'; then
-            echo "::error::Coverage ${COVERAGE}% is below 80% threshold"
-            exit 1
-          fi
-      - name: Upload coverage
-        uses: codecov/codecov-action@cddd853df119a48c5be31a973f8cd97e12e35e16 # v6.0.1
-        with:
-          files: coverage.out
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint, test, security]
-    strategy:
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: "1.26.8"
+          go-version-file: go.mod
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+      - name: Lint
+        run: make lint
+      - name: Test
+        run: make test
       - name: Build
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
-        run: go build -ldflags "-s -w" -o bin/kube-shield-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/kube-shield
-      - name: Generate SBOM
-        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          artifact-name: sbom-${{ matrix.goos }}-${{ matrix.goarch }}.spdx.json
-          path: bin/
+        run: make build

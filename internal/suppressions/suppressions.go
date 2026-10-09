@@ -1,8 +1,10 @@
 package suppressions
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -52,28 +54,46 @@ func LoadFile(path string, now time.Time) ([]Suppression, error) {
 
 func parse(data []byte) ([]Suppression, error) {
 	var file File
-	fileErr := yaml.Unmarshal(data, &file)
-	if fileErr == nil && len(file.Suppressions) > 0 {
+	fileErr := decode(data, &file)
+	if fileErr == nil {
 		return file.Suppressions, nil
 	}
 
 	var list []Suppression
-	if err := yaml.Unmarshal(data, &list); err != nil {
-		if fileErr != nil {
-			return nil, fmt.Errorf("parse suppressions file: %w", fileErr)
-		}
-		return nil, fmt.Errorf("parse suppressions list: %w", err)
+	if err := decode(data, &list); err != nil {
+		return nil, fmt.Errorf("parse suppressions file: %w", fileErr)
 	}
 	return list, nil
 }
 
+func decode(data []byte, target interface{}) error {
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	if err := decoder.Decode(target); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return err
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		return errors.New("expected one suppression document")
+	}
+	return nil
+}
+
 func validate(suppressions []Suppression, now time.Time) error {
+	seen := make(map[string]bool)
 	for i := range suppressions {
 		s := &suppressions[i]
 		normalize(s)
 		if s.ID == "" {
 			return fmt.Errorf("suppression %d missing required id", i)
 		}
+		if seen[s.ID] {
+			return fmt.Errorf("duplicate suppression id %q", s.ID)
+		}
+		seen[s.ID] = true
 		if s.CheckID == "" && s.Fingerprint == "" {
 			return fmt.Errorf("suppression %q must set checkId or fingerprint", s.ID)
 		}

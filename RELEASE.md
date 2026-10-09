@@ -2,7 +2,7 @@
 
 This runbook is for maintainers publishing a new kube-shield version. It covers the human checks around the automated release workflow.
 
-Each release publishes:
+The tag-triggered workflow is configured to publish the following; verify each output after a successful release:
 
 - GitHub release archives for Linux, macOS, and Windows.
 - `checksums.txt`, SBOMs, and Sigstore signature bundles.
@@ -25,7 +25,7 @@ Public release tags are immutable. If a release is already public, ship follow-u
 - `HOMEBREW_TAP_TOKEN` repository secret with write access to `RamazanKara/homebrew-tap`.
 - GitHub Actions permissions for `contents`, `packages`, `id-token`, and `attestations`.
 - Public GHCR packages for the image and chart after first publication.
-- Branch protection or rulesets for `main` with CI, E2E, and release dry-run required.
+- Local `make lint`, `make test`, and `make build` results reviewed before tagging. GitHub Actions is currently unavailable due to billing.
 - Local tools for dry-runs: Go, Docker, Helm, GoReleaser, Syft, and golangci-lint.
 
 ## Version Prep
@@ -78,7 +78,7 @@ helm template kube-shield deploy/helm
 make test-e2e
 ```
 
-The release dry-run workflow validates snapshot packaging in GitHub Actions. Local GoReleaser checks skip signing because keyless signing and attestations require GitHub OIDC.
+Run `make release-check` and `make release-snapshot` locally; there is no release dry-run workflow. Local GoReleaser checks skip signing because keyless signing and attestations require GitHub OIDC.
 
 ## Publish The Tag
 

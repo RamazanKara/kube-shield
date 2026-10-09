@@ -33,11 +33,8 @@ Protect `main` with:
 
 - Pull request required before merge.
 - At least one approving review.
-- Required checks:
-  - CI
-  - E2E Tests
-  - Release Dry Run
-  - Scorecard
+- Review local `make lint`, `make test`, and `make build` results while GitHub Actions is unavailable due to billing.
+- Do not require removed workflows or a PR check: CI runs on main pushes and manual dispatch.
 - Branches must be up to date before merge.
 - Block force pushes and branch deletion.
 - Restrict bypass permissions to maintainers.
@@ -47,14 +44,11 @@ Protect `main` with:
 - Enable GitHub private vulnerability reporting.
 - Dependabot is intentionally disabled (no `.github/dependabot.yml`); dependencies, pinned action SHAs, and base-image digests are updated manually.
 - Enable secret scanning and push protection.
-- Confirm OpenSSF Scorecard SARIF uploads appear in GitHub code scanning.
-- CodeQL static analysis runs on pushes and pull requests (`codeql.yml`).
 
 Private vulnerability reporting should be enabled before announcing new releases publicly.
 
 ## Repository Secrets
 
-- `CODECOV_TOKEN`, if Codecov upload remains enabled.
 - `HOMEBREW_TAP_TOKEN`, with content write access to `RamazanKara/homebrew-tap`.
 
 The release workflow uses `GITHUB_TOKEN` for GitHub releases, GHCR packages, OIDC signing, and attestations.

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -102,9 +103,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	result, err := runtime.run(ctx)
-	if err != nil {
-		return fmt.Errorf("scan failed: %w", err)
+	result, scanErr := runtime.run(ctx)
+	if scanErr != nil && !errors.Is(scanErr, engine.ErrPartialResults) {
+		return fmt.Errorf("scan failed: %w", scanErr)
 	}
 
 	log.Debug("scan complete", "findings", len(result.Findings))
@@ -142,6 +143,10 @@ func runScan(cmd *cobra.Command, args []string) error {
 		if err := report.TableWriter(os.Stdout, result); err != nil {
 			return fmt.Errorf("failed to write table report: %w", err)
 		}
+	}
+
+	if scanErr != nil {
+		return fmt.Errorf("scan failed: %w", scanErr)
 	}
 
 	// Optional AI explanation for critical/high findings

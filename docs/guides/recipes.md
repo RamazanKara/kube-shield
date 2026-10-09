@@ -19,7 +19,7 @@ See [CI/CD integration](ci-cd.md) for full pipeline examples.
 kube-shield scan --namespace production --severity medium
 ```
 
-Useful for team-owned namespaces where you want a focused review without cluster-wide noise.
+Namespaced objects are limited to the selected namespace. Cluster-scoped checks, including ClusterRoles and ClusterRoleBindings, still run.
 
 ## RBAC drift detection
 
@@ -57,7 +57,7 @@ kube-shield scan -o json | jq '.summary.bySeverity'
 
 # List every critical finding's resource and title
 kube-shield scan -o json \
-  | jq -r '.findings[] | select(.severity=="CRITICAL") | "\(.resource.namespace)/\(.resource.name): \(.title)"'
+  | jq -r '.findings[]? | select(.severity==4) | "\(.resource.namespace)/\(.resource.name): \(.title)"'
 ```
 
 ## Explain findings with AI
@@ -67,4 +67,4 @@ kube-shield scan --severity high \
   --ai-provider ollama --ai-endpoint http://localhost:11434
 ```
 
-Keeps data local via Ollama. See [AI explanations](../user-guide/ai-explanations.md).
+This example sends finding metadata to the Ollama endpoint on localhost. See [AI explanations](../user-guide/ai-explanations.md).

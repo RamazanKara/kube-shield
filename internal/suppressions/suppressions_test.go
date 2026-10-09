@@ -3,6 +3,7 @@ package suppressions
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,5 +120,34 @@ func TestLoadFileAcceptsTopLevelList(t *testing.T) {
 	}
 	if len(suppressions) != 1 || suppressions[0].ID != "active" {
 		t.Fatalf("unexpected suppressions: %#v", suppressions)
+	}
+}
+
+func TestLoadFileStrictValidation(t *testing.T) {
+	entry := "  - id: accepted\n    checkId: WL-010\n    reason: migration\n    expires: 2099-01-01\n"
+	for _, tt := range []struct {
+		name, data string
+		wantErr    bool
+	}{
+		{"empty list", "suppressions: []", false},
+		{"empty top-level list", "[]", false},
+		{"unknown top-level field", "supressions: []", true},
+		{"unknown resource field", "suppressions:\n" + entry + "    resource:\n      namespce: production\n", true},
+		{"unknown entry field", "suppressions:\n" + entry + "    checkID: WL-011\n", true},
+		{"duplicate id", "suppressions:\n" + entry + entry, true},
+		{"duplicate normalized id", "suppressions:\n" + entry + strings.Replace(entry, "id: accepted", "id: ' accepted '", 1), true},
+		{"multiple documents", "suppressions:\n" + entry + "---\nsuppressions: []", true},
+		{"top-level list unknown field", strings.ReplaceAll(strings.TrimPrefix(entry, "  "), "\n  ", "\n") + "  namespce: production\n", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "suppressions.yaml")
+			if err := os.WriteFile(path, []byte(tt.data), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := LoadFile(path, time.Date(2026, 10, 9, 0, 0, 0, 0, time.UTC))
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, want error = %v", err, tt.wantErr)
+			}
+		})
 	}
 }

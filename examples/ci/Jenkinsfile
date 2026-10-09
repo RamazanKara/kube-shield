@@ -15,14 +15,14 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
                         docker run --rm \
-                          -v "$KUBECONFIG:/home/kubeshield/.kube/config:ro" \
+                          -v "$KUBECONFIG:/kube/config:ro" \
                           ghcr.io/ramazankara/kube-shield:latest \
-                          scan --output sarif > kube-shield.sarif
+                          scan --kubeconfig /kube/config --output sarif > kube-shield.sarif
 
                         docker run --rm \
-                          -v "$KUBECONFIG:/home/kubeshield/.kube/config:ro" \
+                          -v "$KUBECONFIG:/kube/config:ro" \
                           ghcr.io/ramazankara/kube-shield:latest \
-                          scan --exit-code --severity critical
+                          scan --kubeconfig /kube/config --exit-code --severity critical
                     '''
                 }
             }
